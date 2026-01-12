@@ -1,0 +1,79 @@
+
+================================================================================
+REGISTRO JDE #1:
+================================================================================
+  filial: 05
+  mesFixacao: 202512
+  peso: 21600.0
+  grupoVenda: COBRA
+  refCorretor:                                                                                                     
+  refCliente: 5900089945 - 1005256.408/1                                                                          
+  saidaNavio: 20251022
+  contrato: 394/25 
+  idProtheus: 011259
+  cliente: JDE                 
+  emissao: 20250902
+  diferencial: 54.0
+  precoFix: A
+  fixador: Importador
+  certificado: FT 
+  peneiraMTGB: 50.0
+  peneiraGrauda: 50.0
+  peneiraGrinder: 0.0
+  numeroBL: 259562977                
+  mesEmbarque: 2025/10
+  previsaoRecebimento: 20261019
+  linha: LN2   
+  descricaoQualidade: TOP GERMAN 15 UP FAIRTRADE                                                                                                                                                                              
+  valorUnitario: 444.0
+  valorTotal: 211432.13
+  pais: PAISES BAIXOS (HOLANDA)  
+  sacas: 366.10
+  sacasEntregues: 366.10
+  sacasSaldo: 0.00
+  valorFixado: 390.0
+  vendedor: MAURICIO DICUNTO                                            
+  envioAmostra: 20251028
+  aprovAmostra: 20251028
+  baixaReceber: 20251030
+
+================================================================================
+REGISTRO JDE #2:
+================================================================================
+  filial: 05
+  mesFixacao: 202509
+  peso: 108000.0
+  grupoVenda: COBRA
+  refCorretor:                                                                                                     
+  refCliente: 5900090150 - 1005256.409/1                                                                          
+  saidaNavio: 20251030
+  contrato: 163/25R
+  idProtheus: 011310
+  cliente: JDE                 
+  emissao: 20250915
+  diferencial: 6.8
+  precoFix: A
+  fixador: Exportador
+  certificado:    
+  peneiraMTGB: 100.0
+  peneiraGrauda: 0.0
+  peneiraGrinder: 0.0
+  numeroBL: 259604151                
+  mesEmbarque: 2025/10
+  previsaoRecebimento: 20261030
+  linha: LN2/3 
+  descricaoQualidade: PRIMEIRO MTGB PEAS OR FLATS                                                                                                                                                                             
+  valorUnitario: 341.1
+  valorTotal: 812156.52
+  pais: PAISES BAIXOS (HOLANDA)  
+  sacas: 1830.50
+  sacasEntregues: 1830.50
+  sacasSaldo: 0.00
+  valorFixado: 334.3
+  vendedor: MAURICIO DICUNTO                                            
+  envioAmostra: 20251031
+  aprovAmostra: 20251031
+  baixaReceber: 20251112
+
+
+Total de registros JDE: 2
