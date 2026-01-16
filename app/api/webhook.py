@@ -95,10 +95,11 @@ async def process_message_flow(phone: str, message_text: str, session_id: str):
             pass
 
 
+@router.post("/webhook")
 @router.post("/webhook/evolution")
 async def evolution_webhook(request: dict, background_tasks: BackgroundTasks):
     """
-    Endpoint webhook para Evolution API
+    Endpoint webhook para Evolution API / UAZAPI
 
     Args:
         request: Payload do webhook
