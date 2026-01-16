@@ -112,19 +112,46 @@ async def evolution_webhook(request: dict, background_tasks: BackgroundTasks):
         # DEBUG: Log completo do payload recebido
         logger.info(f"[WEBHOOK] Payload recebido: {request}")
 
-        # Valida se é mensagem
-        event_type = request.get("EventType") or request.get("event")
-        logger.info(f"[WEBHOOK] EventType detectado: {event_type}")
+        # Detecta se é UAZAPI ou Evolution API
+        is_uazapi = "EventType" in request and "message" in request
 
-        if event_type != "messages" and event_type != "messages.upsert":
-            logger.info(f"[WEBHOOK] Evento ignorado: {event_type}")
-            return {"status": "ignored", "reason": "not_a_message_event"}
+        if is_uazapi:
+            # UAZAPI format
+            logger.info(f"[WEBHOOK] Formato UAZAPI detectado")
+            event_type = request.get("EventType")
 
-        # Parse payload
-        logger.info(f"[WEBHOOK] Tentando parsear payload...")
-        payload = EvolutionWebhookPayload(**request)
-        message = payload.to_whatsapp_message()
-        logger.info(f"[WEBHOOK] Mensagem parseada: phone={message.phone_number}, text={message.text[:50] if message.text else 'None'}")
+            if event_type != "messages":
+                logger.info(f"[WEBHOOK] Evento ignorado: {event_type}")
+                return {"status": "ignored", "reason": "not_a_message_event"}
+
+            # Extrai dados do formato UAZAPI
+            msg_data = request.get("message", {})
+            chat_data = request.get("chat", {})
+
+            # Cria mensagem
+            message = WhatsAppMessage(
+                chatid=msg_data.get("chatid", ""),
+                sender=msg_data.get("sender_pn", msg_data.get("chatid", "")),
+                sender_name=msg_data.get("senderName", ""),
+                text=msg_data.get("text", msg_data.get("content", "")),
+                message_type=msg_data.get("messageType", "Conversation"),
+                message_id=msg_data.get("messageid", ""),
+                timestamp=msg_data.get("messageTimestamp", 0),
+                from_me=msg_data.get("fromMe", False)
+            )
+            logger.info(f"[WEBHOOK] Mensagem UAZAPI parseada: phone={message.phone_number}, text={message.text[:50] if message.text else 'None'}")
+        else:
+            # Evolution API format
+            logger.info(f"[WEBHOOK] Formato Evolution API detectado")
+            event_type = request.get("event")
+
+            if event_type != "messages.upsert":
+                logger.info(f"[WEBHOOK] Evento ignorado: {event_type}")
+                return {"status": "ignored", "reason": "not_a_message_event"}
+
+            payload = EvolutionWebhookPayload(**request)
+            message = payload.to_whatsapp_message()
+            logger.info(f"[WEBHOOK] Mensagem Evolution parseada: phone={message.phone_number}, text={message.text[:50] if message.text else 'None'}")
 
         # Filtros
         if message.from_me:
