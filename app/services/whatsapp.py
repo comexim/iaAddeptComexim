@@ -31,12 +31,15 @@ class WhatsAppService:
         if not phone.endswith("@s.whatsapp.net"):
             phone = f"{phone}@s.whatsapp.net"
 
-        # Evolution API v2: /message/sendText/{instance}
-        instance = settings.evolution_instance_name
-        url = f"{self.base_url}/message/sendText/{instance}"
-        headers = {"apikey": self.token}
+        # UAZAPI: /send/text
+        url = f"{self.base_url}/send/text"
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "token": self.token
+        }
         payload = {
-            "number": phone.replace("@s.whatsapp.net", ""),  # v2 não precisa do sufixo
+            "number": phone.replace("@s.whatsapp.net", ""),
             "text": text
         }
 
