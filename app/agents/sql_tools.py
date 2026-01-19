@@ -66,13 +66,16 @@ class SQLTools:
 
     def _aggregate_by_client(self, results: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
         """
-        Agrega resultados por cliente (soma sacas, valor total, conta contratos)
+        Agrega resultados por cliente com TODAS as informações relevantes:
+        - Totais: contratos, sacas, valor
+        - Médias: diferencial, preços, peneiras
+        - Listas: certificados, qualidades, países, fixadores
 
         Args:
             results: Lista de resultados SQL
 
         Returns:
-            Lista agregada por cliente
+            Lista agregada por cliente com informações completas
         """
         from collections import defaultdict
 
@@ -80,32 +83,92 @@ class SQLTools:
             "total_contratos": 0,
             "total_sacas": 0,
             "total_valor": 0,
-            "contratos": []
+            "contratos": [],
+            # Campos para calcular médias
+            "diferencial_values": [],
+            "valorUnitario_values": [],
+            "valorFixado_values": [],
+            "peneiraMTGB_values": [],
+            "peneiraGrauda_values": [],
+            "peneiraGrinder_values": [],
+            # Listas de valores distintos
+            "certificados": set(),
+            "qualidades": set(),
+            "paises": set(),
+            "fixadores": set(),
+            "linhas": set(),
+            "mesEmbarque": set(),
         })
 
         for row in results:
             cliente = row.get("cliente", "SEM CLIENTE")
+            data = aggregated[cliente]
 
-            aggregated[cliente]["total_contratos"] += 1
-            aggregated[cliente]["total_sacas"] += row.get("sacas", 0) or 0
-            aggregated[cliente]["total_valor"] += row.get("valorTotal", 0) or 0
-            aggregated[cliente]["contratos"].append(row.get("contrato", ""))
+            # Contadores e totais
+            data["total_contratos"] += 1
+            data["total_sacas"] += row.get("sacas", 0) or 0
+            data["total_valor"] += row.get("valorTotal", 0) or 0
+            data["contratos"].append(row.get("contrato", ""))
 
-        # Converte para lista
+            # Valores para médias
+            if row.get("diferencial"):
+                data["diferencial_values"].append(float(row["diferencial"]))
+            if row.get("valorUnitario"):
+                data["valorUnitario_values"].append(float(row["valorUnitario"]))
+            if row.get("valorFixado"):
+                data["valorFixado_values"].append(float(row["valorFixado"]))
+            if row.get("peneiraMTGB"):
+                data["peneiraMTGB_values"].append(float(row["peneiraMTGB"]))
+            if row.get("peneiraGrauda"):
+                data["peneiraGrauda_values"].append(float(row["peneiraGrauda"]))
+            if row.get("peneiraGrinder"):
+                data["peneiraGrinder_values"].append(float(row["peneiraGrinder"]))
+
+            # Valores distintos
+            if row.get("certificado") and str(row["certificado"]).strip():
+                data["certificados"].add(str(row["certificado"]).strip())
+            if row.get("descricaoQualidade") and str(row["descricaoQualidade"]).strip():
+                data["qualidades"].add(str(row["descricaoQualidade"]).strip())
+            if row.get("pais") and str(row["pais"]).strip():
+                data["paises"].add(str(row["pais"]).strip())
+            if row.get("fixador") and str(row["fixador"]).strip():
+                data["fixadores"].add(str(row["fixador"]).strip())
+            if row.get("linha") and str(row["linha"]).strip():
+                data["linhas"].add(str(row["linha"]).strip())
+            if row.get("mesEmbarque") and str(row["mesEmbarque"]).strip():
+                data["mesEmbarque"].add(str(row["mesEmbarque"]).strip())
+
+        # Converte para lista com cálculos finais
         result_list = []
         for cliente, data in aggregated.items():
+            # Calcula médias
+            def safe_avg(values):
+                return round(sum(values) / len(values), 2) if values else None
+
             result_list.append({
                 "cliente": cliente,
                 "total_contratos": data["total_contratos"],
                 "total_sacas": round(data["total_sacas"], 2),
                 "total_valor": round(data["total_valor"], 2),
-                "contratos": ", ".join(data["contratos"][:5])  # Primeiros 5 contratos
+                "valor_unitario_medio": safe_avg(data["valorUnitario_values"]),
+                "valor_fixado_medio": safe_avg(data["valorFixado_values"]),
+                "diferencial_medio": safe_avg(data["diferencial_values"]),
+                "peneira_mtgb_media": safe_avg(data["peneiraMTGB_values"]),
+                "peneira_grauda_media": safe_avg(data["peneiraGrauda_values"]),
+                "peneira_grinder_media": safe_avg(data["peneiraGrinder_values"]),
+                "certificados": sorted(list(data["certificados"])) if data["certificados"] else [],
+                "qualidades": sorted(list(data["qualidades"])) if data["qualidades"] else [],
+                "paises": sorted(list(data["paises"])) if data["paises"] else [],
+                "fixadores": sorted(list(data["fixadores"])) if data["fixadores"] else [],
+                "linhas": sorted(list(data["linhas"])) if data["linhas"] else [],
+                "meses_embarque": sorted(list(data["mesEmbarque"])) if data["mesEmbarque"] else [],
+                "contratos": ", ".join(data["contratos"][:10])  # Primeiros 10 contratos
             })
 
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
 
-        logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes")
+        logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes (com detalhes completos)")
         return result_list
 
     def _filter_by_client(self, results: list[Dict[str, Any]], client_name: str) -> list[Dict[str, Any]]:
@@ -195,12 +258,35 @@ Dados agregados:
 {formatted}
 
 Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS:
 - total_contratos: quantidade de contratos daquele cliente
 - total_sacas: soma de sacas de todos os contratos
-- total_valor: soma do valor total de todos os contratos
-- contratos: primeiros 5 números de contrato
+- total_valor: soma do valor total de todos os contratos (em R$)
 
-Se o usuário perguntar sobre um cliente específico, responda com base no campo "cliente" e "total_contratos"."""
+MÉDIAS:
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+
+IMPORTANTE: Você pode responder sobre QUALQUER campo listado acima. Por exemplo:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises"""
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
