@@ -171,6 +171,60 @@ class SQLTools:
         logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes (com detalhes completos)")
         return result_list
 
+    def _aggregate_orcamento(self, results: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        """
+        Agrega resultados de orçamento por grupo/categoria
+
+        Args:
+            results: Lista de resultados SQL de IA_Orcamento()
+
+        Returns:
+            Lista agregada por grupo com orcado, realizado, saldo
+        """
+        from collections import defaultdict
+
+        aggregated = defaultdict(lambda: {
+            "orcado": 0,
+            "realizado": 0,
+            "saldo": 0,
+            "registros": 0
+        })
+
+        for row in results:
+            grupo = row.get("grupo", "SEM GRUPO")
+            descricao = row.get("descricao", "").strip()
+
+            # Usa descrição como chave (mais legível que código)
+            key = descricao if descricao else grupo
+
+            aggregated[key]["orcado"] += row.get("orcado", 0) or 0
+            aggregated[key]["realizado"] += row.get("realizado", 0) or 0
+            aggregated[key]["saldo"] += row.get("saldo", 0) or 0
+            aggregated[key]["registros"] += 1
+
+        # Converte para lista
+        result_list = []
+        for categoria, data in aggregated.items():
+            # Calcula percentual realizado
+            percentual = 0
+            if data["orcado"] > 0:
+                percentual = round((data["realizado"] / data["orcado"]) * 100, 2)
+
+            result_list.append({
+                "categoria": categoria,
+                "orcado": round(data["orcado"], 2),
+                "realizado": round(data["realizado"], 2),
+                "saldo": round(data["saldo"], 2),
+                "percentual_realizado": percentual,
+                "meses_incluidos": data["registros"]
+            })
+
+        # Ordena por valor orçado (maior primeiro)
+        result_list.sort(key=lambda x: x["orcado"], reverse=True)
+
+        logger.info(f"Agregados {len(results)} registros de orçamento em {len(result_list)} categorias")
+        return result_list
+
     def _filter_by_client(self, results: list[Dict[str, Any]], client_name: str) -> list[Dict[str, Any]]:
         """
         Filtra resultados por nome do cliente (case insensitive, busca parcial)
@@ -239,17 +293,49 @@ class SQLTools:
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         if len(results) > 50 and not client_filter:
-            logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
-            aggregated = self._aggregate_by_client(results)
-
             def convert_decimals(obj):
                 if isinstance(obj, Decimal):
                     return float(obj)
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-            formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
+            # ORÇAMENTO: Agrega por categoria/grupo
+            if function_name == "IA_Orcamento":
+                logger.info(f"[AGREGAÇÃO] {len(results)} registros de orçamento, agregando por categoria...")
+                aggregated = self._aggregate_orcamento(results)
+                formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
+                return f"""Resultados da consulta {function_name} (AGREGADOS POR CATEGORIA):
+
+Total de registros SQL: {original_count}
+Total de categorias: {len(aggregated)}
+
+Dados agregados:
+{formatted}
+
+Instruções: Os dados acima são de ORÇAMENTO (budget vs realizado). Cada linha mostra:
+
+CAMPOS DISPONÍVEIS:
+- categoria: nome da categoria/grupo orçamentário
+- orcado: valor total orçado (R$)
+- realizado: valor total realizado (R$)
+- saldo: diferença entre orçado e realizado (R$)
+- percentual_realizado: percentual realizado do orçamento (%)
+- meses_incluidos: quantidade de meses incluídos nesta agregação
+
+IMPORTANTE: Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira.
+Exemplos de perguntas:
+- "Qual o orçado total?" → Some o campo "orcado"
+- "Quanto foi realizado?" → Some o campo "realizado"
+- "Qual categoria teve maior gasto?" → Ordene por "realizado"
+- "Qual o percentual realizado?" → Use "percentual_realizado" """
+
+            # VENDAS: Agrega por cliente
+            else:
+                logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
+                aggregated = self._aggregate_by_client(results)
+                formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
 
 Total de registros SQL: {original_count}
 Total de clientes: {len(aggregated)}
