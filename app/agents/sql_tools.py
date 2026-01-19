@@ -387,6 +387,82 @@ IMPORTANTE: Você pode responder sobre QUALQUER campo listado acima. Por exemplo
 
         formatted = json.dumps(results, ensure_ascii=False, indent=2, default=convert_decimals)
 
+        # Instruções específicas por tipo de função SQL
+        FUNCTION_INSTRUCTIONS = {
+            "IA_Orcamento": """
+COLUNAS DISPONÍVEIS EM ORÇAMENTO:
+- ano: ano do orçamento
+- mes: mês do orçamento (01-12)
+- grupo: código do grupo orçamentário
+- descricao: descrição da categoria/grupo
+- periodo: tipo de período (Mensal, Anual, etc)
+- orcado: valor orçado (R$)
+- realizado: valor realizado (R$)
+- saldo: diferença entre orçado e realizado (R$)
+
+IMPORTANTE: Orçamento NÃO tem contratos, sacas, clientes ou vendas. É uma previsão financeira (budget).
+Para calcular totais, some os campos orcado/realizado/saldo de todos os registros.""",
+
+            "IA_Vendas": """
+COLUNAS DISPONÍVEIS EM VENDAS:
+- filial, contrato, cliente, emissao
+- sacas, sacasEntregues, sacasSaldo
+- valorUnitario, valorTotal, valorFixado
+- diferencial, precoFix, fixador
+- certificado, peneiraMTGB, peneiraGrauda, peneiraGrinder
+- descricaoQualidade, linha, pais
+- mesEmbarque, mesFixacao, saidaNavio
+- numeroBL, previsaoRecebimento
+- envioAmostra, aprovAmostra, baixaReceber
+- peso, grupoVenda, refCorretor, refCliente, vendedor
+
+Você pode responder sobre QUALQUER um desses campos.""",
+
+            "IA_Compras": """
+COLUNAS DISPONÍVEIS EM COMPRAS:
+Verifique os campos retornados nos registros acima.
+Analise cada campo e responda com base nos dados reais.""",
+
+            "IA_ContasPagas": """
+COLUNAS DISPONÍVEIS EM CONTAS PAGAS:
+Verifique os campos retornados nos registros acima.
+Campos comuns: fornecedor, emissao, vencimento, valor, banco, etc.""",
+
+            "IA_ContasAPagar": """
+COLUNAS DISPONÍVEIS EM CONTAS A PAGAR:
+Verifique os campos retornados nos registros acima.
+Campos comuns: fornecedor, vencimento, valor, saldo, etc.""",
+
+            "IA_ContasAReceber": """
+COLUNAS DISPONÍVEIS EM CONTAS A RECEBER:
+Verifique os campos retornados nos registros acima.
+Campos comuns: cliente, vencimentoReal, valor, saldo, etc.""",
+
+            "IA_Estoque": """
+COLUNAS DISPONÍVEIS EM ESTOQUE:
+Verifique os campos retornados nos registros acima.
+Campos comuns: produto, descricao, quantidade, filial, etc.""",
+
+            "IA_SaldoBancario": """
+COLUNAS DISPONÍVEIS EM SALDO BANCÁRIO:
+Verifique os campos retornados nos registros acima.
+Campos comuns: banco, agencia, conta, saldo, moeda, etc.""",
+
+            "IA_Cotacao": """
+COLUNAS DISPONÍVEIS EM COTAÇÃO:
+Verifique os campos retornados nos registros acima.
+Campos comuns: data, produto, bolsa, preco, variacao, etc.""",
+
+            "IA_DespesaVenda": """
+COLUNAS DISPONÍVEIS EM DESPESA DE VENDA:
+Verifique os campos retornados nos registros acima.
+Campos comuns: contrato, despesa, valor, fornecedor, etc."""
+        }
+
+        # Pega instrução específica ou genérica
+        specific_instructions = FUNCTION_INSTRUCTIONS.get(function_name,
+            "Analise TODOS os campos disponíveis nos registros acima e responda com base nos dados reais.")
+
         return f"""Resultados da consulta {function_name}:
 
 Total de registros retornados pelo SQL: {original_count}
@@ -395,7 +471,9 @@ Registros nesta resposta: {len(results)}
 Dados:
 {formatted}{warning}
 
-Instruções: Analise TODOS os {len(results)} registros acima. Se o usuário perguntou sobre um cliente específico, procure pelo nome no campo "cliente" em TODOS os registros e conte quantos há."""
+{specific_instructions}
+
+Analise TODOS os {len(results)} registros acima e responda com base nos campos disponíveis."""
 
     def _validate_and_execute(
         self,
