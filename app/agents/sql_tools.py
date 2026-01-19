@@ -643,7 +643,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         Consulta orçamento vs realizado.
 
         Args:
-            periodo: Período desejado (ex: "dezembro 2025", "2025/12")
+            periodo: Período desejado (ex: "dezembro 2025", "2025/12", "2TRIM 2025")
 
         Returns:
             Dados de orçamento
@@ -651,11 +651,21 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         filters = None
         if periodo:
             parsed = date_parser.parse_natural_date(periodo)
-            if parsed and "ano" in parsed and "mes" in parsed:
-                filters = {
-                    "ano": parsed["ano"],
-                    "mes": parsed["mes"]
-                }
+            if parsed:
+                # PRIORIDADE 1: Se tem lista de meses (trimestre/semestre)
+                if "meses" in parsed and "ano" in parsed:
+                    filters = {
+                        "ano": int(parsed["ano"]),
+                        "mes": parsed["meses"]  # Lista de meses ['04','05','06']
+                    }
+                    logger.info(f"[ORÇAMENTO] Trimestre/Semestre detectado: ano={parsed['ano']}, meses={parsed['meses']}")
+                # PRIORIDADE 2: Mês único
+                elif "ano" in parsed and "mes" in parsed:
+                    filters = {
+                        "ano": int(parsed["ano"]),
+                        "mes": parsed["mes"]
+                    }
+                    logger.info(f"[ORÇAMENTO] Mês único: ano={parsed['ano']}, mes={parsed['mes']}")
 
         return self._validate_and_execute("IA_Orcamento", filters)
 

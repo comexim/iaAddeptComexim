@@ -98,8 +98,22 @@ class SQLServerClient:
         if where_filters:
             where_clauses = []
             for key, value in where_filters.items():
+                # TRATAMENTO ESPECIAL: Lista de valores (trimestres/semestres)
+                if isinstance(value, list):
+                    # Para listas, usa IN (...) ao invés de =
+                    if all(isinstance(v, str) for v in value):
+                        # Lista de strings (meses)
+                        escaped_values = [v.replace("'", "''") for v in value]
+                        values_str = ", ".join([f"'{v}'" for v in escaped_values])
+                        where_clauses.append(f"{key} IN ({values_str})")
+                    else:
+                        # Lista de números
+                        values_str = ", ".join([str(v) for v in value])
+                        where_clauses.append(f"{key} IN ({values_str})")
+                    logger.debug(f"Filtro com lista: {key} IN ({values_str})")
+
                 # TRATAMENTO ESPECIAL: Se termina com _fim, cria filtro <=
-                if key.endswith("_fim"):
+                elif key.endswith("_fim"):
                     # Remove sufixo _fim para pegar nome real do campo
                     field_name = key[:-4]  # Remove '_fim'
                     operator = "<="

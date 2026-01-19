@@ -252,6 +252,110 @@ class DateParser:
             logger.debug(f"Parseado MM/YYYY '{month}/{year}': {result}")
             return result
 
+        # Trimestres (1TRIM, 2TRIM, Q1, Q2, etc.)
+        # Padrões: "1TRIM", "2trim", "Q1", "q2", "primeiro trimestre", "1º trimestre", etc.
+        trimestre_patterns = [
+            (r'([1-4])\s*[tT][rR][iI][mM]', 'numeric'),  # 1TRIM, 2trim
+            (r'[qQ]([1-4])', 'numeric'),  # Q1, q2
+            (r'([1-4])[ºo°]\s*trimestre', 'numeric'),  # 1º trimestre, 2o trimestre
+            (r'(primeiro|segundo|terceiro|quarto)\s*trimestre', 'word'),  # primeiro trimestre
+        ]
+
+        trimestre_map = {
+            'primeiro': 1, 'segundo': 2, 'terceiro': 3, 'quarto': 4
+        }
+
+        for pattern, match_type in trimestre_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                if match_type == 'numeric':
+                    trimestre = int(match.group(1))
+                else:  # word
+                    trimestre_word = match.group(1).lower()
+                    trimestre = trimestre_map.get(trimestre_word)
+
+                if trimestre:
+                    # Tenta extrair ano do texto
+                    match_year = re.search(r'(20\d{2})', text)
+                    year = int(match_year.group(1)) if match_year else now.year
+
+                    # Mapeia trimestre para meses
+                    meses_trimestre = {
+                        1: ['01', '02', '03'],
+                        2: ['04', '05', '06'],
+                        3: ['07', '08', '09'],
+                        4: ['10', '11', '12']
+                    }
+
+                    meses = meses_trimestre[trimestre]
+                    result["ano"] = str(year)
+                    result["meses"] = meses  # Lista de meses do trimestre
+                    result["trimestre"] = trimestre
+
+                    # Calcula data_inicio e data_fim do trimestre
+                    primeiro_mes = int(meses[0])
+                    ultimo_mes = int(meses[-1])
+
+                    data_inicio = datetime(year, primeiro_mes, 1, tzinfo=TZ_SP)
+                    data_fim_temp = datetime(year, ultimo_mes, 1, tzinfo=TZ_SP)
+                    data_fim = data_fim_temp + relativedelta(months=1) - timedelta(days=1)
+
+                    result["data_inicio"] = DateParser.format_yyyymmdd(data_inicio)
+                    result["data_fim"] = DateParser.format_yyyymmdd(data_fim)
+
+                    logger.debug(f"Parseado trimestre {trimestre}/{year}: meses={meses}, data_inicio={result['data_inicio']}, data_fim={result['data_fim']}")
+                    return result
+
+        # Semestres (1SEM, 2SEM, primeiro semestre, etc.)
+        semestre_patterns = [
+            (r'([1-2])\s*[sS][eE][mM]', 'numeric'),  # 1SEM, 2sem
+            (r'([1-2])[ºo°]\s*semestre', 'numeric'),  # 1º semestre
+            (r'(primeiro|segundo)\s*semestre', 'word'),  # primeiro semestre
+        ]
+
+        semestre_map = {
+            'primeiro': 1, 'segundo': 2
+        }
+
+        for pattern, match_type in semestre_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                if match_type == 'numeric':
+                    semestre = int(match.group(1))
+                else:  # word
+                    semestre_word = match.group(1).lower()
+                    semestre = semestre_map.get(semestre_word)
+
+                if semestre:
+                    # Tenta extrair ano do texto
+                    match_year = re.search(r'(20\d{2})', text)
+                    year = int(match_year.group(1)) if match_year else now.year
+
+                    # Mapeia semestre para meses
+                    meses_semestre = {
+                        1: ['01', '02', '03', '04', '05', '06'],
+                        2: ['07', '08', '09', '10', '11', '12']
+                    }
+
+                    meses = meses_semestre[semestre]
+                    result["ano"] = str(year)
+                    result["meses"] = meses  # Lista de meses do semestre
+                    result["semestre"] = semestre
+
+                    # Calcula data_inicio e data_fim do semestre
+                    primeiro_mes = int(meses[0])
+                    ultimo_mes = int(meses[-1])
+
+                    data_inicio = datetime(year, primeiro_mes, 1, tzinfo=TZ_SP)
+                    data_fim_temp = datetime(year, ultimo_mes, 1, tzinfo=TZ_SP)
+                    data_fim = data_fim_temp + relativedelta(months=1) - timedelta(days=1)
+
+                    result["data_inicio"] = DateParser.format_yyyymmdd(data_inicio)
+                    result["data_fim"] = DateParser.format_yyyymmdd(data_fim)
+
+                    logger.debug(f"Parseado semestre {semestre}/{year}: meses={meses}, data_inicio={result['data_inicio']}, data_fim={result['data_fim']}")
+                    return result
+
         logger.warning(f"Não foi possível parsear data: {text}")
         return None
 
