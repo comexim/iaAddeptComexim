@@ -111,17 +111,18 @@ class SQLTools:
             data["contratos"].append(row.get("contrato", ""))
 
             # Valores para médias
-            if row.get("diferencial"):
+            # IMPORTANTE: Usar "is not None" ao invés de truthy check para incluir valores 0.0
+            if row.get("diferencial") is not None:
                 data["diferencial_values"].append(float(row["diferencial"]))
-            if row.get("valorUnitario"):
+            if row.get("valorUnitario") is not None:
                 data["valorUnitario_values"].append(float(row["valorUnitario"]))
-            if row.get("valorFixado"):
+            if row.get("valorFixado") is not None:
                 data["valorFixado_values"].append(float(row["valorFixado"]))
-            if row.get("peneiraMTGB"):
+            if row.get("peneiraMTGB") is not None:
                 data["peneiraMTGB_values"].append(float(row["peneiraMTGB"]))
-            if row.get("peneiraGrauda"):
+            if row.get("peneiraGrauda") is not None:
                 data["peneiraGrauda_values"].append(float(row["peneiraGrauda"]))
-            if row.get("peneiraGrinder"):
+            if row.get("peneiraGrinder") is not None:
                 data["peneiraGrinder_values"].append(float(row["peneiraGrinder"]))
 
             # Valores distintos
