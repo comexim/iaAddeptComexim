@@ -302,6 +302,13 @@ class SQLTools:
             if function_name == "IA_Orcamento":
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros de orçamento, agregando por categoria...")
                 aggregated = self._aggregate_orcamento(results)
+
+                # CALCULA TOTAIS (não deixa a IA somar manualmente para evitar erros)
+                total_orcado = sum(item.get("orcado", 0) for item in aggregated)
+                total_realizado = sum(item.get("realizado", 0) for item in aggregated)
+                total_saldo = sum(item.get("saldo", 0) for item in aggregated)
+                percentual_total = round((total_realizado / total_orcado) * 100, 2) if total_orcado > 0 else 0
+
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 return f"""Resultados da consulta {function_name} (AGREGADOS POR CATEGORIA):
@@ -309,25 +316,35 @@ class SQLTools:
 Total de registros SQL: {original_count}
 Total de categorias: {len(aggregated)}
 
-Dados agregados:
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total Orçado: R$ {total_orcado:,.2f}
+- Total Realizado: R$ {total_realizado:,.2f}
+- Total Saldo: R$ {total_saldo:,.2f}
+- Percentual Realizado: {percentual_total}%
+
+Dados por categoria:
 {formatted}
 
-Instruções: Os dados acima são de ORÇAMENTO (budget vs realizado). Cada linha mostra:
+Instruções: Os dados acima são de ORÇAMENTO (budget vs realizado).
 
-CAMPOS DISPONÍVEIS:
+CAMPOS DISPONÍVEIS POR CATEGORIA:
 - categoria: nome da categoria/grupo orçamentário
-- orcado: valor total orçado (R$)
-- realizado: valor total realizado (R$)
-- saldo: diferença entre orçado e realizado (R$)
-- percentual_realizado: percentual realizado do orçamento (%)
-- meses_incluidos: quantidade de meses incluídos nesta agregação
+- orcado: valor orçado desta categoria (R$)
+- realizado: valor realizado desta categoria (R$)
+- saldo: saldo desta categoria (R$)
+- percentual_realizado: percentual realizado desta categoria (%)
+- meses_incluidos: quantidade de registros agregados
 
-IMPORTANTE: Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira.
+IMPORTANTE:
+1. Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira.
+2. Para totais gerais, USE OS VALORES PRÉ-CALCULADOS acima. NÃO some manualmente.
+3. Os "TOTAIS GERAIS" já incluem TODAS as categorias somadas.
+
 Exemplos de perguntas:
-- "Qual o orçado total?" → Some o campo "orcado"
-- "Quanto foi realizado?" → Some o campo "realizado"
-- "Qual categoria teve maior gasto?" → Ordene por "realizado"
-- "Qual o percentual realizado?" → Use "percentual_realizado" """
+- "Qual o orçado total?" → Use "Total Orçado" dos TOTAIS GERAIS
+- "Quanto foi realizado?" → Use "Total Realizado" dos TOTAIS GERAIS
+- "Qual categoria teve maior gasto?" → Ordene as categorias por "realizado"
+- "Qual o percentual realizado?" → Use "Percentual Realizado" dos TOTAIS GERAIS"""
 
             # VENDAS: Agrega por cliente
             else:
