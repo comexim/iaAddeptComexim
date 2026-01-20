@@ -306,6 +306,39 @@ class DateParser:
                     logger.debug(f"Parseado trimestre {trimestre}/{year}: meses={meses}, data_inicio={result['data_inicio']}, data_fim={result['data_fim']}")
                     return result
 
+        # Ano completo (2025, 2025 completo, ano 2025, ano completo, etc.)
+        # Deve vir ANTES de semestres para não conflitar
+        ano_patterns = [
+            r'(20\d{2})\s*(completo|inteiro)',  # 2025 completo, 2025 inteiro
+            r'ano\s*(20\d{2})',  # ano 2025
+            r'ano\s*(completo|inteiro)',  # ano completo (usa ano atual)
+            r'^(20\d{2})$',  # apenas 2025 (mas só se for exatamente isso)
+        ]
+
+        for pattern in ano_patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                # Tenta extrair o ano
+                year_match = re.search(r'(20\d{2})', text)
+                year = int(year_match.group(1)) if year_match else now.year
+
+                # Todos os 12 meses do ano
+                meses = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+
+                result["ano"] = str(year)
+                result["meses"] = meses
+                result["ano_completo"] = True
+
+                # Calcula data_inicio e data_fim do ano
+                data_inicio = datetime(year, 1, 1, tzinfo=TZ_SP)
+                data_fim = datetime(year, 12, 31, tzinfo=TZ_SP)
+
+                result["data_inicio"] = DateParser.format_yyyymmdd(data_inicio)
+                result["data_fim"] = DateParser.format_yyyymmdd(data_fim)
+
+                logger.debug(f"Parseado ano completo {year}: meses={meses}, data_inicio={result['data_inicio']}, data_fim={result['data_fim']}")
+                return result
+
         # Semestres (1SEM, 2SEM, primeiro semestre, etc.)
         semestre_patterns = [
             (r'([1-2])\s*[sS][eE][mM]', 'numeric'),  # 1SEM, 2sem
