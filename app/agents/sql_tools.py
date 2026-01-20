@@ -390,13 +390,16 @@ IMPORTANTE - REGRAS CRÍTICAS:
 2. NÃO tente recalcular médias manualmente.
 3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
 4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
 
 Exemplos corretos de uso:
 - "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
 - "Quais certificados?" → Use o campo certificados
 - "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
 - "Quais qualidades de café?" → Use o campo qualidades
-- "Para quais países?" → Use o campo paises"""
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media"""
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
@@ -439,6 +442,16 @@ COLUNAS DISPONÍVEIS EM VENDAS:
 - numeroBL, previsaoRecebimento
 - envioAmostra, aprovAmostra, baixaReceber
 - peso, grupoVenda, refCorretor, refCliente, vendedor
+
+IMPORTANTE - PENEIRAS:
+Quando perguntarem sobre "peneiras", use APENAS os campos estruturados:
+- peneiraMTGB: valor numérico da peneira MTGB (ex: 100)
+- peneiraGrauda: valor numérico da peneira Grauda (ex: 100)
+- peneiraGrinder: valor numérico da peneira Grinder (ex: 100)
+
+NÃO confunda com menções de "screen" ou tamanhos nas descrições de qualidade!
+Exemplo ERRADO: extrair "13", "17/18" de "GRINDERS 13 UP" ou "SCREEN 17/18"
+Exemplo CORRETO: usar valores dos campos peneiraMTGB/peneiraGrauda/peneiraGrinder
 
 Você pode responder sobre QUALQUER um desses campos.""",
 
