@@ -362,12 +362,12 @@ Dados agregados:
 
 Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
 
-TOTAIS:
+TOTAIS (PRÉ-CALCULADOS):
 - total_contratos: quantidade de contratos daquele cliente
 - total_sacas: soma de sacas de todos os contratos
 - total_valor: soma do valor total de todos os contratos (em R$)
 
-MÉDIAS:
+MÉDIAS (PRÉ-CALCULADAS):
 - valor_unitario_medio: preço unitário médio (R$/saca)
 - valor_fixado_medio: preço fixado médio (R$/saca)
 - diferencial_medio: diferencial médio dos contratos
@@ -384,10 +384,16 @@ LISTAS DE VALORES DISTINTOS:
 - meses_embarque: lista de todos os meses de embarque únicos
 - contratos: primeiros 10 números de contrato
 
-IMPORTANTE: Você pode responder sobre QUALQUER campo listado acima. Por exemplo:
-- "Qual o diferencial médio?" → Use o campo diferencial_medio
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
 - "Quais certificados?" → Use o campo certificados
-- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
 - "Quais qualidades de café?" → Use o campo qualidades
 - "Para quais países?" → Use o campo paises"""
 
