@@ -431,29 +431,73 @@ IMPORTANTE: Orçamento NÃO tem contratos, sacas, clientes ou vendas. É uma pre
 Para calcular totais, some os campos orcado/realizado/saldo de todos os registros.""",
 
             "IA_Vendas": """
-COLUNAS DISPONÍVEIS EM VENDAS:
-- filial, contrato, cliente, emissao
-- sacas, sacasEntregues, sacasSaldo
-- valorUnitario, valorTotal, valorFixado
-- diferencial, precoFix, fixador
-- certificado, peneiraMTGB, peneiraGrauda, peneiraGrinder
-- descricaoQualidade, linha, pais
-- mesEmbarque, mesFixacao, saidaNavio
-- numeroBL, previsaoRecebimento
-- envioAmostra, aprovAmostra, baixaReceber
-- peso, grupoVenda, refCorretor, refCliente, vendedor
+COLUNAS DISPONÍVEIS EM VENDAS (34 campos):
+
+IDENTIFICAÇÃO E CONTROLE:
+- filial: código da filial (ex: 61)
+- contrato: número do contrato de venda (ex: "021/25")
+- idProtheus: ID interno do sistema Protheus (ex: "000131")
+- cliente: nome do cliente comprador
+- emissao: data de emissão do contrato formato YYYYMMDD (ex: 20250710)
+
+QUANTIDADES E VOLUMES:
+- sacas: quantidade total de sacas do contrato
+- sacasEntregues: sacas já entregues ao cliente
+- sacasSaldo: saldo de sacas ainda não entregues (sacas - sacasEntregues)
+- peso: peso total em kg
+
+VALORES FINANCEIROS:
+- valorUnitario: preço por saca em R$/saca (ex: 280.5)
+- valorTotal: valor total do contrato em R$ (valorUnitario * sacas)
+- valorFixado: preço fixado por saca em R$/saca (ex: 315.5)
+- diferencial: diferencial de preço em relação ao mercado (pode ser negativo)
+
+FIXAÇÃO DE PREÇO:
+- precoFix: status de fixação do preço (A=Automático, P=Pré-fixado)
+- fixador: quem fixou o preço (ex: "Importador", "Exportador")
+- mesFixacao: mês da fixação formato YYYYMM (ex: 202509)
+
+QUALIDADE DO CAFÉ:
+- certificado: certificação do café (ex: "RF", "4C", "FT", "GCP")
+- descricaoQualidade: descrição completa da qualidade (ex: "BRAZIL NATURA ARABICA, GRINDERS 13 UP")
+- linha: linha/tipo do café (ex: "GRD", "LN2", "LN3")
+- peneiraMTGB: peneira MTGB em % (ex: 100 = 100%)
+- peneiraGrauda: peneira Graúda em % (ex: 100 = 100%)
+- peneiraGrinder: peneira Grinder em % (ex: 100 = 100%)
+
+LOGÍSTICA E EMBARQUE:
+- pais: país de destino (ex: "BELGICA", "ALEMANHA")
+- mesEmbarque: mês de embarque formato YYYY/MM (ex: "2025/08")
+- saidaNavio: data de saída do navio (pode estar vazio se ainda não embarcou)
+- numeroBL: número do Bill of Lading/conhecimento de embarque
+- previsaoRecebimento: data prevista de recebimento formato YYYYMMDD (ex: 20250901)
+
+CONTROLE DE QUALIDADE:
+- envioAmostra: data de envio da amostra ao cliente
+- aprovAmostra: data de aprovação da amostra pelo cliente
+
+FINANCEIRO E VENDAS:
+- baixaReceber: data de baixa no contas a receber formato YYYYMMDD (ex: 20250829)
+- grupoVenda: grupo/categoria de venda (ex: "CEU")
+- vendedor: nome do vendedor responsável
+
+REFERÊNCIAS:
+- refCorretor: referência do corretor (se houver)
+- refCliente: referência/código do cliente (ex: "P09150")
 
 IMPORTANTE - PENEIRAS:
 Quando perguntarem sobre "peneiras", use APENAS os campos estruturados:
-- peneiraMTGB: valor numérico da peneira MTGB (ex: 100)
-- peneiraGrauda: valor numérico da peneira Grauda (ex: 100)
-- peneiraGrinder: valor numérico da peneira Grinder (ex: 100)
-
-NÃO confunda com menções de "screen" ou tamanhos nas descrições de qualidade!
+- peneiraMTGB, peneiraGrauda, peneiraGrinder (valores numéricos em %)
+NÃO confunda com menções de "screen" nas descrições de qualidade!
 Exemplo ERRADO: extrair "13", "17/18" de "GRINDERS 13 UP" ou "SCREEN 17/18"
 Exemplo CORRETO: usar valores dos campos peneiraMTGB/peneiraGrauda/peneiraGrinder
 
-Você pode responder sobre QUALQUER um desses campos.""",
+FORMATOS DE DATA:
+- emissao, previsaoRecebimento, baixaReceber: YYYYMMDD (ex: 20250710)
+- mesFixacao: YYYYMM (ex: 202509)
+- mesEmbarque: YYYY/MM (ex: 2025/08)
+
+Você pode responder sobre QUALQUER um desses 34 campos.""",
 
             "IA_Compras": """
 COLUNAS DISPONÍVEIS EM COMPRAS:
