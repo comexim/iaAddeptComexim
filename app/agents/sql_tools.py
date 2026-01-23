@@ -247,12 +247,15 @@ class SQLTools:
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
-        # OTIMIZAÇÃO: Se query é sobre "baixados" (sem filtro de periodo),
-        # retorna apenas clientes COM contratos baixados para reduzir tokens
+        # OTIMIZAÇÃO: Se query é sobre "baixados EM [mês]" (sem filtro de periodo),
+        # retorna apenas clientes COM contratos baixados em jan2026 ou dez2025 para reduzir tokens
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
-            # Filtra apenas clientes com contratos baixados
-            result_list = [r for r in result_list if r["total_contratos_baixados"] > 0]
-            logger.info(f"[FILTRO BAIXADOS] Reduzido para {len(result_list)} clientes com contratos baixados")
+            # Filtra apenas clientes com baixados em jan/2026 ou dez/2025
+            result_list = [
+                r for r in result_list
+                if r.get("total_baixados_jan2026", 0) > 0 or r.get("total_baixados_dez2025", 0) > 0
+            ]
+            logger.info(f"[FILTRO BAIXADOS] Reduzido para {len(result_list)} clientes com baixados em jan/2026 ou dez/2025")
 
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
