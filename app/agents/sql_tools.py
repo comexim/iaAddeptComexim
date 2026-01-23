@@ -891,7 +891,17 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             Tool(
                 name="pesquisa_vendas",
                 func=lambda periodo=None: self._pesquisa_vendas(periodo),
-                description="Consulta dados de vendas e embarques da empresa. OBRIGATÓRIO passar o argumento 'periodo'. Aceita datas específicas (hoje, ontem, sexta-feira passada) ou períodos mensais (dezembro 2025, 2025/12). Exemplos: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025'"
+                description="""Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
+
+IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
+- "contratos" (contratos de venda de café)
+- "vendas"
+- "embarques"
+- "contratos baixados" ou "contratos que foram baixados" (refere-se a contratos de venda quitados financeiramente, campo baixaReceber)
+- campos como: sacas, clientes, diferencial, certificados, BL, peneiras, qualidade do café
+
+OBRIGATÓRIO passar o argumento 'periodo'. Aceita datas específicas (hoje, ontem, sexta-feira passada) ou períodos mensais (dezembro 2025, 2025/12).
+Exemplos: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
             Tool(
                 name="pesquisa_compras",
@@ -911,7 +921,19 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             Tool(
                 name="pesquisa_contas_a_receber",
                 func=lambda data_vencimento=None: self._pesquisa_contas_a_receber(data_vencimento),
-                description="Consulta contas a receber (recebimentos futuros). Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"
+                description="""Consulta TÍTULOS FINANCEIROS a receber (boletos, duplicatas, recebimentos futuros).
+
+IMPORTANTE - Esta ferramenta é para TÍTULOS FINANCEIROS, NÃO para contratos de venda.
+Use esta ferramenta quando o usuário perguntar sobre:
+- "títulos a receber"
+- "boletos a receber"
+- "duplicatas"
+- "recebimentos futuros"
+- "vencimentos de recebimentos"
+
+Para CONTRATOS DE VENDA (mesmo que baixados financeiramente), use pesquisa_vendas.
+
+Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_saldo_bancario,
