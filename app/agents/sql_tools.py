@@ -924,9 +924,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
         return [
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_vendas,
                 name="pesquisa_vendas",
-                func=lambda periodo=None: self._pesquisa_vendas(periodo),
                 description="""Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 
 ⚠️⚠️⚠️ REGRA ABSOLUTA DE SELEÇÃO ⚠️⚠️⚠️
