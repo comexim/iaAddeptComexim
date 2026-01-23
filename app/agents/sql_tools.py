@@ -919,6 +919,14 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 func=lambda periodo=None: self._pesquisa_vendas(periodo),
                 description="""Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 
+⚠️⚠️⚠️ REGRA ABSOLUTA DE SELEÇÃO ⚠️⚠️⚠️
+SEMPRE USE ESTA FERRAMENTA (pesquisa_vendas) QUANDO A PERGUNTA CONTÉM A PALAVRA "CONTRATOS"
+Isso inclui queries como:
+- "contratos baixados no contas a receber" → use ESTA ferramenta (pesquisa_vendas), NÃO use pesquisa_contas_a_receber
+- "contratos de janeiro 2026" → use ESTA ferramenta
+- "contratos que foram baixados" → use ESTA ferramenta
+- Qualquer pergunta com a palavra "contrato" ou "contratos" → use ESTA ferramenta
+
 IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
 - "contratos" (contratos de venda de café)
 - "vendas"
@@ -958,8 +966,18 @@ Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro
                 func=lambda data_vencimento=None: self._pesquisa_contas_a_receber(data_vencimento),
                 description="""Consulta TÍTULOS FINANCEIROS a receber (boletos, duplicatas, recebimentos futuros).
 
+⚠️⚠️⚠️ REGRA ABSOLUTA DE EXCLUSÃO ⚠️⚠️⚠️
+NUNCA USE ESTA FERRAMENTA SE A PERGUNTA CONTÉM A PALAVRA "CONTRATOS"
+Se a pergunta menciona "contratos" (contratos de venda), SEMPRE use pesquisa_vendas,
+mesmo que a pergunta também mencione "contas a receber".
+
+Exemplos de quando NÃO usar esta ferramenta:
+- "contratos baixados no contas a receber" → use pesquisa_vendas
+- "contratos que foram baixados" → use pesquisa_vendas
+- "quais contratos..." → use pesquisa_vendas
+
 IMPORTANTE - Esta ferramenta é para TÍTULOS FINANCEIROS, NÃO para contratos de venda.
-Use esta ferramenta quando o usuário perguntar sobre:
+Use esta ferramenta SOMENTE quando o usuário perguntar sobre:
 - "títulos a receber"
 - "boletos a receber"
 - "duplicatas"
