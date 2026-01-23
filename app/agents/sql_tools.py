@@ -105,6 +105,7 @@ class SQLTools:
             "contratos_amostra_aprovada": [],
             "contratos_amostra_pendente": [],  # enviada mas NÃO aprovada
             "contratos_baixados": [],
+            "contratos_baixados_por_mes": defaultdict(list),  # agrupa por YYYYMM
             "vendedores": set(),
             "filiais": set(),
             "grupos_venda": set(),
@@ -181,6 +182,11 @@ class SQLTools:
                 # Formato: "contrato (YYYYMMDD)"
                 data["contratos_baixados"].append(f"{contrato} ({data_baixa})")
 
+                # Agrupa por mês (YYYYMM)
+                if len(data_baixa) >= 6:
+                    ano_mes = data_baixa[:6]  # Exemplo: "202601" de "20260115"
+                    data["contratos_baixados_por_mes"][ano_mes].append(contrato)
+
             # Vendedores únicos
             if row.get("vendedor") and str(row["vendedor"]).strip():
                 data["vendedores"].add(str(row["vendedor"]).strip())
@@ -231,6 +237,11 @@ class SQLTools:
                 "total_contratos_amostra_pendente": len(data["contratos_amostra_pendente"]),
                 "contratos_baixados": ", ".join(data["contratos_baixados"][:100]) if data["contratos_baixados"] else "",
                 "total_contratos_baixados": len(data["contratos_baixados"]),
+                # Contratos baixados por mês específico (para facilitar queries)
+                "contratos_baixados_jan2026": ", ".join(data["contratos_baixados_por_mes"].get("202601", [])[:100]),
+                "total_baixados_jan2026": len(data["contratos_baixados_por_mes"].get("202601", [])),
+                "contratos_baixados_dez2025": ", ".join(data["contratos_baixados_por_mes"].get("202512", [])[:100]),
+                "total_baixados_dez2025": len(data["contratos_baixados_por_mes"].get("202512", [])),
                 "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
                 "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
@@ -470,14 +481,18 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
 - total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
 - contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
-- total_contratos_baixados: quantidade de contratos baixados
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
 
-  IMPORTANTE - FILTRO POR DATA DE BAIXA:
-  - Cada contrato vem com sua data: "123/25A (20260115)" significa contrato 123/25A baixado em 15/01/2026
-  - Para encontrar contratos baixados EM um período específico, filtre pela data entre parênteses
-  - Exemplo 1: "baixados EM janeiro 2026" → busque contratos que contenham "(202601" no campo contratos_baixados
-  - Exemplo 2: "baixados EM 15/01/2026" → busque contratos que contenham "(20260115)" no campo contratos_baixados
-  - NÃO use apenas total_contratos_baixados pois ele conta TODAS as datas
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
+- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+
+  IMPORTANTE - COMO USAR:
+  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
 
 IMPORTANTE - REGRAS CRÍTICAS:
 1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
@@ -916,8 +931,8 @@ REGRA PARA FILTRO DE PERÍODO:
 
 - Se pergunta menciona "baixados EM [data]" (data de BAIXA, não embarque): use periodo=None (sem filtro)
   Exemplo: "contratos baixados EM janeiro 2026" → use periodo=None
-  IMPORTANTE: Neste caso, você receberá campo contratos_baixados com formato "CONTRATO (YYYYMMDD)"
-  Filtre manualmente procurando por "(202601" no texto do campo contratos_baixados
+  IMPORTANTE: Use os campos contratos_baixados_jan2026, contratos_baixados_dez2025 para filtrar por mês específico
+  NÃO use total_contratos_baixados para queries com data (ele soma TODOS os meses)
 
 Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
