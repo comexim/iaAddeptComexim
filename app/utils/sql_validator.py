@@ -25,12 +25,9 @@ FUNCTION_PERMISSIONS: Dict[str, PermissionType] = {
 
 # Funções que EXIGEM filtros WHERE
 FUNCTIONS_REQUIRING_WHERE = {
-    "IA_Vendas": {
-        "required_field": "mesEmbarque",
-        "alternative_field": "emissao",  # Aceita também data de emissão
-        "format": "YYYY/MM ou YYYYMMDD",
-        "prompt": "De qual período você gostaria de consultar? (Ex: dezembro de 2025, hoje, sexta-feira passada)"
-    },
+    # IA_Vendas removido - permite filters=None para queries de campos agregados
+    # (ex: contratos_baixados_jan2026)
+
     "IA_Compras": {
         "required_field": "emissao",
         "format": "YYYYMMDD",
