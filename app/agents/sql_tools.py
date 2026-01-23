@@ -98,6 +98,15 @@ class SQLTools:
             "fixadores": set(),
             "linhas": set(),
             "mesEmbarque": set(),
+            # Campos logísticos e administrativos
+            "contratos_com_bl": [],
+            "contratos_embarcados": [],
+            "contratos_amostra_enviada": [],
+            "contratos_amostra_aprovada": [],
+            "contratos_baixados": [],
+            "vendedores": set(),
+            "filiais": set(),
+            "grupos_venda": set(),
         })
 
         for row in results:
@@ -139,6 +148,41 @@ class SQLTools:
             if row.get("mesEmbarque") and str(row["mesEmbarque"]).strip():
                 data["mesEmbarque"].add(str(row["mesEmbarque"]).strip())
 
+            # Campos logísticos e administrativos
+            contrato = row.get("contrato", "")
+
+            # Contratos com BL
+            if row.get("numeroBL") and str(row["numeroBL"]).strip():
+                data["contratos_com_bl"].append(contrato)
+
+            # Contratos embarcados (com data de saída do navio)
+            if row.get("saidaNavio") and str(row["saidaNavio"]).strip():
+                data["contratos_embarcados"].append(contrato)
+
+            # Contratos com amostra enviada
+            if row.get("envioAmostra") and str(row["envioAmostra"]).strip():
+                data["contratos_amostra_enviada"].append(contrato)
+
+            # Contratos com amostra aprovada
+            if row.get("aprovAmostra") and str(row["aprovAmostra"]).strip():
+                data["contratos_amostra_aprovada"].append(contrato)
+
+            # Contratos baixados financeiramente
+            if row.get("baixaReceber") and str(row["baixaReceber"]).strip():
+                data["contratos_baixados"].append(contrato)
+
+            # Vendedores únicos
+            if row.get("vendedor") and str(row["vendedor"]).strip():
+                data["vendedores"].add(str(row["vendedor"]).strip())
+
+            # Filiais únicas
+            if row.get("filial") and str(row["filial"]).strip():
+                data["filiais"].add(str(row["filial"]).strip())
+
+            # Grupos de venda únicos
+            if row.get("grupoVenda") and str(row["grupoVenda"]).strip():
+                data["grupos_venda"].add(str(row["grupoVenda"]).strip())
+
         # Converte para lista com cálculos finais
         result_list = []
         for cliente, data in aggregated.items():
@@ -163,7 +207,19 @@ class SQLTools:
                 "fixadores": sorted(list(data["fixadores"])) if data["fixadores"] else [],
                 "linhas": sorted(list(data["linhas"])) if data["linhas"] else [],
                 "meses_embarque": sorted(list(data["mesEmbarque"])) if data["mesEmbarque"] else [],
-                "contratos": ", ".join(data["contratos"][:10])  # Primeiros 10 contratos
+                "contratos": ", ".join(data["contratos"][:10]),  # Primeiros 10 contratos
+                # Campos logísticos e administrativos
+                "contratos_com_bl": ", ".join(data["contratos_com_bl"][:20]) if data["contratos_com_bl"] else "",
+                "total_contratos_com_bl": len(data["contratos_com_bl"]),
+                "contratos_embarcados": ", ".join(data["contratos_embarcados"][:20]) if data["contratos_embarcados"] else "",
+                "total_contratos_embarcados": len(data["contratos_embarcados"]),
+                "contratos_amostra_aprovada": ", ".join(data["contratos_amostra_aprovada"][:20]) if data["contratos_amostra_aprovada"] else "",
+                "total_contratos_amostra_aprovada": len(data["contratos_amostra_aprovada"]),
+                "contratos_baixados": ", ".join(data["contratos_baixados"][:20]) if data["contratos_baixados"] else "",
+                "total_contratos_baixados": len(data["contratos_baixados"]),
+                "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
+                "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
+                "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
         # Ordena por valor total (maior primeiro)
@@ -384,6 +440,19 @@ LISTAS DE VALORES DISTINTOS:
 - linhas: lista de todas as linhas únicas
 - meses_embarque: lista de todos os meses de embarque únicos
 - contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_baixados: lista de contratos baixados financeiramente (até 20 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados
 
 IMPORTANTE - REGRAS CRÍTICAS:
 1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
@@ -399,7 +468,11 @@ Exemplos corretos de uso:
 - "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
 - "Quais qualidades de café?" → Use o campo qualidades
 - "Para quais países?" → Use o campo paises
-- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media"""
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados"""
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
