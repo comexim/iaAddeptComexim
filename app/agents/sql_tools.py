@@ -103,6 +103,7 @@ class SQLTools:
             "contratos_embarcados": [],
             "contratos_amostra_enviada": [],
             "contratos_amostra_aprovada": [],
+            "contratos_amostra_pendente": [],  # enviada mas NÃO aprovada
             "contratos_baixados": [],
             "vendedores": set(),
             "filiais": set(),
@@ -160,12 +161,18 @@ class SQLTools:
                 data["contratos_embarcados"].append(contrato)
 
             # Contratos com amostra enviada
-            if row.get("envioAmostra") and str(row["envioAmostra"]).strip():
+            enviou_amostra = row.get("envioAmostra") and str(row["envioAmostra"]).strip()
+            aprovou_amostra = row.get("aprovAmostra") and str(row["aprovAmostra"]).strip()
+
+            if enviou_amostra:
                 data["contratos_amostra_enviada"].append(contrato)
 
-            # Contratos com amostra aprovada
-            if row.get("aprovAmostra") and str(row["aprovAmostra"]).strip():
+            if aprovou_amostra:
                 data["contratos_amostra_aprovada"].append(contrato)
+
+            # Contratos com amostra enviada mas NÃO aprovada (pendente)
+            if enviou_amostra and not aprovou_amostra:
+                data["contratos_amostra_pendente"].append(contrato)
 
             # Contratos baixados financeiramente
             if row.get("baixaReceber") and str(row["baixaReceber"]).strip():
@@ -213,8 +220,12 @@ class SQLTools:
                 "total_contratos_com_bl": len(data["contratos_com_bl"]),
                 "contratos_embarcados": ", ".join(data["contratos_embarcados"][:20]) if data["contratos_embarcados"] else "",
                 "total_contratos_embarcados": len(data["contratos_embarcados"]),
+                "contratos_amostra_enviada": ", ".join(data["contratos_amostra_enviada"][:20]) if data["contratos_amostra_enviada"] else "",
+                "total_contratos_amostra_enviada": len(data["contratos_amostra_enviada"]),
                 "contratos_amostra_aprovada": ", ".join(data["contratos_amostra_aprovada"][:20]) if data["contratos_amostra_aprovada"] else "",
                 "total_contratos_amostra_aprovada": len(data["contratos_amostra_aprovada"]),
+                "contratos_amostra_pendente": ", ".join(data["contratos_amostra_pendente"][:20]) if data["contratos_amostra_pendente"] else "",
+                "total_contratos_amostra_pendente": len(data["contratos_amostra_pendente"]),
                 "contratos_baixados": ", ".join(data["contratos_baixados"][:20]) if data["contratos_baixados"] else "",
                 "total_contratos_baixados": len(data["contratos_baixados"]),
                 "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
@@ -449,8 +460,12 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - total_contratos_com_bl: quantidade total de contratos com BL
 - contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
 - total_contratos_embarcados: quantidade total de contratos embarcados
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
 - contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
 - total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
 - contratos_baixados: lista de contratos baixados financeiramente (até 20 primeiros)
 - total_contratos_baixados: quantidade de contratos baixados
 
@@ -471,6 +486,9 @@ Exemplos corretos de uso:
 - "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
 - "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
 - "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
 - "Quais vendedores?" → Use o campo vendedores
 - "Quantos contratos foram baixados?" → Use total_contratos_baixados"""
 
