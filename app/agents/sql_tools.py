@@ -471,7 +471,13 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
 - contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
 - total_contratos_baixados: quantidade de contratos baixados
-  IMPORTANTE: Para filtrar por data de baixa, use o formato YYYYMMDD entre parênteses. Ex: para janeiro 2026, procure por "(202601"
+
+  IMPORTANTE - FILTRO POR DATA DE BAIXA:
+  - Cada contrato vem com sua data: "123/25A (20260115)" significa contrato 123/25A baixado em 15/01/2026
+  - Para encontrar contratos baixados EM um período específico, filtre pela data entre parênteses
+  - Exemplo 1: "baixados EM janeiro 2026" → busque contratos que contenham "(202601" no campo contratos_baixados
+  - Exemplo 2: "baixados EM 15/01/2026" → busque contratos que contenham "(20260115)" no campo contratos_baixados
+  - NÃO use apenas total_contratos_baixados pois ele conta TODAS as datas
 
 IMPORTANTE - REGRAS CRÍTICAS:
 1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
@@ -904,8 +910,16 @@ IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
 - "contratos baixados" ou "contratos que foram baixados" (refere-se a contratos de venda quitados financeiramente, campo baixaReceber)
 - campos como: sacas, clientes, diferencial, certificados, BL, peneiras, qualidade do café
 
-OBRIGATÓRIO passar o argumento 'periodo'. Aceita datas específicas (hoje, ontem, sexta-feira passada) ou períodos mensais (dezembro 2025, 2025/12).
-Exemplos: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
+REGRA PARA FILTRO DE PERÍODO:
+- Se pergunta menciona "COM EMBARQUE em [data]": use periodo='data' para filtrar por mesEmbarque
+  Exemplo: "contratos COM EMBARQUE em janeiro 2026 já baixados" → use periodo='janeiro 2026'
+
+- Se pergunta menciona "baixados EM [data]" (data de BAIXA, não embarque): use periodo=None (sem filtro)
+  Exemplo: "contratos baixados EM janeiro 2026" → use periodo=None
+  IMPORTANTE: Neste caso, você receberá campo contratos_baixados com formato "CONTRATO (YYYYMMDD)"
+  Filtre manualmente procurando por "(202601" no texto do campo contratos_baixados
+
+Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
             Tool(
                 name="pesquisa_compras",
