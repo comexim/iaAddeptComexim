@@ -174,9 +174,12 @@ class SQLTools:
             if enviou_amostra and not aprovou_amostra:
                 data["contratos_amostra_pendente"].append(contrato)
 
-            # Contratos baixados financeiramente
-            if row.get("baixaReceber") and str(row["baixaReceber"]).strip():
-                data["contratos_baixados"].append(contrato)
+            # Contratos baixados financeiramente (com data)
+            baixa_receber = row.get("baixaReceber")
+            if baixa_receber and str(baixa_receber).strip():
+                data_baixa = str(baixa_receber).strip()
+                # Formato: "contrato (YYYYMMDD)"
+                data["contratos_baixados"].append(f"{contrato} ({data_baixa})")
 
             # Vendedores únicos
             if row.get("vendedor") and str(row["vendedor"]).strip():
@@ -466,8 +469,9 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
 - contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
 - total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
-- contratos_baixados: lista de contratos baixados financeiramente (até 20 primeiros)
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 20 primeiros)
 - total_contratos_baixados: quantidade de contratos baixados
+  IMPORTANTE: Para filtrar por data de baixa, use o formato YYYYMMDD entre parênteses. Ex: para janeiro 2026, procure por "(202601"
 
 IMPORTANTE - REGRAS CRÍTICAS:
 1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
