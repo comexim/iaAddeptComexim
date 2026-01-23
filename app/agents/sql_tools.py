@@ -247,6 +247,13 @@ class SQLTools:
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
+        # OTIMIZAÇÃO: Se query é sobre "baixados" (sem filtro de periodo),
+        # retorna apenas clientes COM contratos baixados para reduzir tokens
+        if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
+            # Filtra apenas clientes com contratos baixados
+            result_list = [r for r in result_list if r["total_contratos_baixados"] > 0]
+            logger.info(f"[FILTRO BAIXADOS] Reduzido para {len(result_list)} clientes com contratos baixados")
+
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
 
