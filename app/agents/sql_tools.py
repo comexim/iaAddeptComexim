@@ -755,9 +755,10 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                         filters["emissao_fim"] = parsed["data_fim"]
                     logger.info(f"[DEBUG] Usando filtro emissao: {filters}")
         else:
-            # FALLBACK: Se o LLM não passou período, retorna mensagem pedindo
-            logger.warning("[DEBUG] LLM não passou período!")
-            return "PRECISA_PERGUNTAR: De qual período você gostaria de consultar? (Ex: dezembro de 2025, hoje, sexta-feira passada)"
+            # PERMITIDO: periodo=None para queries que filtram por outros campos
+            # Exemplo: "contratos baixados EM janeiro 2026" usa campos contratos_baixados_jan2026
+            logger.info("[DEBUG] periodo=None - buscando TODOS os contratos (agregação irá filtrar)")
+            filters = None  # Sem filtro de data
 
         return self._validate_and_execute("IA_Vendas", filters, client_filter)
 
@@ -929,12 +930,13 @@ REGRA PARA FILTRO DE PERÍODO:
 - Se pergunta menciona "COM EMBARQUE em [data]": use periodo='data' para filtrar por mesEmbarque
   Exemplo: "contratos COM EMBARQUE em janeiro 2026 já baixados" → use periodo='janeiro 2026'
 
-- Se pergunta menciona "baixados EM [data]" (data de BAIXA, não embarque): use periodo=None (sem filtro)
-  Exemplo: "contratos baixados EM janeiro 2026" → use periodo=None
+- Se pergunta menciona "baixados EM [data]" (data de BAIXA, não embarque): use periodo='ano' (ano completo)
+  Exemplo: "contratos baixados EM janeiro 2026" → use periodo='2026'
+  Exemplo: "contratos baixados EM dezembro 2025" → use periodo='2025'
   IMPORTANTE: Use os campos contratos_baixados_jan2026, contratos_baixados_dez2025 para filtrar por mês específico
   NÃO use total_contratos_baixados para queries com data (ele soma TODOS os meses)
 
-Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
+Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026', '2026', '2025'"""
             ),
             Tool(
                 name="pesquisa_compras",
