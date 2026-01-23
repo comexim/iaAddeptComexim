@@ -229,7 +229,7 @@ class SQLTools:
                 "total_contratos_amostra_aprovada": len(data["contratos_amostra_aprovada"]),
                 "contratos_amostra_pendente": ", ".join(data["contratos_amostra_pendente"][:20]) if data["contratos_amostra_pendente"] else "",
                 "total_contratos_amostra_pendente": len(data["contratos_amostra_pendente"]),
-                "contratos_baixados": ", ".join(data["contratos_baixados"][:20]) if data["contratos_baixados"] else "",
+                "contratos_baixados": ", ".join(data["contratos_baixados"][:100]) if data["contratos_baixados"] else "",
                 "total_contratos_baixados": len(data["contratos_baixados"]),
                 "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
                 "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
@@ -469,7 +469,7 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
 - contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
 - total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
-- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 20 primeiros)
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
 - total_contratos_baixados: quantidade de contratos baixados
   IMPORTANTE: Para filtrar por data de baixa, use o formato YYYYMMDD entre parênteses. Ex: para janeiro 2026, procure por "(202601"
 
