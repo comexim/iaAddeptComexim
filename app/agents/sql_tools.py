@@ -726,6 +726,16 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}")
 
+        # PROTEÇÃO: Detecta queries sobre "baixados EM [data]" e força periodo=None
+        if periodo and self.user_query:
+            query_lower = self.user_query.lower()
+            # Padrões que indicam query sobre DATA DE BAIXA (não embarque)
+            if re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', query_lower):
+                logger.warning(f"[PROTEÇÃO] Query sobre 'baixados EM [data]' detectada - IGNORANDO periodo={periodo}")
+                logger.warning(f"[PROTEÇÃO] Query original: {self.user_query}")
+                logger.warning(f"[PROTEÇÃO] Usando periodo=None para buscar TODOS os contratos e filtrar por campos específicos")
+                periodo = None  # Força periodo=None
+
         # Extrai nome do cliente da pergunta original do usuário
         client_filter = None
         if self.user_query:
@@ -934,15 +944,22 @@ IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
 - "contratos baixados" ou "contratos que foram baixados" (refere-se a contratos de venda quitados financeiramente, campo baixaReceber)
 - campos como: sacas, clientes, diferencial, certificados, BL, peneiras, qualidade do café
 
-REGRA PARA FILTRO DE PERÍODO:
-- Se pergunta menciona "COM EMBARQUE em [data]": use periodo='data' para filtrar por mesEmbarque
-  Exemplo: "contratos COM EMBARQUE em janeiro 2026 já baixados" → use periodo='janeiro 2026'
+⚠️⚠️⚠️ REGRA CRÍTICA PARA FILTRO DE PERÍODO ⚠️⚠️⚠️
 
-- Se pergunta menciona "baixados EM [data]" (data de BAIXA, não embarque): NÃO use periodo (deixe None)
-  Exemplo: "contratos baixados EM janeiro 2026" → NÃO passe periodo
-  Exemplo: "contratos baixados EM dezembro 2025" → NÃO passe periodo
-  IMPORTANTE: Use os campos contratos_baixados_jan2026, contratos_baixados_dez2025 para filtrar por mês específico
-  NÃO use total_contratos_baixados para queries com data (ele soma TODOS os meses)
+QUANDO A PERGUNTA É SOBRE "BAIXADOS EM [MÊS/ANO]":
+→ NÃO PASSE NENHUM PERIODO (deixe None ou omita o parâmetro)
+→ Exemplos que NÃO devem usar periodo:
+  • "contratos baixados EM janeiro 2026" → pesquisa_vendas() SEM periodo
+  • "contratos baixados no contas a receber EM janeiro 2026" → pesquisa_vendas() SEM periodo
+  • "quais contratos foram baixados EM dezembro 2025" → pesquisa_vendas() SEM periodo
+→ A agregação retorna campos específicos: contratos_baixados_jan2026, total_baixados_jan2026, etc.
+→ Use esses campos para filtrar por mês de baixa
+
+QUANDO A PERGUNTA É SOBRE "COM EMBARQUE EM [MÊS/ANO]":
+→ PASSE periodo='data' para filtrar por mesEmbarque
+→ Exemplos que DEVEM usar periodo:
+  • "contratos COM EMBARQUE em janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  • "embarques de fevereiro 2026" → pesquisa_vendas(periodo='fevereiro 2026')
 
 Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
