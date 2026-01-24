@@ -247,8 +247,7 @@ class SQLTools:
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
-        # OTIMIZAÇÃO ESPECIAL: Se query é sobre "baixados EM [mês]",
-        # retorna APENAS campos do mês específico (reduz tokens drasticamente)
+        # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
             # Filtra apenas clientes com baixados em jan/2026 ou dez/2025
             filtered_list = [
@@ -268,6 +267,22 @@ class SQLTools:
                 })
 
             logger.info(f"[OTIMIZAÇÃO BAIXADOS] Retornando {len(minimal_list)} clientes com campos mínimos (jan2026/dez2025)")
+            return minimal_list
+
+        # OTIMIZAÇÃO ESPECIAL 2: Query sobre período específico (ex: "em janeiro", "por grupo em 2026")
+        # Detecta queries com menção a mês/ano e retorna campos resumidos
+        if self.user_query and re.search(r'\b(em|no|de)\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b', self.user_query.lower()):
+            # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
+            minimal_list = []
+            for r in result_list:
+                minimal_list.append({
+                    "cliente": r["cliente"],
+                    "total_valor": r["total_valor"],
+                    "total_sacas": r["total_sacas"],
+                    "grupos_venda": r["grupos_venda"],
+                })
+
+            logger.info(f"[OTIMIZAÇÃO PERÍODO] Retornando {len(minimal_list)} clientes com campos essenciais (valor, sacas, grupos)")
             return minimal_list
 
         # Ordena por valor total (maior primeiro)
