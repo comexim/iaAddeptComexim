@@ -260,6 +260,12 @@ class SQLTools:
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
 
+        # LIMITE DE TOKENS: Retorna apenas primeiros 15 clientes para evitar rate limit
+        if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
+            if len(result_list) > 15:
+                logger.info(f"[LIMITE TOKENS] Reduzindo de {len(result_list)} para 15 clientes")
+                result_list = result_list[:15]
+
         logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes (com detalhes completos)")
         return result_list
 
