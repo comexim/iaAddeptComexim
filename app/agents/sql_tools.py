@@ -267,21 +267,29 @@ class SQLTools:
                 if r.get("total_contratos_com_corretor", 0) > 0
             ]
 
-            # Cria lista plana de contratos (não agrupado por cliente)
+            # Cria lista de strings formatadas (um contrato por linha)
+            # Formato: "272/25 (ECOM AGROINDUSTRIAL)"
             contratos_list = []
+            total_contratos = 0
+
             for r in filtered_list:
-                # Separa os contratos (estão em string separados por vírgula)
                 contratos_str = r["contratos_com_corretor"]
                 if contratos_str:
                     contratos = [c.strip() for c in contratos_str.split(',')]
+                    cliente = r["cliente"].strip()
                     for contrato in contratos:
-                        contratos_list.append({
-                            "contrato": contrato,
-                            "cliente": r["cliente"]
-                        })
+                        contratos_list.append(f"{contrato} ({cliente})")
+                        total_contratos += 1
 
-            logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {len(contratos_list)} contratos com corretor de {len(filtered_list)} clientes")
-            return contratos_list
+            # Retorna string formatada com a lista completa
+            result = f"Contratos com referência de corretor em janeiro 2026:\n\n"
+            result += "TOTAL: " + str(total_contratos) + " contratos\n\n"
+            result += "Lista completa:\n"
+            for i, contrato_info in enumerate(contratos_list, 1):
+                result += f"{i}. {contrato_info}\n"
+
+            logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {total_contratos} contratos com corretor de {len(filtered_list)} clientes")
+            return result
 
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
