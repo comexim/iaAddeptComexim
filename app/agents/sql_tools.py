@@ -267,17 +267,21 @@ class SQLTools:
                 if r.get("total_contratos_com_corretor", 0) > 0
             ]
 
-            # Retorna APENAS os contratos com corretor
-            minimal_list = []
+            # Cria lista plana de contratos (não agrupado por cliente)
+            contratos_list = []
             for r in filtered_list:
-                minimal_list.append({
-                    "cliente": r["cliente"],
-                    "contratos_com_corretor": r["contratos_com_corretor"],
-                    "total_contratos_com_corretor": r["total_contratos_com_corretor"],
-                })
+                # Separa os contratos (estão em string separados por vírgula)
+                contratos_str = r["contratos_com_corretor"]
+                if contratos_str:
+                    contratos = [c.strip() for c in contratos_str.split(',')]
+                    for contrato in contratos:
+                        contratos_list.append({
+                            "contrato": contrato,
+                            "cliente": r["cliente"]
+                        })
 
-            logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {len(minimal_list)} clientes com contratos que têm corretor")
-            return minimal_list
+            logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {len(contratos_list)} contratos com corretor de {len(filtered_list)} clientes")
+            return contratos_list
 
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
