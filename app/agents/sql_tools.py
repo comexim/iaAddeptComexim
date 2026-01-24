@@ -247,24 +247,31 @@ class SQLTools:
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
-        # OTIMIZAÇÃO: Se query é sobre "baixados EM [mês]" (sem filtro de periodo),
-        # retorna apenas clientes COM contratos baixados em jan2026 ou dez2025 para reduzir tokens
+        # OTIMIZAÇÃO ESPECIAL: Se query é sobre "baixados EM [mês]",
+        # retorna APENAS campos do mês específico (reduz tokens drasticamente)
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
             # Filtra apenas clientes com baixados em jan/2026 ou dez/2025
-            result_list = [
+            filtered_list = [
                 r for r in result_list
                 if r.get("total_baixados_jan2026", 0) > 0 or r.get("total_baixados_dez2025", 0) > 0
             ]
-            logger.info(f"[FILTRO BAIXADOS] Reduzido para {len(result_list)} clientes com baixados em jan/2026 ou dez/2025")
+
+            # Retorna APENAS campos essenciais do mês (reduz de ~9000 chars/cliente para ~200 chars/cliente)
+            minimal_list = []
+            for r in filtered_list:
+                minimal_list.append({
+                    "cliente": r["cliente"],
+                    "contratos_baixados_jan2026": r["contratos_baixados_jan2026"],
+                    "total_baixados_jan2026": r["total_baixados_jan2026"],
+                    "contratos_baixados_dez2025": r["contratos_baixados_dez2025"],
+                    "total_baixados_dez2025": r["total_baixados_dez2025"],
+                })
+
+            logger.info(f"[OTIMIZAÇÃO BAIXADOS] Retornando {len(minimal_list)} clientes com campos mínimos (jan2026/dez2025)")
+            return minimal_list
 
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
-
-        # LIMITE DE TOKENS: Retorna apenas primeiros 10 clientes para evitar rate limit
-        if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
-            if len(result_list) > 10:
-                logger.info(f"[LIMITE TOKENS] Reduzindo de {len(result_list)} para 10 clientes")
-                result_list = result_list[:10]
 
         logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes (com detalhes completos)")
         return result_list
