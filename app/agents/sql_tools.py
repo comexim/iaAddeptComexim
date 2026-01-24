@@ -990,20 +990,26 @@ IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
 
 ⚠️⚠️⚠️ REGRA CRÍTICA PARA FILTRO DE PERÍODO ⚠️⚠️⚠️
 
-QUANDO A PERGUNTA É SOBRE "BAIXADOS EM [MÊS/ANO]":
-→ NÃO PASSE NENHUM PERIODO (deixe None ou omita o parâmetro)
-→ Exemplos que NÃO devem usar periodo:
+CASO 1 - NÃO PASSE PERIODO (deixe None ou omita):
+→ APENAS quando a pergunta é sobre "BAIXADOS EM [MÊS/ANO]"
+→ Exemplos:
   • "contratos baixados EM janeiro 2026" → pesquisa_vendas() SEM periodo
   • "contratos baixados no contas a receber EM janeiro 2026" → pesquisa_vendas() SEM periodo
   • "quais contratos foram baixados EM dezembro 2025" → pesquisa_vendas() SEM periodo
-→ A agregação retorna campos específicos: contratos_baixados_jan2026, total_baixados_jan2026, etc.
-→ Use esses campos para filtrar por mês de baixa
+→ Razão: A agregação já retorna campos específicos (contratos_baixados_jan2026, total_baixados_jan2026)
 
-QUANDO A PERGUNTA É SOBRE "COM EMBARQUE EM [MÊS/ANO]":
-→ PASSE periodo='data' para filtrar por mesEmbarque
-→ Exemplos que DEVEM usar periodo:
-  • "contratos COM EMBARQUE em janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
-  • "embarques de fevereiro 2026" → pesquisa_vendas(periodo='fevereiro 2026')
+CASO 2 - SEMPRE PASSE periodo='[mês] [ano]':
+→ Para TODAS as outras perguntas que mencionam "EM [MÊS/ANO]", incluindo:
+  ✓ "vendas EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "valor total EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "por grupo de venda EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "por cliente EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "sacas EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "contratos COM EMBARQUE em janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "embarques de fevereiro 2026" → pesquisa_vendas(periodo='fevereiro 2026')
+→ Razão: Precisa filtrar a query SQL por mesEmbarque para retornar apenas o período solicitado
+
+⚠️ RESUMO: Se a pergunta NÃO é sobre "baixados EM", mas menciona um mês/período, SEMPRE passe o periodo!
 
 Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
