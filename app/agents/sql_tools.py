@@ -43,6 +43,11 @@ class SQLTools:
         # Remove caracteres especiais e normaliza
         query_lower = query.lower().strip()
 
+        # NÃO tenta extrair cliente se a query é sobre agregações
+        # (grupo, vendedor, filial, fixador, etc.)
+        if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|cada\s+(grupo|vendedor|filial))', query_lower):
+            return None
+
         # Padrões comuns para identificar nome de cliente
         patterns = [
             # Cliente explícito: "para o cliente NOME"
@@ -380,7 +385,45 @@ class SQLTools:
                 logger.info(f"[AGREGAÇÃO POR VENDEDOR] Retornando {len(vendedores_list)} vendedores agregados")
                 return vendedores_list
 
-            # Se não menciona "por grupo" nem "fixado" nem "vendedor", retorna por cliente
+            # OTIMIZAÇÃO ESPECIAL 2.4: Se a query menciona "filial", agregar por filial
+            if re.search(r'\bfiliai?s?', self.user_query.lower()):
+                from collections import defaultdict
+
+                por_filial = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
+
+                for r in result_list:
+                    filiais = r.get("filiais", [])
+                    valor = r["total_valor"]
+                    sacas = r["total_sacas"]
+                    num_contratos = r["total_contratos"]
+                    cliente = r["cliente"]
+
+                    # Se não tem filial, categoriza como "SEM FILIAL"
+                    if not filiais or len(filiais) == 0:
+                        filiais = ["SEM FILIAL"]
+
+                    # Cada cliente pode ter contratos em múltiplas filiais
+                    for filial in filiais:
+                        por_filial[filial]["valor"] += valor
+                        por_filial[filial]["sacas"] += sacas
+                        por_filial[filial]["contratos"] += num_contratos
+                        por_filial[filial]["clientes"].add(cliente)
+
+                # Converte para lista ordenada por número de contratos
+                filiais_list = []
+                for filial, totais in sorted(por_filial.items(), key=lambda x: x[1]["contratos"], reverse=True):
+                    filiais_list.append({
+                        "filial": filial,
+                        "numero_contratos": totais["contratos"],
+                        "sacas_total": round(totais["sacas"], 2),
+                        "valor_total": round(totais["valor"], 2),
+                        "numero_clientes": len(totais["clientes"])
+                    })
+
+                logger.info(f"[AGREGAÇÃO POR FILIAL] Retornando {len(filiais_list)} filiais agregadas")
+                return filiais_list
+
+            # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial", retorna por cliente
             # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
             minimal_list = []
             for r in result_list:
