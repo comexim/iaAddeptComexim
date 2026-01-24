@@ -342,7 +342,45 @@ class SQLTools:
                 logger.info(f"[AGREGAÇÃO POR FIXADOR] Retornando {len(fixadores_list)} fixadores agregados")
                 return fixadores_list
 
-            # Se não menciona "por grupo" nem "fixado", retorna por cliente
+            # OTIMIZAÇÃO ESPECIAL 2.3: Se a query menciona "vendedor", agregar por vendedor
+            if re.search(r'\bvendedor[ea]?s?', self.user_query.lower()):
+                from collections import defaultdict
+
+                por_vendedor = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
+
+                for r in result_list:
+                    vendedores = r.get("vendedores", [])
+                    valor = r["total_valor"]
+                    sacas = r["total_sacas"]
+                    num_contratos = r["total_contratos"]
+                    cliente = r["cliente"]
+
+                    # Se não tem vendedor, categoriza como "SEM VENDEDOR"
+                    if not vendedores or len(vendedores) == 0:
+                        vendedores = ["SEM VENDEDOR"]
+
+                    # Cada cliente pode ter múltiplos vendedores
+                    for vendedor in vendedores:
+                        por_vendedor[vendedor]["valor"] += valor
+                        por_vendedor[vendedor]["sacas"] += sacas
+                        por_vendedor[vendedor]["contratos"] += num_contratos
+                        por_vendedor[vendedor]["clientes"].add(cliente)
+
+                # Converte para lista ordenada por sacas
+                vendedores_list = []
+                for vendedor, totais in sorted(por_vendedor.items(), key=lambda x: x[1]["sacas"], reverse=True):
+                    vendedores_list.append({
+                        "vendedor": vendedor,
+                        "sacas_total": round(totais["sacas"], 2),
+                        "valor_total": round(totais["valor"], 2),
+                        "numero_contratos": totais["contratos"],
+                        "numero_clientes": len(totais["clientes"])
+                    })
+
+                logger.info(f"[AGREGAÇÃO POR VENDEDOR] Retornando {len(vendedores_list)} vendedores agregados")
+                return vendedores_list
+
+            # Se não menciona "por grupo" nem "fixado" nem "vendedor", retorna por cliente
             # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
             minimal_list = []
             for r in result_list:
