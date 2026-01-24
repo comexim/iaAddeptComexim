@@ -106,6 +106,7 @@ class SQLTools:
             # Campos logísticos e administrativos
             "contratos_com_bl": [],
             "contratos_embarcados": [],
+            "contratos_com_corretor": [],  # contratos com refCorretor preenchido
             "contratos_amostra_enviada": [],
             "contratos_amostra_aprovada": [],
             "contratos_amostra_pendente": [],  # enviada mas NÃO aprovada
@@ -165,6 +166,10 @@ class SQLTools:
             # Contratos embarcados (com data de saída do navio)
             if row.get("saidaNavio") and str(row["saidaNavio"]).strip():
                 data["contratos_embarcados"].append(contrato)
+
+            # Contratos com referência de corretor
+            if row.get("refCorretor") and str(row["refCorretor"]).strip():
+                data["contratos_com_corretor"].append(contrato)
 
             # Contratos com amostra enviada
             enviou_amostra = row.get("envioAmostra") and str(row["envioAmostra"]).strip()
@@ -234,6 +239,8 @@ class SQLTools:
                 "total_contratos_com_bl": len(data["contratos_com_bl"]),
                 "contratos_embarcados": ", ".join(data["contratos_embarcados"][:20]) if data["contratos_embarcados"] else "",
                 "total_contratos_embarcados": len(data["contratos_embarcados"]),
+                "contratos_com_corretor": ", ".join(data["contratos_com_corretor"][:20]) if data["contratos_com_corretor"] else "",
+                "total_contratos_com_corretor": len(data["contratos_com_corretor"]),
                 "contratos_amostra_enviada": ", ".join(data["contratos_amostra_enviada"][:20]) if data["contratos_amostra_enviada"] else "",
                 "total_contratos_amostra_enviada": len(data["contratos_amostra_enviada"]),
                 "contratos_amostra_aprovada": ", ".join(data["contratos_amostra_aprovada"][:20]) if data["contratos_amostra_aprovada"] else "",
@@ -251,6 +258,26 @@ class SQLTools:
                 "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
+
+        # OTIMIZAÇÃO ESPECIAL 0: Query sobre "corretor" ou "referência de corretor"
+        if self.user_query and re.search(r'\bcorret[oa]r|referência.*corretor', self.user_query.lower()):
+            # Filtra apenas clientes com contratos que têm corretor
+            filtered_list = [
+                r for r in result_list
+                if r.get("total_contratos_com_corretor", 0) > 0
+            ]
+
+            # Retorna APENAS os contratos com corretor
+            minimal_list = []
+            for r in filtered_list:
+                minimal_list.append({
+                    "cliente": r["cliente"],
+                    "contratos_com_corretor": r["contratos_com_corretor"],
+                    "total_contratos_com_corretor": r["total_contratos_com_corretor"],
+                })
+
+            logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {len(minimal_list)} clientes com contratos que têm corretor")
+            return minimal_list
 
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
