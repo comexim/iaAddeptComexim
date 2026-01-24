@@ -307,7 +307,42 @@ class SQLTools:
                 logger.info(f"[AGREGAÇÃO POR GRUPO] Retornando {len(grupos_list)} grupos de venda agregados")
                 return grupos_list
 
-            # Se não menciona "por grupo", retorna por cliente
+            # OTIMIZAÇÃO ESPECIAL 2.2: Se a query menciona "fixado" ou "importador/exportador", agregar por fixador
+            if re.search(r'\bfixad[oa]s?|importador|exportador', self.user_query.lower()):
+                from collections import defaultdict
+
+                por_fixador = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0})
+
+                for r in result_list:
+                    fixadores = r.get("fixadores", [])
+                    valor = r["total_valor"]
+                    sacas = r["total_sacas"]
+                    num_contratos = r["total_contratos"]
+
+                    # Se não tem fixador, categoriza como "NÃO INFORMADO"
+                    if not fixadores or len(fixadores) == 0:
+                        fixadores = ["NÃO INFORMADO"]
+
+                    # Cada cliente pode ter contratos com diferentes fixadores
+                    for fixador in fixadores:
+                        por_fixador[fixador]["valor"] += valor
+                        por_fixador[fixador]["sacas"] += sacas
+                        por_fixador[fixador]["contratos"] += num_contratos
+
+                # Converte para lista ordenada por número de contratos
+                fixadores_list = []
+                for fixador, totais in sorted(por_fixador.items(), key=lambda x: x[1]["contratos"], reverse=True):
+                    fixadores_list.append({
+                        "fixador": fixador,
+                        "numero_contratos": totais["contratos"],
+                        "valor_total": round(totais["valor"], 2),
+                        "sacas_total": round(totais["sacas"], 2)
+                    })
+
+                logger.info(f"[AGREGAÇÃO POR FIXADOR] Retornando {len(fixadores_list)} fixadores agregados")
+                return fixadores_list
+
+            # Se não menciona "por grupo" nem "fixado", retorna por cliente
             # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
             minimal_list = []
             for r in result_list:
