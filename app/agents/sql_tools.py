@@ -272,6 +272,42 @@ class SQLTools:
         # OTIMIZAÇÃO ESPECIAL 2: Query sobre período específico (ex: "em janeiro", "por grupo em 2026")
         # Detecta queries com menção a mês/ano e retorna campos resumidos
         if self.user_query and re.search(r'\b(em|no|de)\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b', self.user_query.lower()):
+
+            # OTIMIZAÇÃO ESPECIAL 2.1: Se a query menciona "por grupo", agregar por grupo de venda
+            if re.search(r'\bpor\s+grupo', self.user_query.lower()):
+                from collections import defaultdict
+
+                por_grupo = defaultdict(lambda: {"valor": 0, "sacas": 0, "clientes": 0})
+
+                for r in result_list:
+                    grupos = r["grupos_venda"]
+                    valor = r["total_valor"]
+                    sacas = r["total_sacas"]
+
+                    # Se não tem grupo, categoriza como "SEM GRUPO"
+                    if not grupos or len(grupos) == 0:
+                        grupos = ["SEM GRUPO"]
+
+                    # Cada cliente pode estar em múltiplos grupos
+                    for grupo in grupos:
+                        por_grupo[grupo]["valor"] += valor
+                        por_grupo[grupo]["sacas"] += sacas
+                        por_grupo[grupo]["clientes"] += 1
+
+                # Converte para lista ordenada por valor
+                grupos_list = []
+                for grupo, totais in sorted(por_grupo.items(), key=lambda x: x[1]["valor"], reverse=True):
+                    grupos_list.append({
+                        "grupo": grupo,
+                        "valor_total": round(totais["valor"], 2),
+                        "sacas_total": round(totais["sacas"], 2),
+                        "numero_clientes": totais["clientes"]
+                    })
+
+                logger.info(f"[AGREGAÇÃO POR GRUPO] Retornando {len(grupos_list)} grupos de venda agregados")
+                return grupos_list
+
+            # Se não menciona "por grupo", retorna por cliente
             # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
             minimal_list = []
             for r in result_list:
