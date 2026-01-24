@@ -273,6 +273,12 @@ class SQLTools:
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
 
+        # PROTEÇÃO GERAL: Limita a 50 clientes para evitar rate limit (30k tokens)
+        # Com 35 campos por cliente, 50 clientes = ~22k tokens (seguro)
+        if len(result_list) > 50:
+            logger.warning(f"[LIMITE GERAL] Reduzindo de {len(result_list)} para 50 clientes (top 50 por valor)")
+            result_list = result_list[:50]
+
         logger.info(f"Agregados {len(results)} registros em {len(result_list)} clientes (com detalhes completos)")
         return result_list
 
