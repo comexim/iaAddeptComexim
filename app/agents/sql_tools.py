@@ -282,9 +282,10 @@ class SQLTools:
                         total_contratos += 1
 
             # Retorna string formatada com a lista completa
-            result = f"Contratos com referência de corretor em janeiro 2026:\n\n"
+            result = f"⚠️ INSTRUÇÃO: Liste TODOS os {total_contratos} contratos abaixo. NÃO resuma, NÃO agrupe, NÃO omita nenhum contrato.\n\n"
+            result += f"Contratos com referência de corretor em janeiro 2026:\n\n"
             result += "TOTAL: " + str(total_contratos) + " contratos\n\n"
-            result += "Lista completa:\n"
+            result += "Lista completa (TODOS devem ser mostrados ao usuário):\n"
             for i, contrato_info in enumerate(contratos_list, 1):
                 result += f"{i}. {contrato_info}\n"
 
