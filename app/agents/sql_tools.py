@@ -667,6 +667,12 @@ Exemplos de perguntas:
             else:
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
                 aggregated = self._aggregate_by_client(results)
+
+                # Se _aggregate_by_client retornou uma STRING (otimização especial), retorna direto
+                if isinstance(aggregated, str):
+                    logger.info(f"[OTIMIZAÇÃO] Retornando string formatada diretamente")
+                    return aggregated
+
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
