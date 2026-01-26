@@ -259,6 +259,55 @@ class SQLTools:
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
             })
 
+        # OTIMIZAÇÃO ESPECIAL -1: Query sobre intersecção "embarcados E baixados"
+        # Detecta queries que mencionam AMBOS embarcados E baixados (qualquer conjugação verbal)
+        # Exemplos: "embarcaram...baixados", "embarcados...baixaram", "embarcam...baixam"
+        if self.user_query and re.search(r'embarc(ad[oa]s?|aram|ou|am).*baix(ad[oa]s?|aram|ou|am)|baix(ad[oa]s?|aram|ou|am).*embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
+            logger.info(f"[OTIMIZAÇÃO EMBARCADOS+BAIXADOS] Detectado query sobre intersecção")
+            # Coleta todos os contratos embarcados e baixados
+            embarcados_set = set()
+            baixados_jan_set = set()
+            contrato_cliente_map = {}  # mapeia contrato -> cliente
+
+            for r in result_list:
+                cliente = r["cliente"].strip()
+
+                # Contratos embarcados
+                embarcados_str = r.get("contratos_embarcados", "")
+                if embarcados_str:
+                    for c in embarcados_str.split(','):
+                        c = c.strip()
+                        if c:
+                            embarcados_set.add(c)
+                            contrato_cliente_map[c] = cliente
+
+                # Contratos baixados em janeiro 2026
+                baixados_str = r.get("contratos_baixados_jan2026", "")
+                if baixados_str:
+                    for c in baixados_str.split(','):
+                        c = c.strip()
+                        if c:
+                            baixados_jan_set.add(c)
+                            if c not in contrato_cliente_map:
+                                contrato_cliente_map[c] = cliente
+
+            # Intersecção: contratos que estão em AMBOS os conjuntos
+            embarcados_e_baixados = embarcados_set.intersection(baixados_jan_set)
+
+            # Formata resultado
+            result = f"⚠️ RESPOSTA DIRETA (não altere): Dos {len(embarcados_set)} contratos que embarcaram em janeiro 2026, {len(embarcados_e_baixados)} foram baixados no contas a receber.\n\n"
+
+            if len(embarcados_e_baixados) > 0:
+                result += "Contratos embarcados E baixados:\n"
+                for i, contrato in enumerate(sorted(list(embarcados_e_baixados)), 1):
+                    cliente = contrato_cliente_map.get(contrato, "Cliente não identificado")
+                    result += f"{i}. {contrato} ({cliente})\n"
+            else:
+                result += "Nenhum contrato embarcado foi baixado em janeiro 2026.\n"
+
+            logger.info(f"[OTIMIZAÇÃO EMBARCADOS+BAIXADOS] {len(embarcados_set)} embarcados, {len(baixados_jan_set)} baixados, {len(embarcados_e_baixados)} intersecção")
+            return result
+
         # OTIMIZAÇÃO ESPECIAL 0: Query sobre "corretor" ou "referência de corretor"
         if self.user_query and re.search(r'\bcorret[oa]r|referência.*corretor', self.user_query.lower()):
             # Filtra apenas clientes com contratos que têm corretor
@@ -464,18 +513,24 @@ class SQLTools:
                 return filiais_list
 
             # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial", retorna por cliente
-            # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
-            minimal_list = []
-            for r in result_list:
-                minimal_list.append({
-                    "cliente": r["cliente"],
-                    "total_valor": r["total_valor"],
-                    "total_sacas": r["total_sacas"],
-                    "grupos_venda": r["grupos_venda"],
-                })
+            # EXCETO se menciona "embarcad" (qualquer conjugação) - nesse caso precisa dos campos completos
+            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
+                # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
+                minimal_list = []
+                for r in result_list:
+                    minimal_list.append({
+                        "cliente": r["cliente"],
+                        "total_valor": r["total_valor"],
+                        "total_sacas": r["total_sacas"],
+                        "grupos_venda": r["grupos_venda"],
+                    })
 
-            logger.info(f"[OTIMIZAÇÃO PERÍODO] Retornando {len(minimal_list)} clientes com campos essenciais (valor, sacas, grupos)")
-            return minimal_list
+                logger.info(f"[OTIMIZAÇÃO PERÍODO] Retornando {len(minimal_list)} clientes com campos essenciais (valor, sacas, grupos)")
+                return minimal_list
+
+            # Se menciona "embarcad/embarcaram/embarcar", não otimiza - retorna dados completos
+            logger.info(f"[PERÍODO+EMBARCADOS] Query menciona 'embarc*' - retornando dados completos para permitir intersecção")
+            # Não retorna aqui - continua para o fluxo normal que retorna dados completos
 
         # Ordena por valor total (maior primeiro)
         result_list.sort(key=lambda x: x["total_valor"], reverse=True)
