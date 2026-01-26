@@ -1409,22 +1409,6 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         return self._validate_and_execute("IA_Cotacao")
 
-    def _pesquisa_despesa_venda(self, contrato: Optional[str] = None) -> str:
-        """
-        Consulta despesas de venda por contrato.
-
-        Args:
-            contrato: Número do contrato (ex: "235/25")
-
-        Returns:
-            Dados de despesas de venda
-        """
-        filters = None
-        if contrato:
-            filters = {"contrato": contrato}
-
-        return self._validate_and_execute("IA_DespesaVenda", filters)
-
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None) -> str:
         """
         Consulta contas a receber (recebimentos futuros).
