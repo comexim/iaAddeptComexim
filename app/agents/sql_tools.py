@@ -440,7 +440,17 @@ class SQLTools:
             if re.search(r'\bvendedor[ea]?s?', self.user_query.lower()):
                 from collections import defaultdict
 
-                por_vendedor = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
+                por_vendedor = defaultdict(lambda: {
+                    "valor": 0,
+                    "sacas": 0,
+                    "contratos": 0,
+                    "clientes": set(),
+                    "paises": set(),
+                    "certificados": set(),
+                    "qualidades": set(),
+                    "linhas": set(),
+                    "grupos_venda": set()
+                })
 
                 for r in result_list:
                     vendedores = r.get("vendedores", [])
@@ -448,6 +458,11 @@ class SQLTools:
                     sacas = r["total_sacas"]
                     num_contratos = r["total_contratos"]
                     cliente = r["cliente"]
+                    paises = r.get("paises", [])
+                    certificados = r.get("certificados", [])
+                    qualidades = r.get("qualidades", [])
+                    linhas = r.get("linhas", [])
+                    grupos = r.get("grupos_venda", [])
 
                     # Se não tem vendedor, categoriza como "SEM VENDEDOR"
                     if not vendedores or len(vendedores) == 0:
@@ -459,6 +474,17 @@ class SQLTools:
                         por_vendedor[vendedor]["sacas"] += sacas
                         por_vendedor[vendedor]["contratos"] += num_contratos
                         por_vendedor[vendedor]["clientes"].add(cliente)
+                        # Adiciona países, certificados, qualidades, linhas e grupos
+                        for pais in paises:
+                            por_vendedor[vendedor]["paises"].add(pais)
+                        for cert in certificados:
+                            por_vendedor[vendedor]["certificados"].add(cert)
+                        for qual in qualidades:
+                            por_vendedor[vendedor]["qualidades"].add(qual)
+                        for linha in linhas:
+                            por_vendedor[vendedor]["linhas"].add(linha)
+                        for grupo in grupos:
+                            por_vendedor[vendedor]["grupos_venda"].add(grupo)
 
                 # Converte para lista ordenada por sacas
                 vendedores_list = []
@@ -468,7 +494,12 @@ class SQLTools:
                         "sacas_total": round(totais["sacas"], 2),
                         "valor_total": round(totais["valor"], 2),
                         "numero_contratos": totais["contratos"],
-                        "numero_clientes": len(totais["clientes"])
+                        "numero_clientes": len(totais["clientes"]),
+                        "paises": sorted(list(totais["paises"])),
+                        "certificados": sorted(list(totais["certificados"])),
+                        "qualidades": sorted(list(totais["qualidades"])),
+                        "linhas": sorted(list(totais["linhas"])),
+                        "grupos_venda": sorted(list(totais["grupos_venda"]))
                     })
 
                 logger.info(f"[AGREGAÇÃO POR VENDEDOR] Retornando {len(vendedores_list)} vendedores agregados")
