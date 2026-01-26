@@ -1461,7 +1461,10 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         # Verifica se usuário perguntou sobre tipo específico de despesa
         if self.user_query:
-            query_lower = self.user_query.lower()
+            # Pega apenas a última pergunta (caso tenha contexto de múltiplas perguntas)
+            perguntas = self.user_query.split('?')
+            ultima_pergunta = perguntas[-2] if len(perguntas) > 1 else self.user_query
+            query_lower = ultima_pergunta.lower()
 
             # Detecta tipo de despesa na pergunta
             tipo_despesa = None
