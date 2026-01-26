@@ -341,6 +341,44 @@ class SQLTools:
             logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {total_contratos} contratos com corretor de {len(filtered_list)} clientes")
             return result
 
+        # OTIMIZAÇÃO ESPECIAL 0.5: Query sobre "contratos sem BL" ou "não têm BL"
+        if self.user_query and re.search(r'(sem|não\s+t[eê]m?|ainda\s+não|falta[m]?)\s+(número\s+de\s+)?bl\b', self.user_query.lower()):
+            # Calcula totais
+            total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
+            total_com_bl = sum(r.get("total_contratos_com_bl", 0) for r in result_list)
+            total_sem_bl = total_contratos - total_com_bl
+
+            # Coleta contratos sem BL por cliente
+            clientes_sem_bl = []
+            for r in result_list:
+                contratos = r.get("total_contratos", 0)
+                com_bl = r.get("total_contratos_com_bl", 0)
+                sem_bl = contratos - com_bl
+
+                if sem_bl > 0:
+                    clientes_sem_bl.append({
+                        "cliente": r["cliente"].strip(),
+                        "total_contratos": contratos,
+                        "com_bl": com_bl,
+                        "sem_bl": sem_bl
+                    })
+
+            # Retorna string formatada
+            result = f"⚠️ RESPOSTA DIRETA: Dos {total_contratos} contratos, {total_sem_bl} ainda não têm número de BL (e {total_com_bl} já têm BL).\n\n"
+
+            if len(clientes_sem_bl) > 0:
+                result += f"Detalhamento por cliente ({len(clientes_sem_bl)} clientes com contratos sem BL):\n\n"
+                # Ordena por número de contratos sem BL
+                clientes_sem_bl.sort(key=lambda x: x["sem_bl"], reverse=True)
+                for i, c in enumerate(clientes_sem_bl[:10], 1):  # Mostra top 10
+                    result += f"{i}. {c['cliente']}: {c['sem_bl']} sem BL (de {c['total_contratos']} contratos)\n"
+
+                if len(clientes_sem_bl) > 10:
+                    result += f"\n... e mais {len(clientes_sem_bl) - 10} clientes\n"
+
+            logger.info(f"[OTIMIZAÇÃO SEM BL] {total_contratos} contratos, {total_com_bl} com BL, {total_sem_bl} sem BL")
+            return result
+
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
             # Filtra apenas clientes com baixados em jan/2026 ou dez/2025
