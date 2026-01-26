@@ -1633,9 +1633,9 @@ Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"""
                 name="pesquisa_cotacao",
                 description="Consulta cotação da bolsa. NÃO requer argumentos."
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_despesa_venda,
                 name="pesquisa_despesa_venda",
-                func=lambda contrato=None: self._pesquisa_despesa_venda(contrato),
                 description="""Consulta DESPESAS DE VENDA - pode consultar um contrato específico ou todas as despesas agregadas.
 
 Esta ferramenta retorna despesas associadas a contratos de venda, incluindo:
