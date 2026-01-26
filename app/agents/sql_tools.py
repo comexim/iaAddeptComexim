@@ -1443,26 +1443,101 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return self._validate_and_execute("IA_ContasAReceber", filters)
 
-    def _pesquisa_despesa_venda(self, contrato: str) -> str:
+    def _pesquisa_despesa_venda(self, contrato: Optional[str] = None) -> str:
         """
-        Consulta despesas de venda de um contrato específico.
+        Consulta despesas de venda.
 
-        Esta ferramenta retorna todas as despesas relacionadas a um contrato de venda,
-        incluindo: desembaraço aduaneiro, taxas, laudos, certificados, fumigação, etc.
+        Pode consultar:
+        - Despesas de um contrato específico
+        - Despesas de todos os contratos (agregadas por tipo)
 
         Args:
-            contrato: Número do contrato (ex: "235/25", "400/25A")
+            contrato: Número do contrato (opcional). Se não informado, retorna todas as despesas agregadas.
 
         Returns:
-            Lista de despesas do contrato com fornecedor, valor e descrição
+            Lista de despesas ou agregação por tipo
         """
-        if not contrato:
-            return "Erro: É necessário informar o número do contrato para consultar despesas."
+        logger.info(f"[DESPESA VENDA] Consultando despesas - contrato: {contrato}")
 
-        logger.info(f"[DESPESA VENDA] Consultando despesas do contrato: {contrato}")
+        # Se contrato foi especificado, busca despesas daquele contrato
+        if contrato:
+            filters = {"contrato": contrato}
+            return self._validate_and_execute("IA_DespesaVenda", filters)
 
-        filters = {"contrato": contrato}
-        return self._validate_and_execute("IA_DespesaVenda", filters)
+        # Sem contrato especificado = busca todas as despesas e agrega
+        logger.info(f"[DESPESA VENDA] Buscando todas as despesas para agregação")
+
+        # Busca todas as despesas (sem filtro de contrato)
+        result_list = sql_client.execute_function("dbo.IA_DespesaVenda", filters=None)
+
+        if not result_list:
+            return "Nenhuma despesa de venda encontrada."
+
+        logger.info(f"[DESPESA VENDA] Total de registros: {len(result_list)}")
+
+        # Verifica se usuário perguntou sobre tipo específico de despesa
+        if self.user_query:
+            query_lower = self.user_query.lower()
+
+            # Detecta tipo de despesa na pergunta
+            tipo_despesa = None
+            if re.search(r'desemba(ra|ça|raco|raço)', query_lower):
+                tipo_despesa = "DESEMBARACO"
+            elif re.search(r'fumiga(ção|cao)', query_lower):
+                tipo_despesa = "FUMIGACAO"
+            elif re.search(r'(taxa|laudo|certificado)', query_lower):
+                tipo_despesa = "TAXA"
+
+            # Se tipo específico foi detectado, filtra e soma
+            if tipo_despesa:
+                despesas_filtradas = []
+                total_reais = 0
+                total_dolar = 0
+
+                for r in result_list:
+                    despesa_nome = r.get("despesa", "").upper()
+                    if tipo_despesa in despesa_nome:
+                        despesas_filtradas.append(r)
+                        total_reais += float(r.get("despesaRea", 0) or 0)
+                        total_dolar += float(r.get("despesaDolar", 0) or 0)
+
+                if despesas_filtradas:
+                    result = f"Total gasto com {tipo_despesa.lower()}: R$ {total_reais:,.2f}"
+                    if total_dolar > 0:
+                        result += f" + US$ {total_dolar:,.2f}"
+                    result += f"\n\nEncontradas {len(despesas_filtradas)} despesas em {len(set(r.get('contrato') for r in despesas_filtradas))} contratos."
+
+                    logger.info(f"[DESPESA VENDA] Tipo {tipo_despesa}: {len(despesas_filtradas)} despesas, R$ {total_reais:,.2f}")
+                    return result
+                else:
+                    return f"Nenhuma despesa de {tipo_despesa.lower()} encontrada."
+
+        # Sem tipo específico = retorna agregação por tipo de despesa
+        from collections import defaultdict
+        por_tipo = defaultdict(lambda: {"reais": 0, "dolar": 0, "quantidade": 0, "contratos": set()})
+
+        for r in result_list:
+            tipo = r.get("despesa", "").strip() or "SEM DESCRIÇÃO"
+            por_tipo[tipo]["reais"] += float(r.get("despesaRea", 0) or 0)
+            por_tipo[tipo]["dolar"] += float(r.get("despesaDolar", 0) or 0)
+            por_tipo[tipo]["quantidade"] += 1
+            por_tipo[tipo]["contratos"].add(r.get("contrato"))
+
+        # Ordena por valor (maior primeiro)
+        tipos_ordenados = sorted(por_tipo.items(), key=lambda x: x[1]["reais"], reverse=True)
+
+        despesas_list = []
+        for tipo, totais in tipos_ordenados[:20]:  # Top 20
+            despesas_list.append({
+                "tipo_despesa": tipo,
+                "total_reais": round(totais["reais"], 2),
+                "total_dolar": round(totais["dolar"], 2),
+                "quantidade": totais["quantidade"],
+                "numero_contratos": len(totais["contratos"])
+            })
+
+        logger.info(f"[DESPESA VENDA] Retornando {len(despesas_list)} tipos de despesa agregados")
+        return despesas_list
 
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
@@ -1576,16 +1651,17 @@ Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"""
             ),
             Tool(
                 name="pesquisa_despesa_venda",
-                func=lambda contrato: self._pesquisa_despesa_venda(contrato),
-                description="""Consulta DESPESAS DE VENDA de um contrato específico.
+                func=lambda contrato=None: self._pesquisa_despesa_venda(contrato),
+                description="""Consulta DESPESAS DE VENDA - pode consultar um contrato específico ou todas as despesas agregadas.
 
-Esta ferramenta retorna todas as despesas associadas a um contrato de venda, incluindo:
+Esta ferramenta retorna despesas associadas a contratos de venda, incluindo:
 - Desembaraço aduaneiro
 - Taxas de laudo e certificados
 - Despesas com fumigação
 - Outras despesas operacionais
 
-Para cada despesa, retorna:
+MODO 1 - Contrato específico (se número informado):
+Para cada despesa do contrato, retorna:
 - Tipo/descrição da despesa
 - Fornecedor
 - Valor em reais (despesaRea)
@@ -1593,16 +1669,30 @@ Para cada despesa, retorna:
 - Quantidade
 - Observações
 
-⚠️ OBRIGATÓRIO: Esta ferramenta EXIGE o número do contrato.
-Se o usuário não informar, PERGUNTE qual contrato ele deseja consultar.
+MODO 2 - Agregação por tipo (se número NÃO informado):
+Retorna todas as despesas agregadas por tipo, com:
+- Tipo de despesa
+- Total em reais
+- Total em dólar
+- Quantidade de ocorrências
+- Número de contratos
+
+⚠️ DETECÇÃO AUTOMÁTICA DE TIPO:
+Se o usuário perguntar sobre tipo específico sem informar contrato:
+- "Quanto gastei com desembaraço?" → Soma TODAS as despesas de desembaraço
+- "Quanto gastei com fumigação?" → Soma TODAS as despesas de fumigação
+- "Quanto gastei com taxas?" → Soma TODAS as taxas e laudos
 
 Argumentos:
-- contrato (obrigatório): Número do contrato (ex: "235/25", "400/25A")
+- contrato (opcional): Número do contrato (ex: "235/25", "400/25A")
+  - Se INFORMADO: retorna despesas daquele contrato
+  - Se NÃO INFORMADO: retorna agregação por tipo ou tipo específico
 
 Exemplos de uso:
 - "Quais as despesas do contrato 235/25?" → pesquisa_despesa_venda(contrato="235/25")
-- "Despesas do 400/25A" → pesquisa_despesa_venda(contrato="400/25A")
-- "Quanto custou o desembaraço do contrato X?" → pesquisa_despesa_venda(contrato="X")
+- "Quanto gastei com desembaraço em todos os contratos?" → pesquisa_despesa_venda()
+- "Quanto gastei com fumigação?" → pesquisa_despesa_venda()
+- "Quais os tipos de despesa?" → pesquisa_despesa_venda()
 """
             ),
         ]
