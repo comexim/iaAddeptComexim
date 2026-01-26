@@ -843,6 +843,11 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - total_contratos_com_bl: quantidade total de contratos com BL
 - contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
 - total_contratos_embarcados: quantidade total de contratos embarcados
+
+  ⚠️ ATENÇÃO - CONTRATOS SEM BL:
+  Para calcular contratos SEM BL, use: total_contratos - total_contratos_com_bl
+  NÃO confunda com total_contratos_embarcados (são coisas diferentes!)
+  Exemplo: Se tem 107 contratos e 52 com BL, então 107 - 52 = 55 SEM BL
 - contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
 - total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
 - contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
@@ -879,6 +884,7 @@ Exemplos corretos de uso:
 - "Para quais países?" → Use o campo paises
 - "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
 - "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quantos contratos NÃO têm BL?" → Calcule: total_contratos - total_contratos_com_bl
 - "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
 - "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
 - "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
