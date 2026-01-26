@@ -115,11 +115,16 @@ class SQLTools:
             "vendedores": set(),
             "filiais": set(),
             "grupos_venda": set(),
+            "refCliente": None,  # Código/referência do cliente
         })
 
         for row in results:
             cliente = row.get("cliente", "SEM CLIENTE")
             data = aggregated[cliente]
+
+            # Captura refCliente (só precisa uma vez por cliente)
+            if not data["refCliente"] and row.get("refCliente"):
+                data["refCliente"] = str(row["refCliente"]).strip()
 
             # Contadores e totais
             data["total_contratos"] += 1
@@ -257,6 +262,7 @@ class SQLTools:
                 "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
                 "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
+                "refCliente": data["refCliente"] if data["refCliente"] else "",
             })
 
         # OTIMIZAÇÃO ESPECIAL -1: Query sobre intersecção "embarcados E baixados"
@@ -339,6 +345,36 @@ class SQLTools:
                 result += f"{i}. {contrato_info}\n"
 
             logger.info(f"[OTIMIZAÇÃO CORRETOR] Retornando {total_contratos} contratos com corretor de {len(filtered_list)} clientes")
+            return result
+
+        # OTIMIZAÇÃO ESPECIAL 0.4: Query sobre "clientes sem referência/código"
+        if self.user_query and re.search(r'(clientes?|quais).*\b(sem|não\s+t[eê]m?)\s+(código|codigo|referência|referencia)', self.user_query.lower()):
+            # Filtra clientes sem refCliente
+            clientes_sem_ref = []
+            clientes_com_ref = []
+
+            for r in result_list:
+                cliente = r["cliente"].strip()
+                ref = r.get("refCliente", "")
+
+                if ref and ref.strip():
+                    clientes_com_ref.append(cliente)
+                else:
+                    clientes_sem_ref.append(cliente)
+
+            total_clientes = len(result_list)
+            total_sem_ref = len(clientes_sem_ref)
+            total_com_ref = len(clientes_com_ref)
+
+            # Retorna string formatada
+            result = f"⚠️ RESPOSTA DIRETA: Dos {total_clientes} clientes, {total_sem_ref} não têm código de referência cadastrado (e {total_com_ref} têm).\n\n"
+
+            if total_sem_ref > 0:
+                result += f"Clientes sem código de referência:\n\n"
+                for i, cliente in enumerate(clientes_sem_ref, 1):
+                    result += f"{i}. {cliente}\n"
+
+            logger.info(f"[OTIMIZAÇÃO SEM REFERÊNCIA] {total_clientes} clientes, {total_com_ref} com ref, {total_sem_ref} sem ref")
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0.5: Query sobre "contratos sem BL" ou "não têm BL"
@@ -675,8 +711,8 @@ class SQLTools:
                 return linhas_list
 
             # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial" nem "linha", retorna por cliente
-            # EXCETO se menciona "embarcad" ou "bl" - nesse caso precisa dos campos completos
-            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)|\bbl\b|bill\s+of\s+lading|amostra', self.user_query.lower()):
+            # EXCETO se menciona "embarcad" ou "bl" ou "amostra" ou "referência/código" - nesse caso precisa dos campos completos
+            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)|\bbl\b|bill\s+of\s+lading|amostra|referência|referencia|código|codigo', self.user_query.lower()):
                 # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
                 minimal_list = []
                 for r in result_list:
@@ -690,8 +726,8 @@ class SQLTools:
                 logger.info(f"[OTIMIZAÇÃO PERÍODO] Retornando {len(minimal_list)} clientes com campos essenciais (valor, sacas, grupos)")
                 return minimal_list
 
-            # Se menciona "embarcad/bl/amostra", não otimiza - retorna dados completos
-            logger.info(f"[PERÍODO+CAMPOS COMPLETOS] Query menciona campos logísticos - retornando dados completos")
+            # Se menciona "embarcad/bl/amostra/referência/código", não otimiza - retorna dados completos
+            logger.info(f"[PERÍODO+CAMPOS COMPLETOS] Query menciona campos logísticos/administrativos - retornando dados completos")
             # Não retorna aqui - continua para o fluxo normal que retorna dados completos
 
         # Ordena por valor total (maior primeiro)
