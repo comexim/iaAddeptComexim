@@ -44,8 +44,8 @@ class SQLTools:
         query_lower = query.lower().strip()
 
         # NÃO tenta extrair cliente se a query é sobre agregações
-        # (grupo, vendedor, filial, fixador, etc.)
-        if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|cada\s+(grupo|vendedor|filial))', query_lower):
+        # (grupo, vendedor, filial, fixador, linha, etc.)
+        if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|linha|cada\s+(grupo|vendedor|filial|linha))', query_lower):
             return None
 
         # Padrões comuns para identificar nome de cliente
@@ -512,7 +512,48 @@ class SQLTools:
                 logger.info(f"[AGREGAÇÃO POR FILIAL] Retornando {len(filiais_list)} filiais agregadas")
                 return filiais_list
 
-            # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial", retorna por cliente
+            # OTIMIZAÇÃO ESPECIAL 2.5: Se a query menciona "linha", agregar por linha de café
+            if re.search(r'\blinha[s]?(\s+de\s+caf[eé])?', self.user_query.lower()):
+                from collections import defaultdict
+
+                por_linha = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
+
+                for r in result_list:
+                    linhas = r.get("linhas", [])
+                    valor = r["total_valor"]
+                    sacas = r["total_sacas"]
+                    num_contratos = r["total_contratos"]
+                    cliente = r["cliente"]
+
+                    # Se não tem linha, categoriza como "SEM LINHA"
+                    if not linhas or len(linhas) == 0:
+                        linhas = ["SEM LINHA"]
+
+                    # Cada cliente pode ter contratos em múltiplas linhas
+                    for linha in linhas:
+                        por_linha[linha]["valor"] += valor
+                        por_linha[linha]["sacas"] += sacas
+                        por_linha[linha]["contratos"] += num_contratos
+                        por_linha[linha]["clientes"].add(cliente)
+
+                # Converte para lista ordenada por valor (para mostrar média por saca)
+                linhas_list = []
+                for linha, totais in sorted(por_linha.items(), key=lambda x: x[1]["valor"], reverse=True):
+                    # Converte para float para evitar erro de tipo com Decimal
+                    media_por_saca = float(totais["valor"]) / float(totais["sacas"]) if totais["sacas"] > 0 else 0
+                    linhas_list.append({
+                        "linha": linha,
+                        "valor_total": round(totais["valor"], 2),
+                        "sacas_total": round(totais["sacas"], 2),
+                        "media_por_saca": round(media_por_saca, 2),
+                        "numero_contratos": totais["contratos"],
+                        "numero_clientes": len(totais["clientes"])
+                    })
+
+                logger.info(f"[AGREGAÇÃO POR LINHA] Retornando {len(linhas_list)} linhas agregadas")
+                return linhas_list
+
+            # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial" nem "linha", retorna por cliente
             # EXCETO se menciona "embarcad" (qualquer conjugação) - nesse caso precisa dos campos completos
             if not re.search(r'embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
                 # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
