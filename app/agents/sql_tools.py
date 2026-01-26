@@ -1443,6 +1443,27 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return self._validate_and_execute("IA_ContasAReceber", filters)
 
+    def _pesquisa_despesa_venda(self, contrato: str) -> str:
+        """
+        Consulta despesas de venda de um contrato específico.
+
+        Esta ferramenta retorna todas as despesas relacionadas a um contrato de venda,
+        incluindo: desembaraço aduaneiro, taxas, laudos, certificados, fumigação, etc.
+
+        Args:
+            contrato: Número do contrato (ex: "235/25", "400/25A")
+
+        Returns:
+            Lista de despesas do contrato com fornecedor, valor e descrição
+        """
+        if not contrato:
+            return "Erro: É necessário informar o número do contrato para consultar despesas."
+
+        logger.info(f"[DESPESA VENDA] Consultando despesas do contrato: {contrato}")
+
+        filters = {"contrato": contrato}
+        return self._validate_and_execute("IA_DespesaVenda", filters)
+
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
         return [
@@ -1555,7 +1576,33 @@ Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"""
             ),
             Tool(
                 name="pesquisa_despesa_venda",
-                func=lambda contrato=None: self._pesquisa_despesa_venda(contrato),
-                description="Consulta despesas de venda por contrato. Argumentos: contrato (opcional, ex: '235/25')"
+                func=lambda contrato: self._pesquisa_despesa_venda(contrato),
+                description="""Consulta DESPESAS DE VENDA de um contrato específico.
+
+Esta ferramenta retorna todas as despesas associadas a um contrato de venda, incluindo:
+- Desembaraço aduaneiro
+- Taxas de laudo e certificados
+- Despesas com fumigação
+- Outras despesas operacionais
+
+Para cada despesa, retorna:
+- Tipo/descrição da despesa
+- Fornecedor
+- Valor em reais (despesaRea)
+- Valor em dólar (despesaDolar)
+- Quantidade
+- Observações
+
+⚠️ OBRIGATÓRIO: Esta ferramenta EXIGE o número do contrato.
+Se o usuário não informar, PERGUNTE qual contrato ele deseja consultar.
+
+Argumentos:
+- contrato (obrigatório): Número do contrato (ex: "235/25", "400/25A")
+
+Exemplos de uso:
+- "Quais as despesas do contrato 235/25?" → pesquisa_despesa_venda(contrato="235/25")
+- "Despesas do 400/25A" → pesquisa_despesa_venda(contrato="400/25A")
+- "Quanto custou o desembaraço do contrato X?" → pesquisa_despesa_venda(contrato="X")
+"""
             ),
         ]
