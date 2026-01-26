@@ -481,21 +481,12 @@ class SQLTools:
                         c = c.strip()
                         if c:
                             contratos_list.append({
-                                "contrato": c,
+                                "numero_contrato": c,
                                 "cliente": cliente
                             })
 
-            total_contratos = len(contratos_list)
-            total_clientes = len(result_list)
-
-            result = f"⚠️ RESPOSTA DIRETA (não resuma): Encontrados {total_contratos} contratos de {total_clientes} clientes.\n\n"
-            result += "Lista completa de contratos:\n\n"
-
-            for i, item in enumerate(contratos_list, 1):
-                result += f"{i}. {item['contrato']} ({item['cliente']})\n"
-
-            logger.info(f"[OTIMIZAÇÃO LISTA CONTRATOS] Retornando {total_contratos} contratos individuais de {total_clientes} clientes")
-            return result
+            logger.info(f"[OTIMIZAÇÃO LISTA CONTRATOS] Retornando {len(contratos_list)} contratos individuais de {len(result_list)} clientes")
+            return contratos_list
 
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
         if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
