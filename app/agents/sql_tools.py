@@ -384,16 +384,17 @@ class SQLTools:
             # Calcula totais
             total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
             total_com_amostra = sum(r.get("total_contratos_amostra_enviada", 0) for r in result_list)
-            total_sem_amostra = total_contratos - total_com_amostra
 
             # Coleta contratos sem amostra por cliente
             clientes_sem_amostra = []
+            total_sem_amostra_listados = 0  # Conta os contratos realmente listados
+
             for r in result_list:
                 contratos_str = r.get("contratos", "")
                 amostra_str = r.get("contratos_amostra_enviada", "")
 
                 if contratos_str:
-                    # Lista de todos os contratos do cliente
+                    # Lista de todos os contratos do cliente (limitado a 10 no campo "contratos")
                     todos_contratos = set(c.strip() for c in contratos_str.split(',') if c.strip())
                     # Lista de contratos com amostra enviada
                     com_amostra = set(c.strip() for c in amostra_str.split(',') if c.strip())
@@ -405,12 +406,21 @@ class SQLTools:
                             "cliente": r["cliente"].strip(),
                             "contratos": sorted(list(sem_amostra))
                         })
+                        total_sem_amostra_listados += len(sem_amostra)
+
+            # Usa o total calculado dos campos, não o total listado (que pode estar incompleto)
+            total_sem_amostra = total_contratos - total_com_amostra
 
             # Retorna string formatada
             result = f"⚠️ RESPOSTA DIRETA: Dos {total_contratos} contratos, {total_sem_amostra} ainda não enviaram amostra (e {total_com_amostra} já enviaram).\n\n"
 
             if len(clientes_sem_amostra) > 0:
-                result += f"Lista completa de contratos sem amostra:\n\n"
+                # Avisa se a lista está incompleta
+                if total_sem_amostra_listados < total_sem_amostra:
+                    result += f"Lista de contratos sem amostra (mostrando {total_sem_amostra_listados} de {total_sem_amostra}):\n\n"
+                else:
+                    result += f"Lista completa de contratos sem amostra:\n\n"
+
                 contador = 0
                 for cliente_data in clientes_sem_amostra:
                     cliente = cliente_data["cliente"]
@@ -418,7 +428,7 @@ class SQLTools:
                         contador += 1
                         result += f"{contador}. {contrato} ({cliente})\n"
 
-            logger.info(f"[OTIMIZAÇÃO SEM AMOSTRA] {total_contratos} contratos, {total_com_amostra} com amostra, {total_sem_amostra} sem amostra")
+            logger.info(f"[OTIMIZAÇÃO SEM AMOSTRA] {total_contratos} contratos, {total_com_amostra} com amostra, {total_sem_amostra} sem amostra ({total_sem_amostra_listados} listados)")
             return result
 
         # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
