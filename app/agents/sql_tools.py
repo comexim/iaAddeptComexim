@@ -1574,10 +1574,32 @@ CASO 2 - SEMPRE PASSE periodo='[mês] [ano]':
 
 Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_compras,
                 name="pesquisa_compras",
-                func=lambda data_inicio=None: self._pesquisa_compras(data_inicio),
-                description="Consulta dados de compras e aquisições. Argumentos: data_inicio (opcional, ex: 'últimos 7 dias')"
+                description="""Consulta dados de COMPRAS e AQUISIÇÕES de café.
+
+Esta ferramenta retorna informações sobre pedidos e contratos de compra, incluindo:
+- Número do pedido/contrato
+- Fornecedor (produtor/cooperativa)
+- Quantidade (sacas e peso)
+- Preço e valor total
+- Safra
+- Qualidade (peneiras, defeitos, umidade, etc.)
+- Diferencial
+- Data de emissão e entrega
+- Sacas entregues vs a entregar
+
+Argumentos:
+- data_inicio (opcional): Data inicial para filtro (ex: "últimos 7 dias", "este mês", "05/12/2025", "dezembro 2025")
+  - Se NÃO INFORMADO: retorna todas as compras
+  - Se INFORMADO: filtra por data de emissão >= data_inicio
+
+Exemplos de uso:
+- "Quais foram as compras dos últimos 7 dias?" → pesquisa_compras(data_inicio="últimos 7 dias")
+- "Compras de dezembro de 2025" → pesquisa_compras(data_inicio="dezembro 2025")
+- "Compras desde 05/12/2025" → pesquisa_compras(data_inicio="05/12/2025")
+"""
             ),
             Tool(
                 name="pesquisa_contas_pagas",
