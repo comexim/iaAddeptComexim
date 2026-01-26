@@ -585,8 +585,8 @@ class SQLTools:
                 return linhas_list
 
             # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial" nem "linha", retorna por cliente
-            # EXCETO se menciona "embarcad" (qualquer conjugação) - nesse caso precisa dos campos completos
-            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
+            # EXCETO se menciona "embarcad" ou "bl" - nesse caso precisa dos campos completos
+            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)|\bbl\b|bill\s+of\s+lading|amostra', self.user_query.lower()):
                 # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
                 minimal_list = []
                 for r in result_list:
@@ -600,8 +600,8 @@ class SQLTools:
                 logger.info(f"[OTIMIZAÇÃO PERÍODO] Retornando {len(minimal_list)} clientes com campos essenciais (valor, sacas, grupos)")
                 return minimal_list
 
-            # Se menciona "embarcad/embarcaram/embarcar", não otimiza - retorna dados completos
-            logger.info(f"[PERÍODO+EMBARCADOS] Query menciona 'embarc*' - retornando dados completos para permitir intersecção")
+            # Se menciona "embarcad/bl/amostra", não otimiza - retorna dados completos
+            logger.info(f"[PERÍODO+CAMPOS COMPLETOS] Query menciona campos logísticos - retornando dados completos")
             # Não retorna aqui - continua para o fluxo normal que retorna dados completos
 
         # Ordena por valor total (maior primeiro)
