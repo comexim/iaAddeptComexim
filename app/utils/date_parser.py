@@ -157,8 +157,8 @@ class DateParser:
             logger.debug(f"Parseado 'próximos {days} dias': {result['data_inicio']} - {result['data_fim']}")
             return result
 
-        # Este mês
-        if "este mês" in text or "esse mês" in text:
+        # Este mês (com ou sem acento)
+        if "este mês" in text or "esse mês" in text or "este mes" in text or "esse mes" in text:
             first_day = now.replace(day=1)
             result["data_inicio"] = DateParser.format_yyyymmdd(first_day)
             result["data_fim"] = DateParser.format_yyyymmdd(now)
