@@ -1476,21 +1476,166 @@ IMPORTANTE:
 
     def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None) -> str:
         """
-        Consulta contas a pagar (vencimentos futuros).
+        Consulta contas a pagar (vencimentos futuros/pendentes).
 
         Args:
-            data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias")
+            data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias", "este mês")
 
         Returns:
-            Dados de contas a pagar
+            Dados de contas a pagar formatados
         """
+        logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}")
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAPagar")
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasAPagar")
+            return error_msg
+
+        # Parse data se fornecida
         filters = None
         if data_vencimento:
             parsed = date_parser.parse_natural_date(data_vencimento)
             if parsed and "data_inicio" in parsed:
                 filters = {"vencimento": parsed["data_inicio"]}
 
-        return self._validate_and_execute("IA_ContasAPagar", filters)
+        # Executa query
+        try:
+            result_list = sql_client.execute_function("dbo.IA_ContasAPagar", filters)
+
+            if not result_list:
+                return "Nenhuma conta a pagar encontrada para o período especificado."
+
+            # Se poucos registros (<= 50), retorna todos
+            if len(result_list) <= 50:
+                def convert_decimals(obj):
+                    if isinstance(obj, Decimal):
+                        return float(obj)
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta IA_ContasAPagar:
+
+Total de registros: {len(result_list)}
+
+Dados completos:
+{formatted}
+
+CAMPOS DISPONÍVEIS:
+- tipo: Tipo do título (Realizado, etc.)
+- filial: Código da filial
+- prefixo: Prefixo do título
+- numero: Número do título
+- parcela: Parcela do título
+- fornecedor: Nome do fornecedor/credor
+- loja: Código da loja do fornecedor
+- centroCusto: Centro de custo associado
+- natureza: Natureza/tipo da despesa
+- valor: Valor a pagar
+- rateio: Valor do rateio
+- percrat: Percentual do rateio
+- emissao: Data de emissão (YYYYMMDD)
+- vencimento: Data de vencimento (YYYYMMDD)
+- pedido: Número do pedido relacionado
+
+Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
+
+            # Se muitos registros (> 50), agrega por fornecedor
+            from collections import defaultdict
+            por_fornecedor = defaultdict(lambda: {
+                "valor_total": 0,
+                "quantidade": 0,
+                "naturezas": set(),
+                "vencimentos": []
+            })
+
+            total_geral = 0
+
+            for r in result_list:
+                fornecedor = r.get("fornecedor", "").strip() or "SEM FORNECEDOR"
+                valor = r.get("valor", 0)
+
+                # Converte valor para float
+                if isinstance(valor, Decimal):
+                    valor = float(valor)
+                elif isinstance(valor, str):
+                    try:
+                        # Tenta conversao direta primeiro
+                        valor = float(valor)
+                    except:
+                        try:
+                            # Se falhar, tenta limpar formatacao
+                            valor_limpo = valor.replace("R$", "").replace(",", "").strip()
+                            valor = float(valor_limpo)
+                        except:
+                            valor = 0
+                elif not isinstance(valor, (int, float)):
+                    valor = 0
+
+                por_fornecedor[fornecedor]["valor_total"] += valor
+                por_fornecedor[fornecedor]["quantidade"] += 1
+
+                natureza = r.get("natureza", "").strip()
+                if natureza:
+                    por_fornecedor[fornecedor]["naturezas"].add(natureza)
+
+                vencimento = r.get("vencimento", "").strip()
+                if vencimento:
+                    por_fornecedor[fornecedor]["vencimentos"].append(vencimento)
+
+                total_geral += valor
+
+            # Converte sets para listas para JSON
+            # Ordena por VALOR ABSOLUTO (maiores débitos primeiro) e limita aos top 50
+            fornecedores_list = []
+            fornecedores_ordenados = sorted(por_fornecedor.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True)
+
+            # Limita aos top 50 fornecedores para evitar respostas muito grandes
+            for fornecedor, dados in fornecedores_ordenados[:50]:
+                # Pega os próximos 3 vencimentos
+                vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
+
+                fornecedores_list.append({
+                    "fornecedor": fornecedor,
+                    "valor_total": round(dados["valor_total"], 2),
+                    "quantidade_titulos": dados["quantidade"],
+                    "naturezas": sorted(list(dados["naturezas"])),
+                    "proximos_vencimentos": vencimentos_unicos
+                })
+
+            def convert_decimals(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+            formatted = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+            return f"""Resultados da consulta IA_ContasAPagar (AGREGADOS POR FORNECEDOR):
+
+Total de registros SQL: {len(result_list)}
+Total de fornecedores únicos: {len(por_fornecedor)}
+Valor total a pagar: R$ {total_geral:,.2f}
+
+Top {len(fornecedores_list)} maiores fornecedores (por valor):
+{formatted}
+
+CAMPOS DISPONÍVEIS POR FORNECEDOR:
+- fornecedor: Nome do fornecedor/credor
+- valor_total: Total a pagar para este fornecedor (R$)
+- quantidade_titulos: Número de títulos/contas pendentes
+- naturezas: Lista de naturezas/tipos de despesa
+- proximos_vencimentos: Próximos 3 vencimentos (YYYYMMDD)
+
+IMPORTANTE:
+1. Estas são contas PENDENTES (a pagar no futuro)
+2. O valor_total já está calculado e somado por fornecedor
+3. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}
+4. O valor_total mostrado representa a soma de TODOS os fornecedores, não apenas os {len(fornecedores_list)} listados"""
+
+        except Exception as e:
+            logger.error(f"Erro ao executar IA_ContasAPagar: {e}")
+            return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_saldo_bancario(self) -> str:
         """
@@ -1795,10 +1940,52 @@ Exemplos de uso:
 - "Todas as contas pagas" → pesquisa_contas_pagas()
 """
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_contas_a_pagar,
                 name="pesquisa_contas_a_pagar",
-                func=lambda data_vencimento=None: self._pesquisa_contas_a_pagar(data_vencimento),
-                description="Consulta contas a pagar (vencimentos futuros). Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"
+                description="""Consulta CONTAS A PAGAR pela empresa (pagamentos pendentes/futuros).
+
+Esta ferramenta retorna informações sobre contas pendentes de pagamento, incluindo TODOS os campos:
+
+📋 IDENTIFICAÇÃO DO TÍTULO:
+- tipo: Tipo do título (Realizado, etc.)
+- filial: Código da filial responsável
+- prefixo: Prefixo do título
+- numero: Número do título/documento
+- parcela: Parcela do título (se parcelado)
+- pedido: Número do pedido relacionado
+- loja: Código da loja do fornecedor
+
+💰 VALORES FINANCEIROS:
+- valor: Valor total a pagar (R$)
+- rateio: Valor do rateio
+- percrat: Percentual do rateio (%)
+
+📅 DATAS:
+- emissao: Data de emissão do título (formato: YYYYMMDD)
+- vencimento: Data de vencimento (formato: YYYYMMDD)
+
+🏦 CONTROLE FINANCEIRO:
+- fornecedor: Nome do fornecedor/credor
+- centroCusto: Centro de custo associado
+- natureza: Natureza/tipo da despesa (ex: compra de café, fretes, despesas, etc.)
+
+⚠️ IMPORTANTE: Esta ferramenta é para PAGAMENTOS PENDENTES (contas a pagar no futuro).
+Para pagamentos já efetuados, use pesquisa_contas_pagas.
+
+Argumentos:
+- data_vencimento (opcional): Data de vencimento para filtro
+  - Formato flexível: "hoje", "próximos 7 dias", "este mês", "próxima semana", "20251212"
+  - Se NÃO INFORMADO: retorna todas as contas a pagar (sem filtro de data)
+  - Se INFORMADO: filtra contas com vencimento >= data_vencimento
+
+Exemplos de uso:
+- "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
+- "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
+- "Pagamentos deste mês" → pesquisa_contas_a_pagar(data_vencimento="este mês")
+- "Todas as contas a pagar" → pesquisa_contas_a_pagar()
+- "Contas com vencimento em 12/12/2025" → pesquisa_contas_a_pagar(data_vencimento="20251212")
+"""
             ),
             Tool(
                 name="pesquisa_contas_a_receber",
