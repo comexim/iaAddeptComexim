@@ -1427,9 +1427,12 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                 total_geral += valor
 
             # Converte sets para listas para JSON
-            # Ordena por VALOR ABSOLUTO (maiores pagamentos primeiro)
+            # Ordena por VALOR ABSOLUTO (maiores pagamentos primeiro) e limita aos top 50
             fornecedores_list = []
-            for fornecedor, dados in sorted(por_fornecedor.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True):
+            fornecedores_ordenados = sorted(por_fornecedor.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True)
+
+            # Limita aos top 50 fornecedores para evitar respostas muito grandes
+            for fornecedor, dados in fornecedores_ordenados[:50]:
                 fornecedores_list.append({
                     "fornecedor": fornecedor,
                     "valor_total": round(dados["valor_total"], 2),
@@ -1448,10 +1451,10 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
             return f"""Resultados da consulta IA_ContasPagas (AGREGADOS POR FORNECEDOR):
 
 Total de registros SQL: {len(result_list)}
-Total de fornecedores: {len(fornecedores_list)}
+Total de fornecedores únicos: {len(por_fornecedor)}
 Valor total pago: R$ {total_geral:,.2f}
 
-Dados agregados por fornecedor:
+Top {len(fornecedores_list)} maiores fornecedores (por valor):
 {formatted}
 
 CAMPOS DISPONÍVEIS POR FORNECEDOR:
@@ -1464,7 +1467,8 @@ CAMPOS DISPONÍVEIS POR FORNECEDOR:
 IMPORTANTE:
 1. Estes são pagamentos JÁ EFETUADOS (contas pagas)
 2. O valor_total já está calculado e somado por fornecedor
-3. Para ver detalhes de um fornecedor específico, o usuário pode perguntar sobre ele especificamente"""
+3. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}
+4. O valor_total mostrado representa a soma de TODOS os fornecedores, não apenas os {len(fornecedores_list)} listados"""
 
         except Exception as e:
             logger.error(f"Erro ao executar IA_ContasPagas: {e}")
