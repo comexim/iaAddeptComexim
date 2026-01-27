@@ -1769,31 +1769,7 @@ IMPORTANTE:
             if not result_list:
                 return "Nenhuma conta a receber encontrada para o período especificado."
 
-            # Se poucos registros (<= 50), retorna todos
-            if len(result_list) <= 50:
-                def convert_decimals(obj):
-                    if isinstance(obj, Decimal):
-                        return float(obj)
-                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
-
-                return f"""Resultados da consulta IA_ContasAReceber:
-
-Total de registros: {len(result_list)}
-
-Dados completos:
-{formatted}
-
-CAMPOS DISPONÍVEIS (27 campos):
-- idProtheus, tipo, numero, parcela, cliente, contrato, banco, baixaPilha, consignee
-- valor, saldo, emissao, vencimentoReal, vencimentoOriginal, baixa
-- condicaoPagamento, mesEmbarque, embarqueReal, previsaoEmbarque, embarqueEstimado
-- recebimentoDoc, envioDoc, modalidade, peso, sacas, mesFixacao, diferencial
-
-Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
-
-            # Se muitos registros (> 50), agrega por cliente
+            # SEMPRE agrega por cliente para garantir valores corretos
             from collections import defaultdict
             por_cliente = defaultdict(lambda: {
                 "valor_total": 0,
@@ -1855,16 +1831,31 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
             clientes_list = []
             clientes_ordenados = sorted(por_cliente.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True)
 
-            for cliente_nome, dados in clientes_ordenados[:50]:
-                vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
-                clientes_list.append({
-                    "cliente": cliente_nome,
-                    "valor_total": round(dados["valor_total"], 2),
-                    "saldo_total": round(dados["saldo_total"], 2),
-                    "quantidade_titulos": dados["quantidade"],
-                    "numero_contratos": len(dados["contratos"]),
-                    "proximos_vencimentos": vencimentos_unicos
-                })
+            # Se poucos clientes (≤ 10), mostra detalhes completos incluindo contratos
+            if len(por_cliente) <= 10:
+                for cliente_nome, dados in clientes_ordenados:
+                    vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
+                    contratos_lista = sorted(list(dados["contratos"]))[:10]
+                    clientes_list.append({
+                        "cliente": cliente_nome,
+                        "valor_total": round(dados["valor_total"], 2),
+                        "saldo_total": round(dados["saldo_total"], 2),
+                        "quantidade_titulos": dados["quantidade"],
+                        "contratos": contratos_lista,
+                        "proximos_vencimentos": vencimentos_unicos
+                    })
+            else:
+                # Se muitos clientes (> 10), mostra apenas top 50 sem lista de contratos
+                for cliente_nome, dados in clientes_ordenados[:50]:
+                    vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
+                    clientes_list.append({
+                        "cliente": cliente_nome,
+                        "valor_total": round(dados["valor_total"], 2),
+                        "saldo_total": round(dados["saldo_total"], 2),
+                        "quantidade_titulos": dados["quantidade"],
+                        "numero_contratos": len(dados["contratos"]),
+                        "proximos_vencimentos": vencimentos_unicos
+                    })
 
             def convert_decimals(obj):
                 if isinstance(obj, Decimal):
@@ -1880,13 +1871,14 @@ Total de clientes únicos: {len(por_cliente)}
 Valor total a receber: R$ {total_valor:,.2f}
 Saldo total pendente: R$ {total_saldo:,.2f}
 
-Top {len(clientes_list)} maiores clientes (por valor):
+Clientes (ordenados por valor):
 {formatted}
 
 IMPORTANTE:
 1. Estas são contas PENDENTES (a receber no futuro)
-2. Mostrando apenas os {len(clientes_list)} maiores clientes de um total de {len(por_cliente)}
-3. O valor_total representa a soma de TODOS os clientes"""
+2. Os valores já estão AGREGADOS por cliente (se cliente tem múltiplos títulos, valores foram somados)
+3. valor_total = soma de todos os títulos daquele cliente
+4. Total geral: R$ {total_valor:,.2f}"""
 
         except Exception as e:
             logger.error(f"Erro ao executar IA_ContasAReceber: {e}")
