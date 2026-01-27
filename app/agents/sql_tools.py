@@ -1427,8 +1427,9 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                 total_geral += valor
 
             # Converte sets para listas para JSON
+            # Ordena por VALOR ABSOLUTO (maiores pagamentos primeiro)
             fornecedores_list = []
-            for fornecedor, dados in sorted(por_fornecedor.items(), key=lambda x: x[1]["valor_total"], reverse=True):
+            for fornecedor, dados in sorted(por_fornecedor.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True):
                 fornecedores_list.append({
                     "fornecedor": fornecedor,
                     "valor_total": round(dados["valor_total"], 2),
