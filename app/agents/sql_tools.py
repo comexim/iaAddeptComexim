@@ -1494,14 +1494,25 @@ IMPORTANTE:
 
         # Parse data se fornecida
         filters = None
+        data_fim_filter = None
         if data_vencimento:
             parsed = date_parser.parse_natural_date(data_vencimento)
             if parsed and "data_inicio" in parsed:
                 filters = {"vencimento": parsed["data_inicio"]}
+                # Se tem data_fim, guarda para filtro manual posterior
+                if "data_fim" in parsed:
+                    data_fim_filter = parsed["data_fim"]
+                    logger.info(f"[CONTAS A PAGAR] Filtro de intervalo detectado: {parsed['data_inicio']} até {data_fim_filter}")
 
         # Executa query
         try:
             result_list = sql_client.execute_function("dbo.IA_ContasAPagar", filters)
+
+            # Aplica filtro manual de data_fim se necessário (para intervalos como "próximos 7 dias")
+            if result_list and data_fim_filter:
+                original_count = len(result_list)
+                result_list = [r for r in result_list if r.get("vencimento", "") <= data_fim_filter]
+                logger.info(f"[CONTAS A PAGAR] Filtro manual aplicado: {original_count} → {len(result_list)} registros (vencimento <= {data_fim_filter})")
 
             if not result_list:
                 return "Nenhuma conta a pagar encontrada para o período especificado."
