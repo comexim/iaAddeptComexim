@@ -220,6 +220,32 @@ class DateParser:
             logger.debug(f"Parseado range '{start_str}-{end_str}': {result['data_inicio']} - {result['data_fim']}")
             return result
 
+        # "Desde" + data (a partir de, sem limite superior)
+        # Exemplo: "desde 12/12/2025", "desde 20251212"
+        if re.search(r'\bdesde\b', text):
+            # Remove "desde" e tenta parsear a data
+            text_sem_desde = re.sub(r'\bdesde\b', '', text).strip()
+
+            # Tenta DD/MM/YYYY
+            match = re.search(r'(\d{2})/(\d{2})/(\d{4})', text_sem_desde)
+            if match:
+                day, month, year = match.groups()
+                target_date = datetime(int(year), int(month), int(day), tzinfo=TZ_SP)
+                result["data_inicio"] = DateParser.format_yyyymmdd(target_date)
+                # NÃO define data_fim - significa "a partir de"
+                logger.debug(f"Parseado 'desde {day}/{month}/{year}': {result['data_inicio']} (sem limite superior)")
+                return result
+
+            # Tenta YYYYMMDD
+            match = re.search(r'(\d{8})', text_sem_desde)
+            if match:
+                date_str = match.group(1)
+                target_date = datetime.strptime(date_str, "%Y%m%d").replace(tzinfo=TZ_SP)
+                result["data_inicio"] = DateParser.format_yyyymmdd(target_date)
+                # NÃO define data_fim - significa "a partir de"
+                logger.debug(f"Parseado 'desde {date_str}': {result['data_inicio']} (sem limite superior)")
+                return result
+
         # Formato direto: DD/MM/YYYY
         match = re.search(r'(\d{2})/(\d{2})/(\d{4})', text)
         if match:
