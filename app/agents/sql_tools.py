@@ -1474,17 +1474,18 @@ IMPORTANTE:
             logger.error(f"Erro ao executar IA_ContasPagas: {e}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None) -> str:
+    def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None, natureza: Optional[str] = None) -> str:
         """
         Consulta contas a pagar (vencimentos futuros/pendentes).
 
         Args:
             data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias", "este mês")
+            natureza: Filtro por natureza/tipo de despesa (ex: "compra de café", "INSS", "salário")
 
         Returns:
             Dados de contas a pagar formatados
         """
-        logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}")
+        logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}, natureza: {natureza}")
 
         # Valida permissão
         has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAPagar")
@@ -1513,6 +1514,14 @@ IMPORTANTE:
                 original_count = len(result_list)
                 result_list = [r for r in result_list if r.get("vencimento", "") <= data_fim_filter]
                 logger.info(f"[CONTAS A PAGAR] Filtro manual aplicado: {original_count} → {len(result_list)} registros (vencimento <= {data_fim_filter})")
+
+            # Aplica filtro por natureza se fornecido
+            if result_list and natureza:
+                original_count = len(result_list)
+                natureza_upper = natureza.upper()
+                # Filtro flexível: aceita match parcial (ex: "cafe" encontra "COMPRA DE CAFE BENEFICIADO")
+                result_list = [r for r in result_list if natureza_upper in str(r.get("natureza", "")).upper()]
+                logger.info(f"[CONTAS A PAGAR] Filtro por natureza '{natureza}': {original_count} → {len(result_list)} registros")
 
             if not result_list:
                 return "Nenhuma conta a pagar encontrada para o período especificado."
@@ -1990,12 +1999,21 @@ Argumentos:
   - Se NÃO INFORMADO: retorna todas as contas a pagar (sem filtro de data)
   - Se INFORMADO: filtra contas com vencimento >= data_vencimento
 
+- natureza (opcional): Filtro por natureza/tipo de despesa
+  - Exemplos: "compra de café", "cafe", "INSS", "salário", "PLR", "tarifas bancárias"
+  - O filtro é flexível: "cafe" encontra "COMPRA DE CAFE BENEFICIADO"
+  - Se NÃO INFORMADO: retorna todas as naturezas
+  - Se INFORMADO: filtra apenas contas com natureza correspondente
+
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
 - "Pagamentos deste mês" → pesquisa_contas_a_pagar(data_vencimento="este mês")
 - "Todas as contas a pagar" → pesquisa_contas_a_pagar()
 - "Contas com vencimento em 12/12/2025" → pesquisa_contas_a_pagar(data_vencimento="20251212")
+- "Quanto tenho a pagar de compra de café?" → pesquisa_contas_a_pagar(natureza="cafe")
+- "Quanto devo de INSS?" → pesquisa_contas_a_pagar(natureza="INSS")
+- "Pagamentos de salário nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias", natureza="salario")
 """
             ),
             Tool(
