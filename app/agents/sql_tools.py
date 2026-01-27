@@ -1508,8 +1508,8 @@ IMPORTANTE:
         try:
             result_list = sql_client.execute_function("dbo.IA_ContasAPagar", filters)
 
-            # Aplica filtro manual de data_fim se necessário (para intervalos como "próximos 7 dias")
-            if result_list and data_fim_filter:
+            # Aplica filtro manual de data_fim se necessário (SOMENTE para intervalos reais, não para dia específico)
+            if result_list and data_fim_filter and parsed.get("data_inicio") != data_fim_filter:
                 original_count = len(result_list)
                 result_list = [r for r in result_list if r.get("vencimento", "") <= data_fim_filter]
                 logger.info(f"[CONTAS A PAGAR] Filtro manual aplicado: {original_count} → {len(result_list)} registros (vencimento <= {data_fim_filter})")
