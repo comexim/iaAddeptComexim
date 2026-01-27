@@ -1686,8 +1686,24 @@ IMPORTANTE:
             # Aplica filtro por banco se fornecido
             if result_list and banco:
                 original_count = len(result_list)
-                # Remove acentos e converte para maiúsculas para comparação
+
+                # Mapeamento de aliases comuns (cidade completa → abreviação)
+                banco_aliases = {
+                    "SANTOS": "STOS",
+                    "SAO PAULO": "SP",
+                    "SÃO PAULO": "SP",
+                }
+
+                # Remove acentos e converte para maiúsculas
                 banco_normalizado = self._remove_accents(banco.upper())
+
+                # Aplica aliases
+                for alias, real in banco_aliases.items():
+                    alias_sem_acento = self._remove_accents(alias)
+                    if alias_sem_acento in banco_normalizado:
+                        banco_normalizado = banco_normalizado.replace(alias_sem_acento, real)
+                        logger.info(f"[SALDO BANCARIO] Alias aplicado: '{alias}' → '{real}'")
+
                 result_list = [
                     r for r in result_list
                     if banco_normalizado in self._remove_accents(str(r.get("banco", "")).upper())
