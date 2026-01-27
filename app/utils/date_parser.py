@@ -136,8 +136,8 @@ class DateParser:
             logger.debug(f"Parseado 'semana passada': {result['data_inicio']} - {result['data_fim']}")
             return result
 
-        # Últimos X dias
-        match = re.search(r'últimos?\s+(\d+)\s+dias?', text)
+        # Últimos X dias (com ou sem acento)
+        match = re.search(r'[úu]ltimos?\s+(\d+)\s+dias?', text)
         if match:
             days = int(match.group(1))
             start_date = now - timedelta(days=days - 1)
@@ -147,8 +147,8 @@ class DateParser:
             logger.debug(f"Parseado 'últimos {days} dias': {result['data_inicio']} - {result['data_fim']}, mes_embarque={result['mes_embarque']}")
             return result
 
-        # Próximos X dias
-        match = re.search(r'próximos?\s+(\d+)\s+dias?', text)
+        # Próximos X dias (com ou sem acento)
+        match = re.search(r'pr[óo]ximos?\s+(\d+)\s+dias?', text)
         if match:
             days = int(match.group(1))
             end_date = now + timedelta(days=days - 1)
