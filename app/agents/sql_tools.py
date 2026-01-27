@@ -1657,15 +1657,18 @@ IMPORTANTE:
             logger.error(f"Erro ao executar IA_ContasAPagar: {e}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_saldo_bancario(self) -> str:
+    def _pesquisa_saldo_bancario(self, banco: Optional[str] = None) -> str:
         """
         Consulta saldo bancário atual da empresa.
         NÃO requer filtros de data (retorna snapshot atual).
 
+        Args:
+            banco: Filtro por banco (ex: "ITAU SANTOS", "BB", "BRADESCO")
+
         Returns:
             Saldo bancário agregado por banco e moeda
         """
-        logger.info(f"[SALDO BANCARIO] Consultando saldo bancário")
+        logger.info(f"[SALDO BANCARIO] Consultando saldo bancário - banco: {banco}")
 
         # Valida permissão
         has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_SaldoBancario")
@@ -1679,6 +1682,16 @@ IMPORTANTE:
 
             if not result_list:
                 return "Nenhum saldo bancário encontrado."
+
+            # Aplica filtro por banco se fornecido
+            if result_list and banco:
+                original_count = len(result_list)
+                banco_upper = banco.upper()
+                result_list = [r for r in result_list if banco_upper in str(r.get("banco", "")).upper()]
+                logger.info(f"[SALDO BANCARIO] Filtro por banco '{banco}': {original_count} → {len(result_list)} registros")
+
+                if not result_list:
+                    return f"Nenhuma conta bancária encontrada para '{banco}'."
 
             # Agrega por banco e moeda
             from collections import defaultdict
@@ -2359,10 +2372,12 @@ Esta ferramenta retorna informações sobre todas as contas bancárias, com 7 ca
 
 💰 SALDO:
 - saldo: Saldo atual (R$) - pode ser NEGATIVO (saldo devedor)
-- moeda: Reais, Dolar, Euro, Libra
+- moeda: Reais, Dolares, Euros, Libras
+
+Argumentos:
+- banco (opcional): Filtro por banco (ex: "ITAU SANTOS", "BB", "BRADESCO")
 
 IMPORTANTE:
-- NÃO requer argumentos (sempre retorna snapshot atual)
 - Saldo POSITIVO = dinheiro disponível
 - Saldo NEGATIVO = saldo devedor (empréstimo do banco)
 - Dados agregados por banco e moeda
@@ -2370,7 +2385,8 @@ IMPORTANTE:
 Exemplos de uso:
 - "Qual o saldo bancário?" → pesquisa_saldo_bancario()
 - "Quanto tenho no banco?" → pesquisa_saldo_bancario()
-- "Saldo no Itaú Santos?" → pesquisa_saldo_bancario() (depois filtra por banco)
+- "Saldo no Itaú Santos?" → pesquisa_saldo_bancario(banco="ITAU SANTOS")
+- "Quanto tenho no BB?" → pesquisa_saldo_bancario(banco="BB")
 """
             ),
             StructuredTool.from_function(
