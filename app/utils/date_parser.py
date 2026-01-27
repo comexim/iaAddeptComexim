@@ -160,8 +160,10 @@ class DateParser:
         # Este mês (com ou sem acento)
         if "este mês" in text or "esse mês" in text or "este mes" in text or "esse mes" in text:
             first_day = now.replace(day=1)
+            # Último dia do mês atual
+            last_day = now.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
             result["data_inicio"] = DateParser.format_yyyymmdd(first_day)
-            result["data_fim"] = DateParser.format_yyyymmdd(now)
+            result["data_fim"] = DateParser.format_yyyymmdd(last_day)
             result["mes_embarque"] = DateParser.format_yyyy_mm(now)
             result["ano"] = str(now.year)
             result["mes"] = str(now.month).zfill(2)
