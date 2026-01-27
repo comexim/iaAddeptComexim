@@ -1320,15 +1320,154 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             data_inicio: Data inicial (ex: "este mês", "últimos 30 dias")
 
         Returns:
-            Dados de contas pagas
+            Dados de contas pagas formatados
         """
+        logger.info(f"[CONTAS PAGAS] Consultando contas pagas - data_inicio: {data_inicio}")
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasPagas")
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasPagas")
+            return error_msg
+
+        # Parse data se fornecida
         filters = None
         if data_inicio:
             parsed = date_parser.parse_natural_date(data_inicio)
             if parsed and "data_inicio" in parsed:
                 filters = {"emissao": parsed["data_inicio"]}
 
-        return self._validate_and_execute("IA_ContasPagas", filters)
+        # Executa query
+        try:
+            result_list = sql_client.execute_function("dbo.IA_ContasPagas", filters)
+
+            if not result_list:
+                return "Nenhuma conta paga encontrada para o período especificado."
+
+            # Se poucos registros (<= 50), retorna todos
+            if len(result_list) <= 50:
+                def convert_decimals(obj):
+                    if isinstance(obj, Decimal):
+                        return float(obj)
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta IA_ContasPagas:
+
+Total de registros: {len(result_list)}
+
+Dados completos:
+{formatted}
+
+CAMPOS DISPONÍVEIS:
+- numero: Número do título/documento
+- fornecedor: Nome do fornecedor/beneficiário
+- valor: Valor principal pago
+- valorStr: Valor em formato string
+- moeda: Tipo de moeda (BRL/USD/EUR)
+- juros: Valor de juros
+- acrescimo: Acréscimos
+- decrescimo: Descontos/decréscimos
+- emissao: Data de emissão (YYYYMMDD)
+- vencimento: Data de vencimento
+- pagamento: Data efetiva do pagamento
+- banco: Banco utilizado
+- centroCusto: Centro de custo
+- natureza: Natureza/tipo da despesa
+- aprovador: Primeiro aprovador
+- aprovador2: Segundo aprovador
+- filial: Código da filial
+
+Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
+
+            # Se muitos registros (> 50), agrega por fornecedor
+            from collections import defaultdict
+            por_fornecedor = defaultdict(lambda: {
+                "valor_total": 0,
+                "quantidade": 0,
+                "naturezas": set(),
+                "bancos": set()
+            })
+
+            total_geral = 0
+
+            for r in result_list:
+                fornecedor = r.get("fornecedor", "").strip() or "SEM FORNECEDOR"
+                valor = r.get("valor", 0)
+
+                # Converte valor para float
+                if isinstance(valor, Decimal):
+                    valor = float(valor)
+                elif isinstance(valor, str):
+                    try:
+                        # Tenta conversao direta primeiro (campo 'valor' eh simples: "-2000")
+                        valor = float(valor)
+                    except:
+                        try:
+                            # Se falhar, tenta limpar formatacao (para campo 'valorStr': "R$  -2000.00")
+                            valor_limpo = valor.replace("R$", "").replace(",", "").strip()
+                            valor = float(valor_limpo)
+                        except:
+                            valor = 0
+                elif not isinstance(valor, (int, float)):
+                    valor = 0
+
+                por_fornecedor[fornecedor]["valor_total"] += valor
+                por_fornecedor[fornecedor]["quantidade"] += 1
+
+                natureza = r.get("natureza", "").strip()
+                if natureza:
+                    por_fornecedor[fornecedor]["naturezas"].add(natureza)
+
+                banco = r.get("banco", "").strip()
+                if banco:
+                    por_fornecedor[fornecedor]["bancos"].add(banco)
+
+                total_geral += valor
+
+            # Converte sets para listas para JSON
+            fornecedores_list = []
+            for fornecedor, dados in sorted(por_fornecedor.items(), key=lambda x: x[1]["valor_total"], reverse=True):
+                fornecedores_list.append({
+                    "fornecedor": fornecedor,
+                    "valor_total": round(dados["valor_total"], 2),
+                    "quantidade_pagamentos": dados["quantidade"],
+                    "naturezas": sorted(list(dados["naturezas"])),
+                    "bancos": sorted(list(dados["bancos"]))
+                })
+
+            def convert_decimals(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+            formatted = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+            return f"""Resultados da consulta IA_ContasPagas (AGREGADOS POR FORNECEDOR):
+
+Total de registros SQL: {len(result_list)}
+Total de fornecedores: {len(fornecedores_list)}
+Valor total pago: R$ {total_geral:,.2f}
+
+Dados agregados por fornecedor:
+{formatted}
+
+CAMPOS DISPONÍVEIS POR FORNECEDOR:
+- fornecedor: Nome do fornecedor/beneficiário
+- valor_total: Total pago para este fornecedor (R$)
+- quantidade_pagamentos: Número de pagamentos realizados
+- naturezas: Lista de naturezas/tipos de despesa
+- bancos: Lista de bancos utilizados nos pagamentos
+
+IMPORTANTE:
+1. Estes são pagamentos JÁ EFETUADOS (contas pagas)
+2. O valor_total já está calculado e somado por fornecedor
+3. Para ver detalhes de um fornecedor específico, o usuário pode perguntar sobre ele especificamente"""
+
+        except Exception as e:
+            logger.error(f"Erro ao executar IA_ContasPagas: {e}")
+            return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None) -> str:
         """
@@ -1601,10 +1740,55 @@ Exemplos de uso:
 - "Compras desde 05/12/2025" → pesquisa_compras(data_inicio="05/12/2025")
 """
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_contas_pagas,
                 name="pesquisa_contas_pagas",
-                func=lambda data_inicio=None: self._pesquisa_contas_pagas(data_inicio),
-                description="Consulta contas já pagas pela empresa. Argumentos: data_inicio (opcional, ex: 'este mês')"
+                description="""Consulta CONTAS JÁ PAGAS pela empresa (pagamentos financeiros efetuados).
+
+Esta ferramenta retorna informações sobre pagamentos realizados, incluindo TODOS os campos:
+
+📋 IDENTIFICAÇÃO:
+- numero: Número do título/documento pago
+- filial: Código da filial responsável
+- fornecedor: Nome do fornecedor/beneficiário que recebeu o pagamento
+
+💰 VALORES FINANCEIROS:
+- valor: Valor principal pago (formato numérico)
+- valorStr: Valor principal pago (formato string/texto)
+- moeda: Tipo de moeda utilizada (BRL/USD/EUR)
+- juros: Valor de juros pagos
+- acrescimo: Valores adicionais/acréscimos
+- decrescimo: Descontos/decréscimos aplicados
+
+📅 DATAS:
+- emissao: Data de emissão do título (formato: YYYYMMDD)
+- vencimento: Data de vencimento original
+- pagamento: Data efetiva do pagamento
+
+🏦 CONTROLE FINANCEIRO:
+- banco: Banco/conta utilizado para pagamento
+- centroCusto: Centro de custo associado
+- natureza: Natureza/tipo da despesa (ex: fornecedores, impostos, salários)
+
+✅ APROVAÇÃO:
+- aprovador: Primeiro aprovador do pagamento
+- aprovador2: Segundo aprovador (quando aplicável)
+
+⚠️ IMPORTANTE: Esta ferramenta é para PAGAMENTOS JÁ EFETUADOS (contas pagas).
+Para contas pendentes/futuras, use pesquisa_contas_a_pagar.
+
+Argumentos:
+- data_inicio (opcional): Data inicial para filtro de emissão
+  - Formato flexível: "05/12/2025", "este mês", "últimos 30 dias", "dezembro 2025"
+  - Se NÃO INFORMADO: retorna todas as contas pagas (sem filtro de data)
+  - Se INFORMADO: filtra pagamentos com emissão >= data_inicio
+
+Exemplos de uso:
+- "Quais contas foram pagas este mês?" → pesquisa_contas_pagas(data_inicio="este mês")
+- "Pagamentos desde 05/12/2025" → pesquisa_contas_pagas(data_inicio="05/12/2025")
+- "Contas pagas em dezembro de 2025" → pesquisa_contas_pagas(data_inicio="dezembro 2025")
+- "Todas as contas pagas" → pesquisa_contas_pagas()
+"""
             ),
             Tool(
                 name="pesquisa_contas_a_pagar",
