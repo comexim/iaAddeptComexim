@@ -1718,23 +1718,179 @@ IMPORTANTE:
         """
         return self._validate_and_execute("IA_Cotacao")
 
-    def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None) -> str:
+    def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None) -> str:
         """
-        Consulta contas a receber (recebimentos futuros).
+        Consulta contas a receber (recebimentos futuros/pendentes).
 
         Args:
-            data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias")
+            data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias", "este mês")
+            cliente: Filtro por cliente (ex: "NESTLE", "STARBUCKS")
 
         Returns:
-            Dados de contas a receber
+            Dados de contas a receber formatados
         """
+        logger.info(f"[CONTAS A RECEBER] Consultando contas a receber - data_vencimento: {data_vencimento}, cliente: {cliente}")
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAReceber")
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasAReceber")
+            return error_msg
+
+        # Parse data se fornecida
         filters = None
+        data_fim_filter = None
         if data_vencimento:
             parsed = date_parser.parse_natural_date(data_vencimento)
             if parsed and "data_inicio" in parsed:
                 filters = {"vencimentoReal": parsed["data_inicio"]}
+                # Se tem data_fim, guarda para filtro manual posterior
+                if "data_fim" in parsed:
+                    data_fim_filter = parsed["data_fim"]
+                    logger.info(f"[CONTAS A RECEBER] Filtro de intervalo detectado: {parsed['data_inicio']} até {data_fim_filter}")
 
-        return self._validate_and_execute("IA_ContasAReceber", filters)
+        # Executa query
+        try:
+            result_list = sql_client.execute_function("dbo.IA_ContasAReceber", filters)
+
+            # Aplica filtro manual de data_fim se necessário (SOMENTE para intervalos reais)
+            if result_list and data_fim_filter and parsed.get("data_inicio") != data_fim_filter:
+                original_count = len(result_list)
+                result_list = [r for r in result_list if r.get("vencimentoReal", "") <= data_fim_filter]
+                logger.info(f"[CONTAS A RECEBER] Filtro manual aplicado: {original_count} → {len(result_list)} registros")
+
+            # Aplica filtro por cliente se fornecido
+            if result_list and cliente:
+                original_count = len(result_list)
+                cliente_upper = cliente.upper()
+                result_list = [r for r in result_list if cliente_upper in str(r.get("cliente", "")).upper()]
+                logger.info(f"[CONTAS A RECEBER] Filtro por cliente '{cliente}': {original_count} → {len(result_list)} registros")
+
+            if not result_list:
+                return "Nenhuma conta a receber encontrada para o período especificado."
+
+            # Se poucos registros (<= 50), retorna todos
+            if len(result_list) <= 50:
+                def convert_decimals(obj):
+                    if isinstance(obj, Decimal):
+                        return float(obj)
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta IA_ContasAReceber:
+
+Total de registros: {len(result_list)}
+
+Dados completos:
+{formatted}
+
+CAMPOS DISPONÍVEIS (27 campos):
+- idProtheus, tipo, numero, parcela, cliente, contrato, banco, baixaPilha, consignee
+- valor, saldo, emissao, vencimentoReal, vencimentoOriginal, baixa
+- condicaoPagamento, mesEmbarque, embarqueReal, previsaoEmbarque, embarqueEstimado
+- recebimentoDoc, envioDoc, modalidade, peso, sacas, mesFixacao, diferencial
+
+Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
+
+            # Se muitos registros (> 50), agrega por cliente
+            from collections import defaultdict
+            por_cliente = defaultdict(lambda: {
+                "valor_total": 0,
+                "saldo_total": 0,
+                "quantidade": 0,
+                "contratos": set(),
+                "vencimentos": []
+            })
+
+            total_valor = 0
+            total_saldo = 0
+
+            for r in result_list:
+                cliente_nome = r.get("cliente", "").strip() or "SEM CLIENTE"
+                valor = r.get("valor", 0)
+                saldo = r.get("saldo", 0)
+
+                # Converte valores
+                if valor is None:
+                    valor = 0
+                elif isinstance(valor, Decimal):
+                    valor = float(valor)
+                elif isinstance(valor, str):
+                    try:
+                        valor = float(valor)
+                    except:
+                        valor = 0
+                elif not isinstance(valor, (int, float)):
+                    valor = 0
+
+                if saldo is None:
+                    saldo = 0
+                elif isinstance(saldo, Decimal):
+                    saldo = float(saldo)
+                elif isinstance(saldo, str):
+                    try:
+                        saldo = float(saldo)
+                    except:
+                        saldo = 0
+                elif not isinstance(saldo, (int, float)):
+                    saldo = 0
+
+                por_cliente[cliente_nome]["valor_total"] += valor
+                por_cliente[cliente_nome]["saldo_total"] += saldo
+                por_cliente[cliente_nome]["quantidade"] += 1
+
+                contrato = r.get("contrato", "").strip()
+                if contrato:
+                    por_cliente[cliente_nome]["contratos"].add(contrato)
+
+                vencimento = r.get("vencimentoReal", "").strip()
+                if vencimento:
+                    por_cliente[cliente_nome]["vencimentos"].append(vencimento)
+
+                total_valor += valor
+                total_saldo += saldo
+
+            # Ordena por valor e limita aos top 50
+            clientes_list = []
+            clientes_ordenados = sorted(por_cliente.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True)
+
+            for cliente_nome, dados in clientes_ordenados[:50]:
+                vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
+                clientes_list.append({
+                    "cliente": cliente_nome,
+                    "valor_total": round(dados["valor_total"], 2),
+                    "saldo_total": round(dados["saldo_total"], 2),
+                    "quantidade_titulos": dados["quantidade"],
+                    "numero_contratos": len(dados["contratos"]),
+                    "proximos_vencimentos": vencimentos_unicos
+                })
+
+            def convert_decimals(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+            formatted = json.dumps(clientes_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+            return f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: {len(result_list)}
+Total de clientes únicos: {len(por_cliente)}
+Valor total a receber: R$ {total_valor:,.2f}
+Saldo total pendente: R$ {total_saldo:,.2f}
+
+Top {len(clientes_list)} maiores clientes (por valor):
+{formatted}
+
+IMPORTANTE:
+1. Estas são contas PENDENTES (a receber no futuro)
+2. Mostrando apenas os {len(clientes_list)} maiores clientes de um total de {len(por_cliente)}
+3. O valor_total representa a soma de TODOS os clientes"""
+
+        except Exception as e:
+            logger.error(f"Erro ao executar IA_ContasAReceber: {e}")
+            return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_despesa_venda(self, contrato: Optional[str] = None) -> str:
         """
@@ -2016,32 +2172,74 @@ Exemplos de uso:
 - "Pagamentos de salário nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias", natureza="salario")
 """
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_contas_a_receber,
                 name="pesquisa_contas_a_receber",
-                func=lambda data_vencimento=None: self._pesquisa_contas_a_receber(data_vencimento),
-                description="""Consulta TÍTULOS FINANCEIROS a receber (boletos, duplicatas, recebimentos futuros).
+                description="""Consulta CONTAS A RECEBER (títulos financeiros, recebimentos pendentes/futuros).
 
-⚠️⚠️⚠️ REGRA ABSOLUTA DE EXCLUSÃO ⚠️⚠️⚠️
-NUNCA USE ESTA FERRAMENTA SE A PERGUNTA CONTÉM A PALAVRA "CONTRATOS"
-Se a pergunta menciona "contratos" (contratos de venda), SEMPRE use pesquisa_vendas,
-mesmo que a pergunta também mencione "contas a receber".
+Esta ferramenta retorna informações sobre contas pendentes de recebimento, incluindo 27 campos:
 
-Exemplos de quando NÃO usar esta ferramenta:
-- "contratos baixados no contas a receber" → use pesquisa_vendas
-- "contratos que foram baixados" → use pesquisa_vendas
-- "quais contratos..." → use pesquisa_vendas
+📋 IDENTIFICAÇÃO:
+- idProtheus: ID único do título
+- tipo: Tipo do título (Receber, etc.)
+- numero: Número do título/documento
+- parcela: Parcela do título
 
-IMPORTANTE - Esta ferramenta é para TÍTULOS FINANCEIROS, NÃO para contratos de venda.
-Use esta ferramenta SOMENTE quando o usuário perguntar sobre:
-- "títulos a receber"
-- "boletos a receber"
-- "duplicatas"
-- "recebimentos futuros"
-- "vencimentos de recebimentos"
+💰 VALORES FINANCEIROS:
+- valor: Valor total a receber (R$)
+- saldo: Saldo pendente a receber (R$)
 
-Para CONTRATOS DE VENDA (mesmo que baixados financeiramente), use pesquisa_vendas.
+📅 DATAS:
+- emissao: Data de emissão (YYYYMMDD)
+- vencimentoReal: Data de vencimento real (YYYYMMDD)
+- vencimentoOriginal: Data de vencimento original (YYYYMMDD)
+- baixa: Data da baixa (YYYYMMDD)
+- baixaPilha: Data da baixa em pilha (YYYYMMDD)
 
-Argumentos: data_vencimento (opcional, ex: 'próximos 7 dias')"""
+🏦 CONTROLE COMERCIAL:
+- cliente: Nome do cliente/devedor
+- contrato: Número do contrato relacionado
+- banco: Banco onde será recebido
+- consignee: Consignee/destinatário
+- condicaoPagamento: Condição de pagamento
+
+📦 EMBARQUE E DOCUMENTOS:
+- mesEmbarque: Mês de embarque (MM/YYYY)
+- embarqueReal: Data de embarque real (YYYYMMDD)
+- previsaoEmbarque: Previsão de embarque (YYYYMMDD)
+- embarqueEstimado: Embarque estimado (YYYYMMDD)
+- recebimentoDoc: Recebimento de documentos (YYYYMMDD)
+- envioDoc: Envio de documentos (YYYYMMDD)
+
+🌍 OPERACIONAL:
+- modalidade: Modalidade (INT, NAC, etc.)
+- peso: Peso em kg
+- sacas: Quantidade de sacas
+- mesFixacao: Mês de fixação (MM/YYYY)
+- diferencial: Diferencial de preço
+
+⚠️ IMPORTANTE: Esta ferramenta é para RECEBIMENTOS PENDENTES (contas a receber no futuro).
+Para vendas/contratos, use pesquisa_vendas.
+
+Argumentos:
+- data_vencimento (opcional): Data de vencimento para filtro
+  - Formato flexível: "hoje", "próximos 7 dias", "este mês", "20250112"
+  - Se NÃO INFORMADO: retorna todas as contas a receber (sem filtro de data)
+  - Se INFORMADO: filtra contas com vencimentoReal >= data_vencimento
+
+- cliente (opcional): Filtro por cliente
+  - Exemplos: "NESTLE", "STARBUCKS", "UCC"
+  - O filtro é flexível: "NESTLE" encontra "NESTLE ARARAS"
+  - Se NÃO INFORMADO: retorna todos os clientes
+  - Se INFORMADO: filtra apenas contas do cliente especificado
+
+Exemplos de uso:
+- "Quanto tenho a receber hoje?" → pesquisa_contas_a_receber(data_vencimento="hoje")
+- "Contas a receber nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias")
+- "Recebimentos deste mês" → pesquisa_contas_a_receber(data_vencimento="este mês")
+- "Quanto a NESTLE me deve?" → pesquisa_contas_a_receber(cliente="NESTLE")
+- "Recebimentos da NESTLE nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias", cliente="NESTLE")
+"""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_saldo_bancario,
