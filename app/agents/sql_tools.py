@@ -1686,9 +1686,13 @@ IMPORTANTE:
             # Aplica filtro por banco se fornecido
             if result_list and banco:
                 original_count = len(result_list)
-                banco_upper = banco.upper()
-                result_list = [r for r in result_list if banco_upper in str(r.get("banco", "")).upper()]
-                logger.info(f"[SALDO BANCARIO] Filtro por banco '{banco}': {original_count} → {len(result_list)} registros")
+                # Remove acentos e converte para maiúsculas para comparação
+                banco_normalizado = self._remove_accents(banco.upper())
+                result_list = [
+                    r for r in result_list
+                    if banco_normalizado in self._remove_accents(str(r.get("banco", "")).upper())
+                ]
+                logger.info(f"[SALDO BANCARIO] Filtro por banco '{banco}' (normalizado: '{banco_normalizado}'): {original_count} → {len(result_list)} registros")
 
                 if not result_list:
                     return f"Nenhuma conta bancária encontrada para '{banco}'."
