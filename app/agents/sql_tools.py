@@ -1663,9 +1663,122 @@ IMPORTANTE:
         NÃO requer filtros de data (retorna snapshot atual).
 
         Returns:
-            Saldo bancário de todas as contas
+            Saldo bancário agregado por banco e moeda
         """
-        return self._validate_and_execute("IA_SaldoBancario")
+        logger.info(f"[SALDO BANCARIO] Consultando saldo bancário")
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_SaldoBancario")
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: IA_SaldoBancario")
+            return error_msg
+
+        # Executa query
+        try:
+            result_list = sql_client.execute_function("dbo.IA_SaldoBancario", filters=None)
+
+            if not result_list:
+                return "Nenhum saldo bancário encontrado."
+
+            # Agrega por banco e moeda
+            from collections import defaultdict
+            por_banco_moeda = defaultdict(lambda: {
+                "saldo": 0,
+                "contas": []
+            })
+
+            total_por_moeda = defaultdict(float)
+
+            for r in result_list:
+                banco = r.get("banco", "").strip() or "SEM BANCO"
+                moeda = r.get("moeda", "").strip() or "Reais"
+                saldo = r.get("saldo", 0)
+
+                # Converte saldo
+                if saldo is None:
+                    saldo = 0
+                elif isinstance(saldo, Decimal):
+                    saldo = float(saldo)
+                elif isinstance(saldo, str):
+                    try:
+                        saldo = float(saldo)
+                    except:
+                        saldo = 0
+                elif not isinstance(saldo, (int, float)):
+                    saldo = 0
+
+                chave = f"{banco}|{moeda}"
+                por_banco_moeda[chave]["saldo"] += saldo
+                por_banco_moeda[chave]["banco"] = banco
+                por_banco_moeda[chave]["moeda"] = moeda
+
+                # Adiciona info da conta
+                agencia = r.get("agencia", "").strip()
+                conta = r.get("conta", "").strip()
+                if agencia and conta:
+                    por_banco_moeda[chave]["contas"].append({
+                        "agencia": agencia,
+                        "conta": conta,
+                        "saldo": round(saldo, 2)
+                    })
+
+                total_por_moeda[moeda] += saldo
+
+            # Ordena por moeda e depois por saldo (do maior para o menor)
+            bancos_list = []
+            for chave, dados in por_banco_moeda.items():
+                bancos_list.append({
+                    "banco": dados["banco"],
+                    "moeda": dados["moeda"],
+                    "saldo": round(dados["saldo"], 2),
+                    "numero_contas": len(dados["contas"]),
+                    "contas": dados["contas"]
+                })
+
+            # Ordena: primeiro por moeda (Reais, depois outras), depois por saldo absoluto
+            ordem_moedas = {"Reais": 0, "Dolar": 1, "Euro": 2, "Libra": 3}
+            bancos_ordenados = sorted(
+                bancos_list,
+                key=lambda x: (ordem_moedas.get(x["moeda"], 99), -abs(x["saldo"]))
+            )
+
+            def convert_decimals(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+            formatted = json.dumps(bancos_ordenados, ensure_ascii=False, indent=2, default=convert_decimals)
+
+            # Monta resumo por moeda (todas as moedas encontradas)
+            resumo_moedas = []
+            ordem_moedas_resumo = {"Reais": 0, "Dolares": 1, "Dolar": 1, "Euros": 2, "Euro": 2, "Libras": 3, "Libra": 3}
+            moedas_ordenadas = sorted(total_por_moeda.items(), key=lambda x: ordem_moedas_resumo.get(x[0], 99))
+
+            for moeda, total in moedas_ordenadas:
+                resumo_moedas.append(f"  {moeda}: R$ {total:,.2f}")
+
+            resumo_str = "\n".join(resumo_moedas) if resumo_moedas else "  Nenhum saldo"
+
+            return f"""Resultados da consulta IA_SaldoBancario (AGREGADOS POR BANCO E MOEDA):
+
+Total de contas: {len(result_list)}
+Total de bancos únicos: {len(por_banco_moeda)}
+
+SALDO TOTAL POR MOEDA:
+{resumo_str}
+
+Detalhamento por banco:
+{formatted}
+
+IMPORTANTE:
+1. Saldos POSITIVOS = dinheiro disponível
+2. Saldos NEGATIVOS = saldo devedor (banco emprestou para empresa)
+3. Valores já agregados por banco e moeda
+4. numero_contas = quantidade de contas daquele banco naquela moeda"""
+
+        except Exception as e:
+            logger.error(f"Erro ao executar IA_SaldoBancario: {e}")
+            return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_estoque(self) -> str:
         """
@@ -2236,7 +2349,29 @@ Exemplos de uso:
             StructuredTool.from_function(
                 func=self._pesquisa_saldo_bancario,
                 name="pesquisa_saldo_bancario",
-                description="Consulta saldo bancário atual da empresa. NÃO requer argumentos."
+                description="""Consulta SALDO BANCÁRIO atual da empresa (snapshot do momento).
+
+Esta ferramenta retorna informações sobre todas as contas bancárias, com 7 campos:
+
+🏦 IDENTIFICAÇÃO:
+- filial, banco, codigo (código do banco)
+- agencia, conta
+
+💰 SALDO:
+- saldo: Saldo atual (R$) - pode ser NEGATIVO (saldo devedor)
+- moeda: Reais, Dolar, Euro, Libra
+
+IMPORTANTE:
+- NÃO requer argumentos (sempre retorna snapshot atual)
+- Saldo POSITIVO = dinheiro disponível
+- Saldo NEGATIVO = saldo devedor (empréstimo do banco)
+- Dados agregados por banco e moeda
+
+Exemplos de uso:
+- "Qual o saldo bancário?" → pesquisa_saldo_bancario()
+- "Quanto tenho no banco?" → pesquisa_saldo_bancario()
+- "Saldo no Itaú Santos?" → pesquisa_saldo_bancario() (depois filtra por banco)
+"""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_estoque,
