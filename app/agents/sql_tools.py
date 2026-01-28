@@ -948,12 +948,22 @@ Exemplos de perguntas:
                     logger.info(f"[OTIMIZAÇÃO] Retornando string formatada diretamente")
                     return aggregated
 
+                # CALCULA TOTAIS GERAIS (não deixa a IA somar manualmente para evitar erros)
+                total_contratos = sum(item.get("total_contratos", 0) for item in aggregated)
+                total_sacas = sum(item.get("total_sacas", 0) for item in aggregated)
+                total_valor = sum(item.get("total_valor", 0) for item in aggregated)
+
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
 
 Total de registros SQL: {original_count}
 Total de clientes: {len(aggregated)}
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Contratos: {total_contratos}
+- Total de Sacas: {total_sacas:,.2f}
+- Valor Total: R$ {total_valor:,.2f}
 
 Dados agregados:
 {formatted}
@@ -1016,14 +1026,23 @@ CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data)
   - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
 
 IMPORTANTE - REGRAS CRÍTICAS:
-1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
-2. NÃO tente recalcular médias manualmente.
-3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
-4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
-5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" ACIMA PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quantos contratos?" → Use "Total de Contratos" dos TOTAIS GERAIS
+   - "Qual o valor total?" → Use "Valor Total" dos TOTAIS GERAIS
+   - NÃO SOME manualmente os valores por cliente! Os TOTAIS GERAIS já estão corretos!
+
+2. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+3. NÃO tente recalcular médias manualmente.
+4. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+5. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+6. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
    NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
 
 Exemplos corretos de uso:
+- "Quantas sacas foram exportadas?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quantos contratos?" → Use "Total de Contratos" dos TOTAIS GERAIS
+- "Qual o valor total?" → Use "Valor Total" dos TOTAIS GERAIS
 - "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
 - "Quais certificados?" → Use o campo certificados
 - "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
