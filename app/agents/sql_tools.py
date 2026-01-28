@@ -378,7 +378,20 @@ class SQLTools:
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0.5: Query sobre "contratos sem BL" ou "não têm BL"
-        if self.user_query and re.search(r'(sem|não\s+t[eê]m?|ainda\s+não|falta[m]?)\s+(número\s+de\s+)?bl\b', self.user_query.lower()):
+        # MAS NÃO aplica se a pergunta menciona país específico (deixa a IA filtrar)
+        menciona_pais = False
+        if self.user_query:
+            paises_comuns = ['alemanha', 'argentina', 'brasil', 'eua', 'estados unidos', 'china', 'japao', 'japão',
+                           'holanda', 'belgica', 'bélgica', 'suica', 'suíça', 'russia', 'rússia', 'coreia', 'australia',
+                           'austrália', 'austria', 'áustria', 'dinamarca', 'emirados', 'arabia', 'arábia']
+            query_lower = self.user_query.lower()
+            for pais in paises_comuns:
+                if pais in query_lower:
+                    menciona_pais = True
+                    logger.info(f"[OTIMIZAÇÃO SEM BL] Pergunta menciona país '{pais}', NÃO vai aplicar otimização")
+                    break
+
+        if self.user_query and re.search(r'(sem|não\s+t[eê]m?|ainda\s+não|falta[m]?)\s+(número\s+de\s+)?bl\b', self.user_query.lower()) and not menciona_pais:
             # Calcula totais
             total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
             total_com_bl = sum(r.get("total_contratos_com_bl", 0) for r in result_list)
@@ -416,7 +429,8 @@ class SQLTools:
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0.6: Query sobre "contratos sem amostra" ou "não enviaram amostra"
-        if self.user_query and re.search(r'(sem\s+amostra|não\s+(enviaram|enviou|mandaram|mandou|tiraram|tirou)\s+amostra|ainda\s+não.*amostra|falta[m]?\s+amostra)', self.user_query.lower()):
+        # MAS NÃO aplica se a pergunta menciona país específico
+        if self.user_query and re.search(r'(sem\s+amostra|não\s+(enviaram|enviou|mandaram|mandou|tiraram|tirou)\s+amostra|ainda\s+não.*amostra|falta[m]?\s+amostra)', self.user_query.lower()) and not menciona_pais:
             # Calcula totais
             total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
             total_com_amostra = sum(r.get("total_contratos_amostra_enviada", 0) for r in result_list)
