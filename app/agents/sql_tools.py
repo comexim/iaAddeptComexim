@@ -767,11 +767,21 @@ class SQLTools:
         """
         Agrega resultados de orçamento por grupo/categoria
 
+        Campos disponíveis em IA_Orcamento():
+        - ano: ano do orçamento (ex: "2025")
+        - mes: mês (ex: "12")
+        - grupo: código do grupo (ex: "CTRME", "COMB", "DEFUM")
+        - descricao: descrição legível da categoria (ex: "COMBUSTIVEL", "DESP COM FUMIGACAO")
+        - periodo: "Anual" ou "Mensal"
+        - orcado: valor orçado (float)
+        - realizado: valor realizado (float)
+        - saldo: diferença orcado - realizado (float)
+
         Args:
             results: Lista de resultados SQL de IA_Orcamento()
 
         Returns:
-            Lista agregada por grupo com orcado, realizado, saldo
+            Lista agregada por grupo com orcado, realizado, saldo e metadados
         """
         from collections import defaultdict
 
@@ -779,12 +789,19 @@ class SQLTools:
             "orcado": 0,
             "realizado": 0,
             "saldo": 0,
-            "registros": 0
+            "registros": 0,
+            "grupo": None,  # Código do grupo
+            "periodos": set(),  # Anual ou Mensal
+            "meses": set(),  # Meses incluídos (YYYY/MM)
+            "anos": set(),  # Anos incluídos
         })
 
         for row in results:
-            grupo = row.get("grupo", "SEM GRUPO")
+            grupo = row.get("grupo", "SEM GRUPO").strip()
             descricao = row.get("descricao", "").strip()
+            periodo = row.get("periodo", "").strip()
+            ano = row.get("ano", "").strip()
+            mes = row.get("mes", "").strip()
 
             # Usa descrição como chave (mais legível que código)
             key = descricao if descricao else grupo
@@ -794,6 +811,16 @@ class SQLTools:
             aggregated[key]["saldo"] += row.get("saldo", 0) or 0
             aggregated[key]["registros"] += 1
 
+            # Metadados
+            if not aggregated[key]["grupo"]:
+                aggregated[key]["grupo"] = grupo
+            if periodo:
+                aggregated[key]["periodos"].add(periodo)
+            if ano:
+                aggregated[key]["anos"].add(ano)
+            if ano and mes:
+                aggregated[key]["meses"].add(f"{ano}/{mes.zfill(2)}")
+
         # Converte para lista
         result_list = []
         for categoria, data in aggregated.items():
@@ -802,13 +829,29 @@ class SQLTools:
             if data["orcado"] > 0:
                 percentual = round((data["realizado"] / data["orcado"]) * 100, 2)
 
+            # Formata período
+            periodos_str = ", ".join(sorted(data["periodos"])) if data["periodos"] else "N/A"
+
+            # Formata anos
+            anos_str = ", ".join(sorted(data["anos"])) if data["anos"] else "N/A"
+
+            # Formata meses (primeiros 12)
+            meses_list = sorted(list(data["meses"]))
+            meses_str = ", ".join(meses_list[:12])
+            if len(meses_list) > 12:
+                meses_str += f" (e mais {len(meses_list) - 12})"
+
             result_list.append({
                 "categoria": categoria,
+                "grupo": data["grupo"],
                 "orcado": round(data["orcado"], 2),
                 "realizado": round(data["realizado"], 2),
                 "saldo": round(data["saldo"], 2),
                 "percentual_realizado": percentual,
-                "meses_incluidos": data["registros"]
+                "periodo": periodos_str,  # Anual ou Mensal
+                "anos": anos_str,  # Anos incluídos
+                "meses": meses_str,  # Meses incluídos (YYYY/MM)
+                "qtd_registros": data["registros"]  # Quantidade de registros agregados
             })
 
         # Ordena por valor orçado (maior primeiro)
@@ -884,25 +927,52 @@ class SQLTools:
             total_records = len(results)
 
         # ESTRATÉGIA 1.5: Detecta e aplica filtros específicos mencionados na pergunta
-        if self.user_query and function_name == "IA_Vendas":
+        if self.user_query:
             query_lower = self.user_query.lower()
             filtros_aplicados = []
 
-            # Filtro: sem valor fixado
-            if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação"]):
-                results_antes = len(results)
-                results = [r for r in results if (r.get("valorFixado") is None or r.get("valorFixado") == 0 or r.get("valorFixado") == 0.0)]
-                if len(results) < results_antes:
-                    filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
-                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
+            # FILTROS PARA VENDAS
+            if function_name == "IA_Vendas":
+                # Filtro: sem valor fixado
+                if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação"]):
+                    results_antes = len(results)
+                    results = [r for r in results if (r.get("valorFixado") is None or r.get("valorFixado") == 0 or r.get("valorFixado") == 0.0)]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
 
-            # Filtro: sem BL
-            if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "bl null"]):
-                results_antes = len(results)
-                results = [r for r in results if not r.get("numeroBL") or str(r.get("numeroBL")).strip() == ""]
-                if len(results) < results_antes:
-                    filtros_aplicados.append(f"sem BL ({results_antes} → {len(results)})")
-                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem BL': {results_antes} → {len(results)}")
+                # Filtro: sem BL
+                if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "bl null"]):
+                    results_antes = len(results)
+                    results = [r for r in results if not r.get("numeroBL") or str(r.get("numeroBL")).strip() == ""]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"sem BL ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem BL': {results_antes} → {len(results)}")
+
+            # FILTROS PARA ORÇAMENTO
+            elif function_name == "IA_Orcamento":
+                # Filtro: categoria específica mencionada
+                # Categorias comuns: combustível, fumigação, manutenção, etc.
+                categorias_conhecidas = [
+                    ("combustivel", ["combustivel", "combustível", "gasolina", "diesel"]),
+                    ("fumigacao", ["fumigacao", "fumigação"]),
+                    ("manutencao", ["manutenção", "manutencao", "manutenções", "manutencoes"]),
+                    ("depreciacao", ["depreciação", "depreciacao"]),
+                    ("viagem", ["viagem", "viagens"]),
+                ]
+
+                for nome_filtro, termos in categorias_conhecidas:
+                    if any(termo in query_lower for termo in termos):
+                        results_antes = len(results)
+                        # Filtra por descrição ou grupo que contém o termo
+                        results = [
+                            r for r in results
+                            if any(termo in str(r.get("descricao", "")).lower() or termo in str(r.get("grupo", "")).lower() for termo in termos)
+                        ]
+                        if len(results) < results_antes and len(results) > 0:
+                            filtros_aplicados.append(f"categoria '{nome_filtro}' ({results_antes} → {len(results)})")
+                            logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro categoria '{nome_filtro}': {results_antes} → {len(results)}")
+                            break  # Aplica apenas o primeiro filtro encontrado
 
             # Atualiza total de registros após filtros
             if filtros_aplicados:
@@ -912,9 +982,11 @@ class SQLTools:
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
         # MAS: Se pergunta menciona critério específico que resulta em poucos registros (<= 10), NÃO agrega
+        # MAS: Se pergunta menciona categoria específica de orçamento e resultou em poucos registros, NÃO agrega
         import re
         menciona_contrato = False
         menciona_criterio_especifico = False
+        menciona_categoria_orcamento = False
 
         if self.user_query:
             query_lower = self.user_query.lower()
@@ -924,7 +996,7 @@ class SQLTools:
                 menciona_contrato = True
                 logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
 
-            # Critérios que geralmente resultam em poucos registros
+            # Critérios que geralmente resultam em poucos registros (VENDAS)
             criterios_especificos = [
                 "sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null",
                 "sem bl", "sem numero de bl", "não embarcado",
@@ -938,8 +1010,17 @@ class SQLTools:
                     logger.info(f"[DETECÇÃO] Pergunta menciona critério específico '{criterio}', NÃO vai agregar se <= 10 resultados")
                     break
 
-        # Se menciona critério específico e tem <= 10 resultados, não agrega
-        nao_agregar_por_criterio = menciona_criterio_especifico and len(results) <= 10
+            # Categorias de orçamento (NÃO agrega se mencionar categoria específica)
+            if function_name == "IA_Orcamento":
+                categorias_termos = ["combustivel", "combustível", "fumigacao", "fumigação", "manutenção", "manutencao", "depreciação", "depreciacao", "viagem"]
+                for termo in categorias_termos:
+                    if termo in query_lower:
+                        menciona_categoria_orcamento = True
+                        logger.info(f"[DETECÇÃO] Pergunta menciona categoria de orçamento '{termo}', NÃO vai agregar se <= 10 resultados")
+                        break
+
+        # Se menciona critério específico ou categoria e tem <= 10 resultados, não agrega
+        nao_agregar_por_criterio = (menciona_criterio_especifico or menciona_categoria_orcamento) and len(results) <= 10
 
         if len(results) > 50 and not client_filter and not menciona_contrato and not nao_agregar_por_criterio:
             def convert_decimals(obj):
@@ -977,23 +1058,47 @@ Dados por categoria:
 Instruções: Os dados acima são de ORÇAMENTO (budget vs realizado).
 
 CAMPOS DISPONÍVEIS POR CATEGORIA:
-- categoria: nome da categoria/grupo orçamentário
+- categoria: nome da categoria/grupo orçamentário (ex: "COMBUSTIVEL", "DESP COM FUMIGACAO")
+- grupo: código do grupo (ex: "COMB", "DEFUM", "CTRME")
 - orcado: valor orçado desta categoria (R$)
 - realizado: valor realizado desta categoria (R$)
-- saldo: saldo desta categoria (R$)
+- saldo: saldo desta categoria (orcado - realizado, em R$)
 - percentual_realizado: percentual realizado desta categoria (%)
-- meses_incluidos: quantidade de registros agregados
+- periodo: "Anual" ou "Mensal" (ou ambos se houver registros mistos)
+- anos: anos incluídos nesta agregação (ex: "2025")
+- meses: meses incluídos no formato YYYY/MM (ex: "2025/12, 2025/11")
+- qtd_registros: quantidade de registros SQL agregados nesta categoria
 
-IMPORTANTE:
-1. Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira.
-2. Para totais gerais, USE OS VALORES PRÉ-CALCULADOS acima. NÃO some manualmente.
-3. Os "TOTAIS GERAIS" já incluem TODAS as categorias somadas.
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" PARA PERGUNTAS SOBRE TOTAIS!
+   - "Qual o orçado total?" → Use "Total Orçado" dos TOTAIS GERAIS
+   - "Quanto foi realizado?" → Use "Total Realizado" dos TOTAIS GERAIS
+   - "Qual o percentual?" → Use "Percentual Realizado" dos TOTAIS GERAIS
+   - NÃO some manualmente as categorias! Os TOTAIS GERAIS já estão corretos!
 
-Exemplos de perguntas:
+2. Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira (budget).
+
+3. Para perguntas sobre CATEGORIAS ESPECÍFICAS:
+   - "Quanto gastamos com combustível?" → Procure categoria "COMBUSTIVEL"
+   - "Quanto foi orçado para fumigação?" → Procure categoria contendo "FUMIGACAO"
+   - Use os campos "orcado", "realizado", "saldo" da categoria específica
+
+4. Para perguntas sobre PERÍODOS:
+   - Verifique o campo "meses" para saber quais meses estão incluídos
+   - Verifique o campo "periodo" para saber se é "Anual" ou "Mensal"
+   - Se pergunta é sobre um mês específico e os dados incluem múltiplos meses, AVISE o usuário
+
+5. INTERPRETAÇÃO DOS VALORES:
+   - saldo POSITIVO = gastamos MENOS que o orçado (sobrou)
+   - saldo NEGATIVO = gastamos MAIS que o orçado (estourou)
+   - percentual > 100% = gastamos MAIS que o orçado
+   - percentual < 100% = gastamos MENOS que o orçado
+
+Exemplos corretos:
 - "Qual o orçado total?" → Use "Total Orçado" dos TOTAIS GERAIS
-- "Quanto foi realizado?" → Use "Total Realizado" dos TOTAIS GERAIS
-- "Qual categoria teve maior gasto?" → Ordene as categorias por "realizado"
-- "Qual o percentual realizado?" → Use "Percentual Realizado" dos TOTAIS GERAIS"""
+- "Quanto gastamos com combustível?" → Procure categoria "COMBUSTIVEL", use campo "realizado"
+- "Estouramos o orçamento?" → Compare Total Realizado vs Total Orçado (se realizado > orçado, estourou)
+- "Qual categoria mais estourou?" → Procure categoria com maior saldo NEGATIVO"""
 
             # VENDAS: Agrega por cliente
             else:
