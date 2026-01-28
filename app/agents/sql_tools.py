@@ -953,6 +953,34 @@ Exemplos de perguntas:
                 total_sacas = sum(item.get("total_sacas", 0) for item in aggregated)
                 total_valor = sum(item.get("total_valor", 0) for item in aggregated)
 
+                # AGREGA CONTRATOS POR PAÍS (usando dados originais para não perder relação)
+                from collections import defaultdict
+                contratos_por_pais = defaultdict(lambda: {"contratos": [], "sacas": 0, "clientes": set()})
+
+                for row in results:
+                    pais = row.get("pais", "").strip() or "SEM PAÍS"
+                    contrato = row.get("contrato", "").strip()
+                    cliente = row.get("cliente", "SEM CLIENTE")
+                    sacas = row.get("sacas", 0) or 0
+
+                    if contrato and contrato not in contratos_por_pais[pais]["contratos"]:
+                        contratos_por_pais[pais]["contratos"].append(contrato)
+                    contratos_por_pais[pais]["sacas"] += sacas
+                    contratos_por_pais[pais]["clientes"].add(cliente)
+
+                # Formata contratos por país para exibição
+                contratos_pais_str = ""
+                for pais in sorted(contratos_por_pais.keys()):
+                    dados = contratos_por_pais[pais]
+                    qtd_contratos = len(dados["contratos"])
+                    qtd_clientes = len(dados["clientes"])
+                    contratos_list = dados["contratos"][:20]  # Limita a 20 primeiros
+                    contratos_str = ", ".join(contratos_list)
+                    if len(dados["contratos"]) > 20:
+                        contratos_str += f" (e mais {len(dados['contratos']) - 20})"
+
+                    contratos_pais_str += f"\n  • {pais}: {qtd_contratos} contrato(s), {dados['sacas']:,.2f} sacas, {qtd_clientes} cliente(s)\n    Contratos: {contratos_str}"
+
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
@@ -964,6 +992,8 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Contratos: {total_contratos}
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
+
+CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):{contratos_pais_str}
 
 Dados agregados:
 {formatted}
@@ -1032,11 +1062,17 @@ IMPORTANTE - REGRAS CRÍTICAS:
    - "Qual o valor total?" → Use "Valor Total" dos TOTAIS GERAIS
    - NÃO SOME manualmente os valores por cliente! Os TOTAIS GERAIS já estão corretos!
 
-2. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
-3. NÃO tente recalcular médias manualmente.
-4. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
-5. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
-6. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+2. ⚠️ PARA PERGUNTAS SOBRE PAÍSES ESPECÍFICOS, USE A SEÇÃO "CONTRATOS POR PAÍS"!
+   - "Quantas sacas para Argentina?" → Procure Argentina na seção CONTRATOS POR PAÍS
+   - "Quais contratos para país X?" → Use a lista de contratos da seção CONTRATOS POR PAÍS
+   - NÃO procure país por país nos dados agregados por cliente!
+   - A seção CONTRATOS POR PAÍS mostra TODOS os contratos de cada país, mesmo que estejam em clientes diferentes!
+
+3. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+4. NÃO tente recalcular médias manualmente.
+5. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+6. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+7. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
    NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
 
 Exemplos corretos de uso:
