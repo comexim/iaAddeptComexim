@@ -883,8 +883,65 @@ class SQLTools:
             logger.info(f"[FILTRO CLIENTE] {len(results)} registros após filtrar por '{client_filter}'")
             total_records = len(results)
 
+        # ESTRATÉGIA 1.5: Detecta e aplica filtros específicos mencionados na pergunta
+        if self.user_query and function_name == "IA_Vendas":
+            query_lower = self.user_query.lower()
+            filtros_aplicados = []
+
+            # Filtro: sem valor fixado
+            if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação"]):
+                results_antes = len(results)
+                results = [r for r in results if (r.get("valorFixado") is None or r.get("valorFixado") == 0 or r.get("valorFixado") == 0.0)]
+                if len(results) < results_antes:
+                    filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
+                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
+
+            # Filtro: sem BL
+            if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "bl null"]):
+                results_antes = len(results)
+                results = [r for r in results if not r.get("numeroBL") or str(r.get("numeroBL")).strip() == ""]
+                if len(results) < results_antes:
+                    filtros_aplicados.append(f"sem BL ({results_antes} → {len(results)})")
+                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem BL': {results_antes} → {len(results)}")
+
+            # Atualiza total de registros após filtros
+            if filtros_aplicados:
+                total_records = len(results)
+                logger.info(f"[FILTROS APLICADOS] {', '.join(filtros_aplicados)}")
+
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
-        if len(results) > 50 and not client_filter:
+        # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
+        # MAS: Se pergunta menciona critério específico que resulta em poucos registros (<= 10), NÃO agrega
+        import re
+        menciona_contrato = False
+        menciona_criterio_especifico = False
+
+        if self.user_query:
+            query_lower = self.user_query.lower()
+
+            # Padrão: número/ano (ex: 488/25, 453/25A, 513/25)
+            if re.search(r'\d{2,4}/\d{2}[A-Z]?', self.user_query):
+                menciona_contrato = True
+                logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
+
+            # Critérios que geralmente resultam em poucos registros
+            criterios_especificos = [
+                "sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null",
+                "sem bl", "sem numero de bl", "não embarcado",
+                "amostra pendente", "amostra não aprovada",
+                "desse contrato", "deste contrato", "esse contrato", "este contrato",  # referência anafórica
+            ]
+
+            for criterio in criterios_especificos:
+                if criterio in query_lower:
+                    menciona_criterio_especifico = True
+                    logger.info(f"[DETECÇÃO] Pergunta menciona critério específico '{criterio}', NÃO vai agregar se <= 10 resultados")
+                    break
+
+        # Se menciona critério específico e tem <= 10 resultados, não agrega
+        nao_agregar_por_criterio = menciona_criterio_especifico and len(results) <= 10
+
+        if len(results) > 50 and not client_filter and not menciona_contrato and not nao_agregar_por_criterio:
             def convert_decimals(obj):
                 if isinstance(obj, Decimal):
                     return float(obj)
