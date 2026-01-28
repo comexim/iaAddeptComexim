@@ -197,7 +197,7 @@ class SQLTools:
                 # Formato: "contrato (YYYYMMDD)"
                 data["contratos_baixados"].append(f"{contrato} ({data_baixa})")
 
-                # Agrupa por mês (YYYYMM)
+                # Agrupa por mês (YYYYMM) para facilitar queries
                 if len(data_baixa) >= 6:
                     ano_mes = data_baixa[:6]  # Exemplo: "202601" de "20260115"
                     data["contratos_baixados_por_mes"][ano_mes].append(contrato)
@@ -259,6 +259,8 @@ class SQLTools:
                 "total_baixados_jan2026": len(data["contratos_baixados_por_mes"].get("202601", [])),
                 "contratos_baixados_dez2025": ", ".join(data["contratos_baixados_por_mes"].get("202512", [])[:100]),
                 "total_baixados_dez2025": len(data["contratos_baixados_por_mes"].get("202512", [])),
+                "contratos_baixados_nov2025": ", ".join(data["contratos_baixados_por_mes"].get("202511", [])[:100]),
+                "total_baixados_nov2025": len(data["contratos_baixados_por_mes"].get("202511", [])),
                 "vendedores": sorted(list(data["vendedores"])) if data["vendedores"] else [],
                 "filiais": sorted(list(data["filiais"])) if data["filiais"] else [],
                 "grupos_venda": sorted(list(data["grupos_venda"])) if data["grupos_venda"] else [],
@@ -502,12 +504,24 @@ class SQLTools:
             logger.info(f"[OTIMIZAÇÃO LISTA CONTRATOS] Retornando {len(contratos_list)} contratos individuais de {len(result_list)} clientes")
             return contratos_list
 
-        # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]"
-        if self.user_query and re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', self.user_query.lower()):
-            # Filtra apenas clientes com baixados em jan/2026 ou dez/2025
+        # OTIMIZAÇÃO ESPECIAL 1: Query sobre "baixados EM [mês]" ou "EM [mês]... baixados"
+        query_sobre_baixados_em_mes = False
+        if self.user_query:
+            query_lower = self.user_query.lower()
+            # Detecta: "baixados EM" OU "EM [mês]... baixados/pagos/quitados"
+            if re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', query_lower):
+                query_sobre_baixados_em_mes = True
+            elif re.search(r'em\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)', query_lower) and \
+                 re.search(r'(já\s+foram\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)\s+(financeiramente|no\s+contas)', query_lower):
+                query_sobre_baixados_em_mes = True
+
+        if query_sobre_baixados_em_mes:
+            # Filtra apenas clientes com baixados em jan/2026, dez/2025 ou nov/2025
             filtered_list = [
                 r for r in result_list
-                if r.get("total_baixados_jan2026", 0) > 0 or r.get("total_baixados_dez2025", 0) > 0
+                if r.get("total_baixados_jan2026", 0) > 0
+                or r.get("total_baixados_dez2025", 0) > 0
+                or r.get("total_baixados_nov2025", 0) > 0
             ]
 
             # Retorna APENAS campos essenciais do mês (reduz de ~9000 chars/cliente para ~200 chars/cliente)
@@ -519,9 +533,11 @@ class SQLTools:
                     "total_baixados_jan2026": r["total_baixados_jan2026"],
                     "contratos_baixados_dez2025": r["contratos_baixados_dez2025"],
                     "total_baixados_dez2025": r["total_baixados_dez2025"],
+                    "contratos_baixados_nov2025": r["contratos_baixados_nov2025"],
+                    "total_baixados_nov2025": r["total_baixados_nov2025"],
                 })
 
-            logger.info(f"[OTIMIZAÇÃO BAIXADOS] Retornando {len(minimal_list)} clientes com campos mínimos (jan2026/dez2025)")
+            logger.info(f"[OTIMIZAÇÃO BAIXADOS] Retornando {len(minimal_list)} clientes com campos mínimos (jan2026/dez2025/nov2025)")
             return minimal_list
 
         # OTIMIZAÇÃO ESPECIAL 2: Query sobre período específico (ex: "em janeiro", "por grupo em 2026")
@@ -1036,7 +1052,25 @@ class SQLTools:
         # Se menciona critério específico ou categoria e tem <= 10 resultados, não agrega
         nao_agregar_por_criterio = (menciona_criterio_especifico or menciona_categoria_orcamento) and len(results) <= 10
 
-        if len(results) > 50 and not client_filter and not menciona_contrato and not nao_agregar_por_criterio:
+        # FORÇA agregação se a pergunta é sobre "baixados EM [mês]" ou "EM [mês]... baixados"
+        # (precisa dos campos contratos_baixados_*)
+        forcar_agregacao_baixados = False
+        if self.user_query:
+            query_lower = self.user_query.lower()
+            # Detecta: "baixados EM" OU "EM [mês]... baixados/pagos/quitados"
+            if re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', query_lower):
+                forcar_agregacao_baixados = True
+                logger.info(f"[AGREGAÇÃO FORÇADA] Padrão 'baixados EM' detectado")
+            elif re.search(r'em\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)', query_lower) and \
+                 re.search(r'(já\s+foram\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)\s+(financeiramente|no\s+contas)', query_lower):
+                forcar_agregacao_baixados = True
+                logger.info(f"[AGREGAÇÃO FORÇADA] Padrão 'EM [mês]... baixados/pagos' detectado")
+
+        # Agrega se: muitos registros (>50) OU query sobre baixados
+        # MAS não agrega se: menciona contrato específico OU critério específico com <= 10 resultados
+        deve_agregar = (len(results) > 50 or forcar_agregacao_baixados) and not menciona_contrato and not nao_agregar_por_criterio
+
+        if deve_agregar:
             def convert_decimals(obj):
                 if isinstance(obj, Decimal):
                     return float(obj)
@@ -1220,15 +1254,52 @@ INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
 - contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
 - total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
 
-CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
-- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
-- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
-- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
-- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+⚠️⚠️⚠️ ATENÇÃO CRÍTICA - NÃO CONFUNDA MÊS DE EMBARQUE COM MÊS DE BAIXA! ⚠️⚠️⚠️
 
-  IMPORTANTE - COMO USAR:
-  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
-  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data de BAIXA):
+- contratos_baixados_jan2026: lista de contratos QUE FORAM PAGOS/BAIXADOS EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos QUE FORAM PAGOS/BAIXADOS EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em dezembro/2025
+- contratos_baixados_nov2025: lista de contratos QUE FORAM PAGOS/BAIXADOS EM novembro/2025 (até 100)
+- total_baixados_nov2025: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em novembro/2025
+
+  ⚠️⚠️⚠️ REGRA ABSOLUTA - LEIA COM MUITA ATENÇÃO ⚠️⚠️⚠️
+
+  "Contratos EM [mês] [ano]" pode significar DUAS COISAS DIFERENTES:
+
+  1️⃣ "Contratos COM EMBARQUE em nov/dez 2025" → Use o filtro de período (mesEmbarque)
+     Exemplo: "Quantos contratos do cliente X em novembro 2025?"
+     → Significa contratos que EMBARCARAM em nov/2025
+     → Use pesquisa_vendas(periodo="novembro 2025")
+
+  2️⃣ "Contratos QUE FORAM BAIXADOS/PAGOS em nov/dez 2025" → Use os campos contratos_baixados_*
+     Exemplo: "Quantos contratos do cliente X foram baixados em novembro 2025?"
+     → Significa contratos que foram PAGOS/BAIXADOS em nov/2025 (independente de quando embarcaram)
+     → Use contratos_baixados_nov2025 e total_baixados_nov2025
+
+  PALAVRAS-CHAVE que indicam BAIXA (opção 2):
+  - "baixados em", "foram baixados", "já foram baixados"
+  - "pagos em", "foram pagos", "já foram pagos"
+  - "quitados em", "foram quitados"
+  - "baixados financeiramente"
+  - "baixados no contas a receber"
+
+  Se a pergunta NÃO contém essas palavras-chave → é sobre EMBARQUE (opção 1)
+
+  EXEMPLO REAL:
+  ❌ ERRADO: "Contratos do FREY A/S em novembro 2025 já foram baixados?"
+     → A IA NÃO deve responder "2 contratos foram baixados em nov/2025"
+     → Os contratos embarcaram em nov/2025, mas foram baixados em JAN/2026!
+
+  ✅ CORRETO: Verificar a data REAL de baixa nos campos contratos_baixados_*
+     → Se contratos_baixados_nov2025 estiver vazio → responder "0 contratos foram baixados em nov/2025"
+     → Verificar contratos_baixados_jan2026 para ver quando foram realmente baixados
+
+  COMO USAR OS CAMPOS:
+  - Para "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - Para "contratos baixados EM novembro 2025" → use contratos_baixados_nov2025 e total_baixados_nov2025
   - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
 
 IMPORTANTE - REGRAS CRÍTICAS:
@@ -1914,7 +1985,49 @@ IMPORTANTE:
             if not result_list:
                 return "Nenhum saldo bancário encontrado."
 
-            # Aplica filtro por banco se fornecido
+            # OTIMIZAÇÃO: Detecta múltiplos bancos mencionados na pergunta do usuário
+            # Exemplo: "Banco do Brasil e Itaú Santos" → filtra apenas esses dois
+            bancos_mencionados = []
+            if self.user_query and not banco:  # Só se não veio filtro explícito
+                query_lower = self.user_query.lower()
+
+                # Mapeamento de nomes comuns → padrões de busca no banco
+                bancos_conhecidos = {
+                    "banco do brasil": ["BB STOS", "BB NY"],  # Específicos para evitar "BB" genérico
+                    "itau santos": ["ITAU STOS"],  # Apenas ITAU STOS (não todos os ITAU)
+                    "itaú santos": ["ITAU STOS"],
+                    "bradesco santos": ["BRADESCO STOS"],
+                    "bradesco": ["BRADESCO"],
+                    "santander": ["SANTANDER"],
+                    "citibank": ["CITI"],
+                    "safra": ["SAFRA"],
+                }
+
+                for nome_busca, padroes in bancos_conhecidos.items():
+                    if nome_busca in query_lower:
+                        bancos_mencionados.extend(padroes)
+                        logger.info(f"[SALDO BANCARIO] Banco detectado na pergunta: '{nome_busca}' → {padroes}")
+
+                # Se detectou múltiplos bancos, filtra apenas esses
+                if len(bancos_mencionados) > 0:
+                    original_count = len(result_list)
+                    result_list_filtrado = []
+
+                    for r in result_list:
+                        banco_row = self._remove_accents(str(r.get("banco", "")).upper())
+                        for padrao in bancos_mencionados:
+                            padrao_normalizado = self._remove_accents(padrao.upper())
+                            if padrao_normalizado in banco_row:
+                                result_list_filtrado.append(r)
+                                break
+
+                    if result_list_filtrado:
+                        result_list = result_list_filtrado
+                        logger.info(f"[SALDO BANCARIO] Filtro automático aplicado: {original_count} → {len(result_list)} registros (bancos: {bancos_mencionados})")
+                    else:
+                        logger.warning(f"[SALDO BANCARIO] Filtro automático não encontrou bancos para: {bancos_mencionados}")
+
+            # Aplica filtro por banco se fornecido explicitamente
             if result_list and banco:
                 original_count = len(result_list)
 
@@ -2024,12 +2137,17 @@ IMPORTANTE:
 
             resumo_str = "\n".join(resumo_moedas) if resumo_moedas else "  Nenhum saldo"
 
+            # Mensagem adicional se filtrou automaticamente
+            filtro_msg = ""
+            if bancos_mencionados:
+                filtro_msg = f"\n⚠️ FILTRADO AUTOMATICAMENTE: Mostrando apenas bancos mencionados na pergunta ({', '.join(set(bancos_mencionados))})\n"
+
             return f"""Resultados da consulta IA_SaldoBancario (AGREGADOS POR BANCO E MOEDA):
 
 Total de contas: {len(result_list)}
 Total de bancos únicos: {len(por_banco_moeda)}
-
-SALDO TOTAL POR MOEDA:
+{filtro_msg}
+SALDO TOTAL POR MOEDA (considerando todos os bancos listados abaixo):
 {resumo_str}
 
 Detalhamento por banco:
@@ -2039,7 +2157,22 @@ IMPORTANTE:
 1. Saldos POSITIVOS = dinheiro disponível
 2. Saldos NEGATIVOS = saldo devedor (banco emprestou para empresa)
 3. Valores já agregados por banco e moeda
-4. numero_contas = quantidade de contas daquele banco naquela moeda"""
+4. numero_contas = quantidade de contas daquele banco naquela moeda
+
+⚠️ ATENÇÃO CRÍTICA - QUANDO A PERGUNTA MENCIONA MÚLTIPLOS BANCOS:
+- Se a pergunta menciona "Banco A e Banco B" ou "entre Banco A e Banco B"
+- Você DEVE incluir TODOS os bancos mencionados na resposta
+- Procure por TODOS os bancos na lista acima
+- SOME os saldos de TODOS os bancos mencionados
+- NÃO omita nenhum banco que foi explicitamente mencionado na pergunta
+- Mesmo que um banco tenha saldo NEGATIVO, ele DEVE ser mencionado
+
+EXEMPLO:
+Pergunta: "Quanto tenho no Banco A e Banco B?"
+Resposta CORRETA deve incluir:
+  - Banco A: [todos os saldos do Banco A]
+  - Banco B: [todos os saldos do Banco B]
+  - TOTAL: [soma de A + B]"""
 
         except Exception as e:
             logger.error(f"Erro ao executar IA_SaldoBancario: {e}")
@@ -2386,26 +2519,37 @@ IMPORTANTE - Use esta ferramenta quando o usuário perguntar sobre:
 
 ⚠️⚠️⚠️ REGRA CRÍTICA PARA FILTRO DE PERÍODO ⚠️⚠️⚠️
 
+⚠️ ATENÇÃO MÁXIMA - NÃO CONFUNDA MÊS DE EMBARQUE COM MÊS DE BAIXA! ⚠️
+
+Quando o usuário diz "contratos EM [mês/ano]", pode significar DUAS COISAS:
+
+1️⃣ Contratos COM EMBARQUE em [mês/ano] → PASSE periodo
+2️⃣ Contratos QUE FORAM BAIXADOS/PAGOS em [mês/ano] → NÃO passe periodo
+
 CASO 1 - NÃO PASSE PERIODO (deixe None ou omita):
-→ APENAS quando a pergunta é sobre "BAIXADOS EM [MÊS/ANO]"
+→ APENAS quando a pergunta é sobre "BAIXADOS/PAGOS EM [MÊS/ANO]"
+→ Palavras-chave: "baixados em", "foram baixados", "pagos em", "quitados em"
 → Exemplos:
   • "contratos baixados EM janeiro 2026" → pesquisa_vendas() SEM periodo
   • "contratos baixados no contas a receber EM janeiro 2026" → pesquisa_vendas() SEM periodo
   • "quais contratos foram baixados EM dezembro 2025" → pesquisa_vendas() SEM periodo
-→ Razão: A agregação já retorna campos específicos (contratos_baixados_jan2026, total_baixados_jan2026)
+  • "contratos do FREY em novembro 2025 já foram baixados?" → pesquisa_vendas() SEM periodo
+→ Razão: A agregação retorna campos específicos (contratos_baixados_jan2026, contratos_baixados_nov2025, etc.)
+→ IMPORTANTE: Estes campos mostram quando o contrato foi PAGO, não quando embarcou!
 
 CASO 2 - SEMPRE PASSE periodo='[mês] [ano]':
 → Para TODAS as outras perguntas que mencionam "EM [MÊS/ANO]", incluindo:
   ✓ "vendas EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
   ✓ "valor total EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
-  ✓ "por grupo de venda EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
-  ✓ "por cliente EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
+  ✓ "contratos do cliente X EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
   ✓ "sacas EM janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
   ✓ "contratos COM EMBARQUE em janeiro 2026" → pesquisa_vendas(periodo='janeiro 2026')
   ✓ "embarques de fevereiro 2026" → pesquisa_vendas(periodo='fevereiro 2026')
 → Razão: Precisa filtrar a query SQL por mesEmbarque para retornar apenas o período solicitado
 
-⚠️ RESUMO: Se a pergunta NÃO é sobre "baixados EM", mas menciona um mês/período, SEMPRE passe o periodo!
+⚠️ RESUMO CRÍTICO:
+- Se tem "baixados/pagos/quitados EM" → NÃO passe periodo (use campos contratos_baixados_*)
+- Se NÃO tem essas palavras e menciona mês → PASSE periodo (filtra por mesEmbarque)
 
 Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
             ),
