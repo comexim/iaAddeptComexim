@@ -1534,7 +1534,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             results = sql_client.execute_function(function_name, filters)
             return self._format_results(results, function_name, client_filter)
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao executar {function_name}: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_vendas(self, periodo: Optional[str] = None) -> str:
@@ -1773,7 +1775,9 @@ IMPORTANTE:
 4. O valor_total mostrado representa a soma de TODOS os fornecedores, não apenas os {len(fornecedores_list)} listados"""
 
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao executar IA_ContasPagas: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None, natureza: Optional[str] = None) -> str:
@@ -1956,7 +1960,9 @@ IMPORTANTE:
 4. O valor_total mostrado representa a soma de TODOS os fornecedores, não apenas os {len(fornecedores_list)} listados"""
 
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao executar IA_ContasAPagar: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_saldo_bancario(self, banco: Optional[str] = None) -> str:
@@ -2175,7 +2181,9 @@ Resposta CORRETA deve incluir:
   - TOTAL: [soma de A + B]"""
 
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao executar IA_SaldoBancario: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_estoque(self) -> str:
@@ -2392,7 +2400,9 @@ IMPORTANTE:
 4. Total geral: R$ {total_valor:,.2f}"""
 
         except Exception as e:
+            import traceback
             logger.error(f"Erro ao executar IA_ContasAReceber: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_despesa_venda(self, contrato: Optional[str] = None) -> str:
