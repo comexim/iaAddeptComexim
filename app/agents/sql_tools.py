@@ -51,11 +51,11 @@ class SQLTools:
         # Padrões comuns para identificar nome de cliente
         patterns = [
             # Cliente explícito: "para o cliente NOME"
-            r'(?:para|do|da)\s+(?:o\s+|a\s+)?cliente\s+([a-záàâãéèêíïóôõöúçñ\s&\.]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em|\s+na|\s+do|\s+da|\?)',
+            r'(?:para|do|da)\s+(?:o\s+|a\s+)?cliente\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em|\s+na|\s+do|\s+da|\?)',
             # Cliente implícito: "para a starbucks"
-            r'para\s+(?:a\s+|o\s+)([a-záàâãéèêíïóôõöúçñ\s&\.]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em)',
-            r'da\s+([a-záàâãéèêíïóôõöúçñ\s&\.]+?)(?:\s+em|\s+no|\s+para)',
-            r'do\s+([a-záàâãéèêíïóôõöúçñ\s&\.]+?)(?:\s+em|\s+no|\s+para)',
+            r'para\s+(?:a\s+|o\s+)([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em)',
+            r'da\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+em|\s+no|\s+para)',
+            r'do\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+em|\s+no|\s+para)',
         ]
 
         for pattern in patterns:
