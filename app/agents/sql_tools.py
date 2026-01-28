@@ -1692,6 +1692,7 @@ IMPORTANTE:
                     "SANTOS": "STOS",
                     "SAO PAULO": "SP",
                     "SÃO PAULO": "SP",
+                    "BANCO DO BRASIL": "BB",
                 }
 
                 # Remove acentos e converte para maiúsculas
