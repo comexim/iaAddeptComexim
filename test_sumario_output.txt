@@ -1,0 +1,42 @@
+C:\Users\pedro\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\langchain_core\_api\deprecation.py:26: UserWarning: Core Pydantic V1 functionality isn't compatible with Python 3.14 or greater.
+  from pydantic.v1.fields import FieldInfo as FieldInfoV1
+Função IA_Vendas não configurada para validação de filtros
+================================================================================
+TESTE: Fix de filtro para 'NÃO embarcados sem BL'
+================================================================================
+
+Query: 'Quantos contratos não foram embarcados e não têm BL?'
+Período: janeiro de 2026
+
+[DEBUG] user_query: 'Quantos contratos não foram embarcados e não têm BL?'
+[DEBUG] user_query_original: 'Quantos contratos não foram embarcados e não têm BL?'
+
+================================================================================
+EXECUTANDO TOOL...
+================================================================================
+
+Resultado salvo em: resultado_fix_nao_embarcados_bl.txt
+Tamanho: 24254 caracteres
+
+================================================================================
+VERIFICAÇÃO DO FIX:
+================================================================================
+
+[X] Filtro de 'não embarcados' NÃO foi aplicado
+[OK] Filtro de 'embarcados' NÃO foi aplicado (correto)
+
+[OK] Encontrou 'RESPOSTA DIRETA' - otimização especial aplicada
+     [X] Não conseguiu extrair número da resposta
+
+================================================================================
+ANÁLISE DO LOG:
+================================================================================
+
+  Total de registros retornados pelo SQL: 103
+
+================================================================================
+RESULTADO FINAL:
+================================================================================
+
+[ERRO] FIX NÃO FUNCIONOU!
+  Verifique o arquivo resultado_fix_nao_embarcados_bl.txt

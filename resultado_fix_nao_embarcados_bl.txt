@@ -1,5 +1,12 @@
 Resultados da consulta IA_Vendas:
 
+⚠️ RESPOSTA DIRETA: 15 contratos NÃO foram embarcados e não têm BL.
+
+⚠️ IMPORTANTE: Use EXATAMENTE este número (15 contratos) para responder ao usuário!
+Não conte manualmente - este é o número correto após aplicar os filtros.
+
+
+
 Total de registros retornados pelo SQL: 103
 Registros nesta resposta: 15
 

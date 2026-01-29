@@ -1603,7 +1603,21 @@ Campos comuns: contrato, despesa, valor, fornecedor, etc."""
         specific_instructions = FUNCTION_INSTRUCTIONS.get(function_name,
             "Analise TODOS os campos disponíveis nos registros acima e responda com base nos dados reais.")
 
-        return f"""Resultados da consulta {function_name}:
+        # SUMÁRIO ESPECIAL: Se ambos os filtros foram aplicados (não embarcados + sem BL)
+        sumario_nao_embarcados_sem_bl = ""
+        if filtros_aplicados and any("não embarcados" in f for f in filtros_aplicados) and any("sem BL" in f for f in filtros_aplicados):
+            total_contratos = len(results)
+            sumario_nao_embarcados_sem_bl = f"""
+
+⚠️ RESPOSTA DIRETA: {total_contratos} contratos NÃO foram embarcados e não têm BL.
+
+⚠️ IMPORTANTE: Use EXATAMENTE este número ({total_contratos} contratos) para responder ao usuário!
+Não conte manualmente - este é o número correto após aplicar os filtros.
+
+"""
+            logger.info(f"[SUMÁRIO ESPECIAL] Calculado: {total_contratos} contratos não embarcados sem BL")
+
+        return f"""Resultados da consulta {function_name}:{sumario_nao_embarcados_sem_bl}
 
 Total de registros retornados pelo SQL: {original_count}
 Registros nesta resposta: {len(results)}
