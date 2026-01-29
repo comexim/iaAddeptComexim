@@ -1098,7 +1098,7 @@ class SQLTools:
         nao_agregar_por_criterio = (menciona_criterio_especifico or menciona_categoria_orcamento) and len(results) <= 10
 
         # FORÇA agregação se a pergunta é sobre "baixados EM [mês]" ou "EM [mês]... baixados"
-        # (precisa dos campos contratos_baixados_*)
+        # OU se menciona "embarcados" E "baixados" simultaneamente (precisa dos campos contratos_baixados_*)
         forcar_agregacao_baixados = False
         if self.user_query:
             query_lower = self.user_query.lower()
@@ -1110,6 +1110,11 @@ class SQLTools:
                  re.search(r'(já\s+foram\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)\s+(financeiramente|no\s+contas)', query_lower):
                 forcar_agregacao_baixados = True
                 logger.info(f"[AGREGAÇÃO FORÇADA] Padrão 'EM [mês]... baixados/pagos' detectado")
+            # NOVO: Detecta queries sobre "embarcados" E "não foram baixados" (precisa de agregação para contar corretamente)
+            elif re.search(r'embarc(ad[oa]s?|aram|ou)', query_lower) and \
+                 re.search(r'(não\s+foram\s+|ainda\s+não\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)', query_lower):
+                forcar_agregacao_baixados = True
+                logger.info(f"[AGREGAÇÃO FORÇADA] Padrão 'embarcados... (não) baixados' detectado")
 
         # Agrega se: muitos registros (>50) OU query sobre baixados
         # MAS não agrega se: menciona contrato específico OU critério específico com <= 10 resultados
