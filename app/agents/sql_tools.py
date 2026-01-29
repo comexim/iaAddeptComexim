@@ -48,6 +48,25 @@ class SQLTools:
         if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|linha|cada\s+(grupo|vendedor|filial|linha))', query_lower):
             return None
 
+        # NÃO tenta extrair cliente se a query menciona operações financeiras/logísticas
+        # que podem ser confundidas com nomes (ex: "não foram baixados", "foram embarcados")
+        palavras_operacao = [
+            r'\bnão\s+foram\s+baixad',  # "não foram baixados"
+            r'\bforam\s+baixad',  # "foram baixados"
+            r'\bja\s+foram\s+baixad',  # "já foram baixados"
+            r'\bforam\s+embarcad',  # "foram embarcados"
+            r'\bforam\s+pagos',  # "foram pagos"
+            r'\bforam\s+quitad',  # "foram quitados"
+            r'\bainda\s+não',  # "ainda não"
+            r'\bsem\s+bl',  # "sem bl"
+            r'\bsem\s+valor\s+fixado',  # "sem valor fixado"
+        ]
+
+        for padrao in palavras_operacao:
+            if re.search(padrao, query_lower):
+                logger.info(f"[PROTEÇÃO] Query menciona operação financeira/logística - NÃO vai extrair cliente")
+                return None
+
         # Padrões comuns para identificar nome de cliente
         patterns = [
             # Cliente explícito: "para o cliente NOME"
@@ -268,9 +287,9 @@ class SQLTools:
             })
 
         # OTIMIZAÇÃO ESPECIAL -1: Query sobre intersecção "embarcados E baixados"
-        # Detecta queries que mencionam AMBOS embarcados E baixados (qualquer conjugação verbal)
-        # Exemplos: "embarcaram...baixados", "embarcados...baixaram", "embarcam...baixam"
-        if self.user_query and re.search(r'embarc(ad[oa]s?|aram|ou|am).*baix(ad[oa]s?|aram|ou|am)|baix(ad[oa]s?|aram|ou|am).*embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
+        # DESABILITADA: estava hardcoded para janeiro 2026 e causando bugs em outras datas
+        # TODO: Reimplementar de forma dinâmica se necessário
+        if False and self.user_query and re.search(r'embarc(ad[oa]s?|aram|ou|am).*baix(ad[oa]s?|aram|ou|am)|baix(ad[oa]s?|aram|ou|am).*embarc(ad[oa]s?|aram|ou|am)', self.user_query.lower()):
             logger.info(f"[OTIMIZAÇÃO EMBARCADOS+BAIXADOS] Detectado query sobre intersecção")
             # Coleta todos os contratos embarcados e baixados
             embarcados_set = set()
