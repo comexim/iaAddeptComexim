@@ -1220,16 +1220,22 @@ class SQLTools:
                             logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado '{nome_filtro.upper()}': {results_antes} → {len(results)}")
                             break
 
-                # Filtro: sacas para exportação
-                if any(term in query_lower for term in ["para exportação", "para exportacao", "exportação", "exportacao", "sacas de exportação"]):
+                # Detectar se é uma query COMPARATIVA (não aplicar filtros específicos)
+                palavras_comparativas = ["mais", "menos", " ou ", " vs ", " versus ", "comparar", "comparação", "comparacao", "diferença", "diferenca"]
+                is_comparativa = any(palavra in query_lower for palavra in palavras_comparativas)
+
+                # Filtro: sacas para exportação (NÃO aplicar em queries comparativas)
+                if not is_comparativa and any(term in query_lower for term in ["para exportação", "para exportacao", "exportação", "exportacao", "sacas de exportação"]):
                     results_antes = len(results)
                     results = [r for r in results if r.get("sacasExportacao", 0) > 0]
                     if len(results) < results_antes:
                         filtros_aplicados.append(f"sacas para exportação ({results_antes} → {len(results)})")
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sacas para exportação': {results_antes} → {len(results)}")
+                elif is_comparativa:
+                    logger.info(f"[FILTRO AUTOMÁTICO] Query comparativa detectada - NÃO aplicando filtro de exportação/consumo")
 
-                # Filtro: sacas para consumo
-                if any(term in query_lower for term in ["para consumo", "consumo interno", "mercado interno", "sacas de consumo"]):
+                # Filtro: sacas para consumo (NÃO aplicar em queries comparativas)
+                if not is_comparativa and any(term in query_lower for term in ["para consumo", "consumo interno", "mercado interno", "sacas de consumo"]):
                     results_antes = len(results)
                     results = [r for r in results if r.get("sacasConsumo", 0) > 0]
                     if len(results) < results_antes:
