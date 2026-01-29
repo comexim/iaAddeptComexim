@@ -1243,7 +1243,63 @@ Exemplos corretos:
 
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
-                return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):
+                # SUMÁRIO ESPECIAL: Se query é sobre "embarcados não baixados", calcula explicitamente
+                sumario_embarcados_nao_baixados = ""
+                if self.user_query and re.search(r'embarc(ad[oa]s?|aram|ou)', self.user_query.lower()) and \
+                   re.search(r'(não\s+foram\s+|ainda\s+não\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)', self.user_query.lower()):
+                    # Calcula total de contratos embarcados não baixados
+                    total_embarcados_nao_baixados = 0
+                    clientes_com_nao_baixados = []
+
+                    for cliente_data in aggregated:
+                        # Contratos embarcados
+                        embarcados_str = cliente_data.get("contratos_embarcados", "")
+                        embarcados_set = set()
+                        if embarcados_str:
+                            for c in embarcados_str.split(','):
+                                c = c.strip()
+                                if c:
+                                    embarcados_set.add(c)
+
+                        # Contratos baixados (união de todos os meses)
+                        baixados_set = set()
+                        for campo in ['contratos_baixados_nov2025', 'contratos_baixados_dez2025', 'contratos_baixados_jan2026']:
+                            baixados_str = cliente_data.get(campo, "")
+                            if baixados_str:
+                                for c in baixados_str.split(','):
+                                    c = c.strip()
+                                    if c:
+                                        baixados_set.add(c)
+
+                        # Não baixados = embarcados - baixados
+                        nao_baixados_set = embarcados_set - baixados_set
+                        if len(nao_baixados_set) > 0:
+                            total_embarcados_nao_baixados += len(nao_baixados_set)
+                            clientes_com_nao_baixados.append({
+                                'cliente': cliente_data.get('cliente', '').strip(),
+                                'qtd': len(nao_baixados_set),
+                                'contratos': sorted(list(nao_baixados_set))[:5]
+                            })
+
+                    # Ordena por quantidade (maior primeiro)
+                    clientes_com_nao_baixados.sort(key=lambda x: x['qtd'], reverse=True)
+
+                    # Formata sumário
+                    sumario_embarcados_nao_baixados = f"""\n⚠️ SUMÁRIO PARA ESTA QUERY ESPECÍFICA:
+
+🔍 CONTRATOS EMBARCADOS QUE AINDA NÃO FORAM BAIXADOS: {total_embarcados_nao_baixados} contratos
+
+Distribuição por cliente (top 5):"""
+                    for i, item in enumerate(clientes_com_nao_baixados[:5], 1):
+                        contratos_resumo = ", ".join(item['contratos'])
+                        if item['qtd'] > 5:
+                            contratos_resumo += f" (e mais {item['qtd'] - 5})"
+                        sumario_embarcados_nao_baixados += f"\n  {i}. {item['cliente']}: {item['qtd']} contrato(s) - {contratos_resumo}"
+
+                    sumario_embarcados_nao_baixados += f"\n\n⚠️ IMPORTANTE: Use este número ({total_embarcados_nao_baixados} contratos) para responder ao usuário!\n"
+                    logger.info(f"[SUMÁRIO ESPECIAL] Calculado: {total_embarcados_nao_baixados} contratos embarcados não baixados")
+
+                return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):{sumario_embarcados_nao_baixados}
 
 Total de registros SQL: {original_count}
 Total de clientes: {len(aggregated)}
