@@ -1008,7 +1008,7 @@ class SQLTools:
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
 
                 # Filtro: sem BL
-                if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "bl null"]):
+                if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "não têm bl", "nao tem bl", "nao têm bl", "bl null"]):
                     results_antes = len(results)
                     results = [r for r in results if not r.get("numeroBL") or str(r.get("numeroBL")).strip() == ""]
                     if len(results) < results_antes:
@@ -1025,6 +1025,15 @@ class SQLTools:
                     if len(results) < results_antes:
                         filtros_aplicados.append(f"embarcados (com saidaNavio) ({results_antes} → {len(results)})")
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'embarcados': {results_antes} → {len(results)}")
+
+                # Filtro: NÃO embarcados (sem data de saída do navio)
+                # Aplica quando query menciona explicitamente "não embarcados" ou "não foram embarcados"
+                if any(term in query_lower for term in ["não embarcados", "não foram embarcados", "sem embarque", "não embarcaram", "ainda não embarcaram"]):
+                    results_antes = len(results)
+                    results = [r for r in results if not r.get("saidaNavio") or str(r.get("saidaNavio")).strip() == ""]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"não embarcados (sem saidaNavio) ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'não embarcados': {results_antes} → {len(results)}")
 
             # FILTROS PARA ORÇAMENTO
             elif function_name == "IA_Orcamento":
