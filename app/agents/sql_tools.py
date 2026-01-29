@@ -884,10 +884,25 @@ class SQLTools:
                 "qtd_registros": data["registros"]  # Quantidade de registros agregados
             })
 
-        # Ordena por valor orçado (maior primeiro)
-        result_list.sort(key=lambda x: x["orcado"], reverse=True)
+        # DETECÇÃO: Se a pergunta menciona "estouro", ordena por ESTOURO (realizado - orçado)
+        # Caso contrário, ordena por valor orçado
+        ordenar_por_estouro = False
+        if hasattr(self, 'user_query') and self.user_query:
+            query_lower = self.user_query.lower()
+            # Detecta palavras relacionadas a estouro
+            if any(termo in query_lower for termo in ["estouro", "estourou", "estouraram", "estourar", "mais gastou", "excedeu"]):
+                ordenar_por_estouro = True
+                logger.info(f"[ORDENAÇÃO] Pergunta menciona 'estouro' - ordenando por VALOR DO ESTOURO (realizado - orçado)")
 
-        logger.info(f"Agregados {len(results)} registros de orçamento em {len(result_list)} categorias")
+        if ordenar_por_estouro:
+            # Ordena por ESTOURO (realizado - orçado), maior primeiro
+            # Estouro positivo = gastou MAIS que o orçado
+            result_list.sort(key=lambda x: (x["realizado"] - x["orcado"]), reverse=True)
+        else:
+            # Ordena por valor orçado (maior primeiro) - padrão
+            result_list.sort(key=lambda x: x["orcado"], reverse=True)
+
+        logger.info(f"Agregados {len(results)} registros de orçamento em {len(result_list)} categorias (ordenado por: {'ESTOURO' if ordenar_por_estouro else 'ORÇADO'})")
         return result_list
 
     def _filter_by_client(self, results: list[Dict[str, Any]], client_name: str) -> list[Dict[str, Any]]:
