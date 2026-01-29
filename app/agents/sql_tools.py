@@ -1244,6 +1244,22 @@ class SQLTools:
                         filtros_aplicados.append(f"impureza < 10% ({results_antes} → {len(results)})")
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'impureza < 10%': {results_antes} → {len(results)}")
 
+                # Filtro: café brasileiro (país = BRASIL)
+                if any(term in query_lower for term in ["brasileiro", "brasileira", "do brasil", "brasil", "nacional"]):
+                    results_antes = len(results)
+                    results = [r for r in results if str(r.get("pais", "")).strip().upper() == "BRASIL"]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"país 'BRASIL' ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro país 'BRASIL': {results_antes} → {len(results)}")
+
+                # Filtro: café europeu (país = EUROPA)
+                if any(term in query_lower for term in ["europeu", "europeia", "da europa", "europa"]):
+                    results_antes = len(results)
+                    results = [r for r in results if str(r.get("pais", "")).strip().upper() == "EUROPA"]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"país 'EUROPA' ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro país 'EUROPA': {results_antes} → {len(results)}")
+
             # Atualiza total de registros após filtros
             if filtros_aplicados:
                 total_records = len(results)
