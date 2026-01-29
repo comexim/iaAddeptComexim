@@ -14,19 +14,17 @@ class SQLServerClient:
 
     def __init__(self):
         self.connection_string = settings.sql_server_connection_string
-        self._connection: Optional[pyodbc.Connection] = None
 
     def _get_connection(self) -> pyodbc.Connection:
-        """Obtém conexão com o banco (reutiliza ou cria nova)"""
+        """Cria uma NOVA conexão para cada query (evita problemas de concorrência)"""
         try:
-            if self._connection is None or self._connection.closed:
-                logger.info("Conectando ao SQL Server...")
-                self._connection = pyodbc.connect(
-                    self.connection_string,
-                    timeout=30
-                )
-                logger.info("Conexão estabelecida com sucesso")
-            return self._connection
+            logger.debug("Criando nova conexão com SQL Server...")
+            connection = pyodbc.connect(
+                self.connection_string,
+                timeout=30
+            )
+            logger.debug("Conexão estabelecida com sucesso")
+            return connection
         except pyodbc.Error as e:
             logger.error(f"Erro ao conectar no SQL Server: {e}")
             raise
@@ -142,6 +140,8 @@ class SQLServerClient:
 
         logger.info(f"Executando query: {query}")
 
+        conn = None
+        cursor = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
@@ -162,7 +162,6 @@ class SQLServerClient:
                     row_dict[column] = value
                 results.append(row_dict)
 
-            cursor.close()
             logger.info(f"Query executada com sucesso. {len(results)} registros retornados.")
             return results
 
@@ -171,24 +170,51 @@ class SQLServerClient:
             logger.error(f"Query: {query}")
             raise Exception(f"Erro ao consultar banco de dados: {str(e)}")
 
+        finally:
+            # CRÍTICO: Fechar cursor e conexão para evitar "Connection is busy"
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                    logger.debug("Conexão fechada")
+                except:
+                    pass
+
     def test_connection(self) -> bool:
         """Testa conexão com o banco"""
+        conn = None
+        cursor = None
         try:
             conn = self._get_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT 1")
-            cursor.close()
             logger.info("Teste de conexão bem-sucedido")
             return True
         except Exception as e:
             logger.error(f"Teste de conexão falhou: {e}")
             return False
+        finally:
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                except:
+                    pass
 
     def close(self):
-        """Fecha conexão com o banco"""
-        if self._connection and not self._connection.closed:
-            self._connection.close()
-            logger.info("Conexão com SQL Server fechada")
+        """
+        Método mantido para compatibilidade, mas não faz nada.
+        Agora cada query cria e fecha sua própria conexão automaticamente.
+        """
+        pass
 
 
 # Instância global do cliente
