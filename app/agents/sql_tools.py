@@ -2675,9 +2675,10 @@ Para pagamentos já efetuados, use pesquisa_contas_pagas.
 
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
-  - Formato flexível: "hoje", "próximos 7 dias", "este mês", "próxima semana", "20251212"
+  - Formato flexível: "hoje", "vencidas", "próximos 7 dias", "este mês", "próxima semana", "20251212"
+  - "vencidas" ou "vencidos": retorna apenas contas com vencimento até ontem (contas atrasadas)
   - Se NÃO INFORMADO: retorna todas as contas a pagar (sem filtro de data)
-  - Se INFORMADO: filtra contas com vencimento >= data_vencimento
+  - Se INFORMADO: filtra contas conforme período especificado
 
 - natureza (opcional): Filtro por natureza/tipo de despesa
   - Exemplos: "compra de café", "cafe", "INSS", "salário", "PLR", "tarifas bancárias"
@@ -2687,6 +2688,7 @@ Argumentos:
 
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
+- "Contas vencidas" ou "Contas atrasadas" → pesquisa_contas_a_pagar(data_vencimento="vencidas")
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
 - "Pagamentos deste mês" → pesquisa_contas_a_pagar(data_vencimento="este mês")
 - "Todas as contas a pagar" → pesquisa_contas_a_pagar()
@@ -2694,6 +2696,7 @@ Exemplos de uso:
 - "Quanto tenho a pagar de compra de café?" → pesquisa_contas_a_pagar(natureza="cafe")
 - "Quanto devo de INSS?" → pesquisa_contas_a_pagar(natureza="INSS")
 - "Pagamentos de salário nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias", natureza="salario")
+- "Contas vencidas de fumigação" → pesquisa_contas_a_pagar(data_vencimento="vencidas", natureza="fumigacao")
 """
             ),
             StructuredTool.from_function(

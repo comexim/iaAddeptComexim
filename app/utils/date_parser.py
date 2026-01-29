@@ -83,6 +83,15 @@ class DateParser:
             logger.debug(f"Parseado 'ontem': {result['data_inicio']}")
             return result
 
+        # Vencidas / Vencidos (todas as contas com vencimento até ontem)
+        if "vencid" in text:
+            yesterday = now - timedelta(days=1)
+            # Data muito antiga como início (19000101) para pegar todos os vencimentos antigos
+            result["data_inicio"] = "19000101"
+            result["data_fim"] = DateParser.format_yyyymmdd(yesterday)
+            logger.debug(f"Parseado 'vencidas': até {result['data_fim']}")
+            return result
+
         # Dias da semana passados (segunda-feira passada, terça passada, etc.)
         dias_semana = {
             "domingo": 6, "segunda": 0, "segunda-feira": 0, "segunda feira": 0,
