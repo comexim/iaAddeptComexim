@@ -1,0 +1,206 @@
+[
+  {
+    "cliente": "NESTLE ARARAS       ",
+    "total_contratos": 9,
+    "contratos_baixados": "093/25C, 094/25A, 094/25B",
+    "total_contratos_baixados": 3
+  },
+  {
+    "cliente": "CAFE FUNDADOR       ",
+    "total_contratos": 3,
+    "contratos_baixados": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_baixados": 3
+  },
+  {
+    "cliente": "J R COMERCIO E EXPOR",
+    "total_contratos": 4,
+    "contratos_baixados": "085/25D, 086/25A",
+    "total_contratos_baixados": 2
+  },
+  {
+    "cliente": "COFFEA IMPORTACAO, E",
+    "total_contratos": 6,
+    "contratos_baixados": "081/25A, 079/25D",
+    "total_contratos_baixados": 2
+  },
+  {
+    "cliente": "NESTRADE S.A.       ",
+    "total_contratos": 8,
+    "contratos_baixados": "375/25C",
+    "total_contratos_baixados": 1
+  },
+  {
+    "cliente": "NESTLE BRASIL LTDA. ",
+    "total_contratos": 7,
+    "contratos_baixados": "096/25A",
+    "total_contratos_baixados": 1
+  },
+  {
+    "cliente": "ECOM AGROINDUSTRIAL ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "THE DRIP CO.LTD     ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "F&J COMERCIO DE CAFE",
+    "total_contratos": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "BERNHARD ROTHFOS GMB",
+    "total_contratos": 11,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "MEIRA (MZB GROUP)   ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "JDE                 ",
+    "total_contratos": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "UCC-COFFEE SERVICES ",
+    "total_contratos": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "AHOLD COFFEE        ",
+    "total_contratos": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "COMEXIM EUROPE GMBH.",
+    "total_contratos": 5,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "BIJDENDIJK          ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "FALCON COFFEES LIMIT",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "MIORI               ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "INTERAMERICAN COFFEE",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "BROOKS CO. LTD.     ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "EFICO NV            ",
+    "total_contratos": 6,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "FINLAY BEVERAGES    ",
+    "total_contratos": 3,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "WILLIAMS MANUFACTUR ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "THE FOLGER COFFEE   ",
+    "total_contratos": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "DEUTSCHE EXTRAKT KAF",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "CAFES LA VIRGINIA   ",
+    "total_contratos": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "ATLANTIC USA IN     ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "VOLCAFE             ",
+    "total_contratos": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "LOS CINCO HISPANOS S",
+    "total_contratos": 3,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "IRAKLIS ROUPAS LTDA ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "BERO COFFEE SING    ",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "IMPORTADORA REAL    ",
+    "total_contratos": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "INTERAMERICAN COFFE ",
+    "total_contratos": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  },
+  {
+    "cliente": "NEUMANN GRUPPE USA I",
+    "total_contratos": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0
+  }
+]

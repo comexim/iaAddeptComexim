@@ -1,0 +1,176 @@
+Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 28
+Total de clientes únicos: 16
+Valor total a receber: R$ 13,828,945.27
+Saldo total pendente: R$ 13,828,945.27
+
+Clientes (ordenados por valor):
+[
+  {
+    "cliente": "NESTLE ARARAS",
+    "valor_total": 7658150.31,
+    "saldo_total": 7658150.31,
+    "quantidade_titulos": 5,
+    "numero_contratos": 5,
+    "proximos_vencimentos": [
+      "20260129"
+    ]
+  },
+  {
+    "cliente": "COFFEA IMPORTACAO, E",
+    "valor_total": 1217968.89,
+    "saldo_total": 1217968.89,
+    "quantidade_titulos": 4,
+    "numero_contratos": 4,
+    "proximos_vencimentos": [
+      "20260131"
+    ]
+  },
+  {
+    "cliente": "NESTLE BRASIL LTDA.",
+    "valor_total": 865221.7,
+    "saldo_total": 865221.7,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260129"
+    ]
+  },
+  {
+    "cliente": "VOLCAFE",
+    "valor_total": 671916.06,
+    "saldo_total": 671916.06,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260129"
+    ]
+  },
+  {
+    "cliente": "BERNHARD ROTHFOS GMB",
+    "valor_total": 620150.9,
+    "saldo_total": 620150.9,
+    "quantidade_titulos": 2,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260202"
+    ]
+  },
+  {
+    "cliente": "DEUTSCHE EXTRAKT KAF",
+    "valor_total": 528580.32,
+    "saldo_total": 528580.32,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260202"
+    ]
+  },
+  {
+    "cliente": "J R COMERCIO E EXPOR",
+    "valor_total": 341853.66,
+    "saldo_total": 341853.66,
+    "quantidade_titulos": 3,
+    "numero_contratos": 3,
+    "proximos_vencimentos": [
+      "20260131"
+    ]
+  },
+  {
+    "cliente": "FALCON COFFEES LIMIT",
+    "valor_total": 332986.2,
+    "saldo_total": 332986.2,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260202"
+    ]
+  },
+  {
+    "cliente": "INTERAMERICAN COFFEE",
+    "valor_total": 320391.91,
+    "saldo_total": 320391.91,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260204"
+    ]
+  },
+  {
+    "cliente": "AHOLD COFFEE",
+    "valor_total": 290725.49,
+    "saldo_total": 290725.49,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260129"
+    ]
+  },
+  {
+    "cliente": "COMEXIM EUROPE GMBH.",
+    "valor_total": 287311.08,
+    "saldo_total": 287311.08,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260130"
+    ]
+  },
+  {
+    "cliente": "ATLANTIC USA IN",
+    "valor_total": 243329.6,
+    "saldo_total": 243329.6,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260202"
+    ]
+  },
+  {
+    "cliente": "F&J COMERCIO DE CAFE",
+    "valor_total": 215706.7,
+    "saldo_total": 215706.7,
+    "quantidade_titulos": 2,
+    "numero_contratos": 2,
+    "proximos_vencimentos": [
+      "20260131"
+    ]
+  },
+  {
+    "cliente": "MATIAS RUIZ & CIA.SA",
+    "valor_total": 214720.0,
+    "saldo_total": 214720.0,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260130"
+    ]
+  },
+  {
+    "cliente": "KRAFT",
+    "valor_total": 13493.9,
+    "saldo_total": 13493.9,
+    "quantidade_titulos": 2,
+    "numero_contratos": 2,
+    "proximos_vencimentos": [
+      "20260130"
+    ]
+  },
+  {
+    "cliente": "UCC-COFFEE SERVICES",
+    "valor_total": 6438.55,
+    "saldo_total": 6438.55,
+    "quantidade_titulos": 1,
+    "numero_contratos": 1,
+    "proximos_vencimentos": [
+      "20260202"
+    ]
+  }
+]
+
+IMPORTANTE:
+1. Estas são contas PENDENTES (a receber no futuro)
+2. Os valores já estão AGREGADOS por cliente (se cliente tem múltiplos títulos, valores foram somados)
+3. valor_total = soma de todos os títulos daquele cliente
+4. Total geral: R$ 13,828,945.27

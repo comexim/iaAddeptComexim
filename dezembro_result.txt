@@ -1,0 +1,5849 @@
+Resultados da consulta IA_ContasPagas (AGREGADOS POR FORNECEDOR):
+
+Total de registros SQL: 1421
+Total de fornecedores: 521
+Valor total pago: R$ -70,031,396.67
+
+Dados agregados por fornecedor:
+[
+  {
+    "fornecedor": "PEDRO FERNANDO FERREIRA",
+    "valor_total": -6175955.0,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CONDOMINIO AGROPECUARIO FERNANDO MARTINS",
+    "valor_total": -4880830.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BRASCAFE COMERCIO EXPORTACAO E IMPORTACA",
+    "valor_total": -4206730.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COMEXIM - LONDRINA",
+    "valor_total": -4070076.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "IMPOSTOS DIRETOS (FEDERAL)"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RIBEIRO S CAFES COMERCIO IMPORTACAO E EX",
+    "valor_total": -3407500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SAO JOSE ARMAZENS GERAIS & EXPORTACAO DE",
+    "valor_total": -3213040.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JULIANE CLAUDIA MARCOS MICALI",
+    "valor_total": -3098810.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SERGIO HAZAN",
+    "valor_total": -2966159.58,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DISTRIBUICAO LABORAL",
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MITSUI E CO. COFFEE TRADING  BRAZIL  LTD",
+    "valor_total": -2371200.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COOXUPE",
+    "valor_total": -2205900.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE ADILSON LIMA",
+    "valor_total": -2103810.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SANTO ANTONIO CAFE DE MONTANHA COMERCIO",
+    "valor_total": -1940490.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MARCIO HAZAN",
+    "valor_total": -1932164.44,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DIVIDENDOS ORDINARIOS",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ANGELO ANDRE DOGNANI",
+    "valor_total": -1796000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BRUNO DE OLIVEIRA HA",
+    "valor_total": -1610730.58,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DESPESAS DE VIAGENS",
+      "DISTRIBUICAO LABORAL",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "CITI BANK  NY",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DANIEL DIANAS RIBEIR",
+    "valor_total": -1468310.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RENAN M HAZAN",
+    "valor_total": -1433596.41,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DISTRIBUICAO LABORAL",
+      "DIVIDENDOS ORDINARIOS",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "CITI BANK  NY",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JCZ AGRICOLA - FAZENDA AGUA LIMPA",
+    "valor_total": -1199740.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BELO HORIZONTE COMERCIO DE CAFE LTDA",
+    "valor_total": -1158180.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BRUNO RENATO BALDINI",
+    "valor_total": -1139180.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MANOEL OLIVEIRA LIMA",
+    "valor_total": -780097.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "WAGNER POLO KAOURI E OUTRA",
+    "valor_total": -715110.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MAURICIO PIRES DI CUNTO",
+    "valor_total": -692835.85,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SERGIO ALAIR BARROSO",
+    "valor_total": -669334.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COCAPEC - PEDREGULHO",
+    "valor_total": -665050.5,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CELINE MARIE DIB",
+    "valor_total": -585146.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COCAPEC - CRISTAIS PAULISTA",
+    "valor_total": -470000.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "FOLHA",
+    "valor_total": -459069.2,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DECIMO TERCEIRO",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TERRA INVESTIMENTOS DISTRIBUIDORA DE TIT",
+    "valor_total": -448799.4,
+    "quantidade_pagamentos": 16,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SYLVIA LEDA AMARAL PINHO DE ALMEIDA",
+    "valor_total": -437668.3,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RSP CONSULTORIA EMPRESARIAL",
+    "valor_total": -420000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LIDERANCA INOVACAO",
+    "valor_total": -350000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "HEDGEPOINT SWITZERLAND LTD",
+    "valor_total": -340000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "AGROPECUARIA SANTA MARTA PEDREGULHO LTDA",
+    "valor_total": -337350.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE CAFE BENEFICIADO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOAO ALBINO DA SILVA",
+    "valor_total": -336455.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ECOFFEES SERVICOS",
+    "valor_total": -336455.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BRADESCO SAUDE S/A",
+    "valor_total": -331249.4,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PLANO DE SAUDE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "VOLARE",
+    "valor_total": -315000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SUCDEN",
+    "valor_total": -301000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "SERGIO HAZAN E OUTRO",
+    "valor_total": -241000.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS COM A SEDE - FAZENDA",
+      "DESPESAS COM CAFE - FAZENDA PA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BERNARDO F R HAZAN",
+    "valor_total": -211601.72,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "DIVIDENDOS ORDINARIOS",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "COMMERZBANK",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "FINANTRUST",
+    "valor_total": -210000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ASP CONSULTORIA",
+    "valor_total": -210000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ALVO DESENVOLVIMENTO",
+    "valor_total": -205779.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CENTRO DE GESTAO DE",
+    "valor_total": -191099.3,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PEDAGIO"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "REPECOL CONSTRUCOES METALICAS LTDA-EPP",
+    "valor_total": -178622.6,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TDC TREINAMENTOS GERENCIAIS",
+    "valor_total": -175000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MYY TREINAMENTO PROFISSIONAL E GERENCIAL",
+    "valor_total": -175000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "OPMO",
+    "valor_total": -175000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "AUTO POSTO SANTA FE LTDA",
+    "valor_total": -173619.9,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "BTG PACTUAL CORRETORA DE TITULOS E VALOR",
+    "valor_total": -162648.09,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SILVIO",
+    "valor_total": -151834.69,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "CITI BANK  NY",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE PAULO DA SILVA",
+    "valor_total": -151722.49,
+    "quantidade_pagamentos": 34,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MAREX FINANCIAL LIMITED",
+    "valor_total": -146000.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "CASTANHAL",
+    "valor_total": -140700.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS EXPORTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CEREJA COFFEE",
+    "valor_total": -139826.4,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "BONUS EXECUTIVO",
+      "PAGAMENTO DE CORRETORES",
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CAIXA CONSORCIO",
+    "valor_total": -133649.48,
+    "quantidade_pagamentos": 20,
+    "naturezas": [
+      "CONSORCIOS"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "AUTO POSTO CANELAO  LTDA.",
+    "valor_total": -133088.88,
+    "quantidade_pagamentos": 34,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "NOSAMED ASSISTENCIA MEDICA LTDA",
+    "valor_total": -132245.9,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SWISS RE CORPORATE SOLUTIONS BRASIL SEGU",
+    "valor_total": -125000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SEGURO PATRIMONIAL"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ROSANA HAZAN",
+    "valor_total": -120000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MAVAL ESP TRANSPORTES LTDA",
+    "valor_total": -103916.69,
+    "quantidade_pagamentos": 27,
+    "naturezas": [
+      "FRETES PESSOA JURIDICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "NC SAYEG",
+    "valor_total": -101600.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONSULTORIA E ASSES INTERNA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "AILTON CESAR DE OLIVEIRA LTDA",
+    "valor_total": -91618.3,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "DESPESAS COM FURACAO EXTERNA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ALELO S.A",
+    "valor_total": -90427.4,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO",
+      "PEDAGIO"
+    ],
+    "bancos": [
+      "BB SANTOS",
+      "ITAU SANTOS",
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "CEF",
+    "valor_total": -89639.15,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FGTS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "FABIO CANDIDO DE SOUZA",
+    "valor_total": -88817.41,
+    "quantidade_pagamentos": 19,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "LEANDRO LUQUINI 55.910.154",
+    "valor_total": -84113.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CEMIG",
+    "valor_total": -83821.3,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ENERGIA ELETRICA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ALEX PERK",
+    "valor_total": -80906.1,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "CEMIG GERACAO E TRANSMISSAO S.A",
+    "valor_total": -77691.1,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ENERGIA ELETRICA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PREF M SANTOS",
+    "valor_total": -71456.82,
+    "quantidade_pagamentos": 17,
+    "naturezas": [
+      "ALVARA DE FUNCIONAMENTO",
+      "IMPOSTOS INDIRETOS (ESTADUAL)",
+      "IPTU / ITR"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SACARIA SOARES",
+    "valor_total": -66900.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS EXPORTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "EVANDRO PINHEIRO FELICIO",
+    "valor_total": -66336.26,
+    "quantidade_pagamentos": 16,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "BCO BTG PACTUAL SA",
+    "valor_total": -65254.27,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "MARGEM / CORRETORAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ARMAZENS GERAIS FASSINA LTDA",
+    "valor_total": -63371.39,
+    "quantidade_pagamentos": 14,
+    "naturezas": [
+      "DESPESAS COM ARMAZENAGEM",
+      "DESPESAS COM FITO (MAPA)",
+      "DESPESAS COM PRE-STACKING"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JAIR BENTO",
+    "valor_total": -61534.59,
+    "quantidade_pagamentos": 14,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "COMPANHIA BRASILEIRA DE SOLUCOES E SERVI",
+    "valor_total": -59500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CONPLAN",
+    "valor_total": -58600.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONSULTORIA E ASSES INTERNA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DINAMO INTER-AGRICOLA LTDA - REDEX 1",
+    "valor_total": -58229.43,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS COM FITO (MAPA)",
+      "DESPESAS COM PRE-STACKING"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JOSE ALTAIR",
+    "valor_total": -57406.37,
+    "quantidade_pagamentos": 14,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "S.V.I AMBIENTAL - FILIAL",
+    "valor_total": -57170.6,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM FUMIGACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BANCO SANTANDER",
+    "valor_total": -53842.28,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DRUMMOND ADVISORS LLC",
+    "valor_total": -52478.3,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA",
+      "IMPOSTOS INDIRETOS (ESTADUAL)"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "REGINALDO VALIM",
+    "valor_total": -50274.89,
+    "quantidade_pagamentos": 12,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "ANDERSON LUIZ GONCALVES",
+    "valor_total": -49660.41,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "IVAN M HAZAN",
+    "valor_total": -46814.96,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TRANSMARRECO LTDA",
+    "valor_total": -46746.8,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "FRETES PESSOA JURIDICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "RODRIGO ASSI",
+    "valor_total": -45918.55,
+    "quantidade_pagamentos": 9,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MARIMEX DESPACHOS TRANSPORTES E SERVICOS",
+    "valor_total": -45813.04,
+    "quantidade_pagamentos": 14,
+    "naturezas": [
+      "DESPESAS COM FITO (MAPA)",
+      "DESPESAS COM PRE-STACKING"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TRANSTEC WORLD",
+    "valor_total": -44156.75,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESENGATE DE BITREM",
+      "MOVIMENTACAO DE CONTAINERS"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "ATLAS COPCO BRASIL LTDA",
+    "valor_total": -43860.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MARCOS JOSE DE FREITAS",
+    "valor_total": -42551.47,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "SHV GAS",
+    "valor_total": -40284.48,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "GAS LIQUIFEITO DE PETROLEO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RENATA M HAZAN",
+    "valor_total": -40000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DANIEL HAZAN BERNARD",
+    "valor_total": -40000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SOMPO SEGUROS",
+    "valor_total": -39639.36,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "SEGURO NACIONAL DE CARGA",
+      "SEGURO RVC TERCEIRO"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "DHL EXPRESS",
+    "valor_total": -39485.28,
+    "quantidade_pagamentos": 21,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS",
+      "DESPESAS DE EXPORTACAO (FOB)"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SAMUEL AGOSTINHO SILVA",
+    "valor_total": -36358.16,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ANTONIO LUIZ ANTONELI",
+    "valor_total": -35932.52,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "LUAN EDUARDO REIS",
+    "valor_total": -35886.4,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "GILBERTO MARQUES NOGUEIRA DE LIMA",
+    "valor_total": -35206.81,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ROBERTO NATALINO DE MATTOS",
+    "valor_total": -35141.24,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "DANIEL RENATO CAMARGO NUNEZ 61.525.464",
+    "valor_total": -35000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LUCAS LUIS INACIO 63.303.042",
+    "valor_total": -35000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LEONARDO AUGUSTO ARAUJO DA SILVA 61.527",
+    "valor_total": -35000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "IVONE DO CARMO NASCIMENTO 61.527.151",
+    "valor_total": -35000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "BONUS EXECUTIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COOPERATIVA DE TRANSPORTES RODOVIARIOS D",
+    "valor_total": -34126.24,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "MOVIMENTACAO DE CONTAINERS"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "SEC.DA REC.FEDERAL",
+    "valor_total": -33337.59,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "DESPESAS COM SOCIOS",
+      "DIVIDENDOS ORDINARIOS",
+      "IMPOSTOS DIRETOS (FEDERAL)",
+      "TAXAS E CONTRIBUICOES"
+    ],
+    "bancos": [
+      "BB SANTOS",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LUIZ GUILHERME ANTONELI",
+    "valor_total": -32915.82,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "FONTES AUDITORES RSM",
+    "valor_total": -32505.5,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE AUDITORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE WILLIAN FERREIRA",
+    "valor_total": -32388.87,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "NOSAMED ASSISTENCIA MEDICA LTDA.",
+    "valor_total": -31746.26,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "PLANO DE SAUDE",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CORRETORA DE CAFE NORTE PIONEIRO",
+    "valor_total": -31350.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TURISMO LEGAL LTDA",
+    "valor_total": -30938.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "TRANSPORTE FUNCIONARIOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "FABIANO TEIXEIRA ODEBRECHT ME",
+    "valor_total": -30879.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "VAMOS LOCACAO CAMINHOES, MAQUINAS E EQUI",
+    "valor_total": -30303.02,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "G3 SERVICOS TERCEIRIZADOS LTDA",
+    "valor_total": -29892.66,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "TERCEIRIZACAO LIMPEZA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PEDRO HENRIQUE CORREA DA SILVA",
+    "valor_total": -26875.72,
+    "quantidade_pagamentos": 11,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "COMMOSUPPLY",
+    "valor_total": -26332.5,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "GERALDO GEUZO FACANALLI",
+    "valor_total": -26260.65,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "JULIO CESAR BAITELO",
+    "valor_total": -25847.19,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "VANDERLEI MOREIRA",
+    "valor_total": -25367.57,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "JOSE REIS DA SILVA JUNIOR",
+    "valor_total": -25264.94,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "KABUM COMERCIO ELETRONICO S.A.",
+    "valor_total": -24950.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ATIVOS DE TI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PRECISAO",
+    "valor_total": -24693.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSES INTERNA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DEGANYA",
+    "valor_total": -24407.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PRODOESTE VEICULOS E SERVICOS LTDA",
+    "valor_total": -24405.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "COMPRA DE PNEUS E RESSOLAGEM"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "SECRET EST FAZ MG",
+    "valor_total": -24197.46,
+    "quantidade_pagamentos": 18,
+    "naturezas": [
+      "IMPOSTOS INDIRETOS (ESTADUAL)"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ALEXANDRE RIBEIRO DA CUNHA",
+    "valor_total": -24180.64,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "SOMPO SEGUROS S.A.",
+    "valor_total": -24102.95,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "SEGURO INTERNACIONAL DE CARGA",
+      "SEGURO NACIONAL DE CARGA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ELETROMARZINHO",
+    "valor_total": -23390.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TOTVS",
+    "valor_total": -23255.71,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESPESAS COM SOFTWARES E SISTE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MR INDUSTRIA DE EMBALAGENS E SERVICO LTD",
+    "valor_total": -21901.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS EXPORTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BRUNO RAFAEL FULAN",
+    "valor_total": -21786.87,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA",
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SAO PAULO TRIBUNAL DE JUSTICA",
+    "valor_total": -21484.8,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DEPOSITO RECURSAL"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "UIRAPURU",
+    "valor_total": -20851.4,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BANCO DO BRASIL",
+    "valor_total": -20320.48,
+    "quantidade_pagamentos": 12,
+    "naturezas": [
+      "DESPESAS DE VIAGENS",
+      "DESPESAS EMPRESTIMOS E FINANC"
+    ],
+    "bancos": [
+      "BB SANTOS",
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CARLOS EDUARDO NORONHA",
+    "valor_total": -19906.89,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "FJ REPRESENTACOES",
+    "valor_total": -19439.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SP GOV GABINETE DO G",
+    "valor_total": -18997.98,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DEPOSITO RECURSAL",
+      "TAXAS E CONTRIBUICOES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ADAPT GROUP INDUSTRIA DE EMBALAGENS E SE",
+    "valor_total": -18800.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "KIT FORRACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JACIEL VITOR SUDERIO",
+    "valor_total": -18776.19,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "FERNANDO DA SILVA",
+    "valor_total": -18614.38,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "RUBIACEA",
+    "valor_total": -18353.37,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "CONDOMINIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SECRETARIA DO ESTADO DE GOIAS",
+    "valor_total": -18300.71,
+    "quantidade_pagamentos": 10,
+    "naturezas": [
+      "IMPOSTOS INDIRETOS (ESTADUAL)"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "NOSSA SENHORA DA PIEDADE TURISMO LTDA -",
+    "valor_total": -18126.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "TRANSPORTE FUNCIONARIOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GILBERTO FERREIRA JARDULI",
+    "valor_total": -17498.08,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CCG CORRETAGEM E INTERMEDIACAO DE CAFE L",
+    "valor_total": -16526.4,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SWISS TRADING",
+    "valor_total": -16318.75,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES MARITIMOS",
+      "SEGURO INTERNACIONAL DE CARGA"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "MARA YUMI YADOYA",
+    "valor_total": -16226.74,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS",
+      "FERIAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MSC MEDITERRANEAN SHIPPING CO. S.A.",
+    "valor_total": -16055.18,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS DE EXPORTACOES VARIAV",
+      "FRETES MARITIMOS"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "CECAFE",
+    "valor_total": -15600.75,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE EXPORTACOES VARIAV"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "NOVA ANFER UNIPESSOAL LTDA",
+    "valor_total": -15430.04,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TELEFONICA CLOUD E TECNOLOGIA DO BRASIL",
+    "valor_total": -15408.76,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "REFRIGELO CLIMATIZACAO DE AMBIENTES S.A.",
+    "valor_total": -15306.22,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE EQUIPAMENTOS (NAO IN"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ARCHER CONSULTING",
+    "valor_total": -15288.24,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE BENEDITO DE PADUA",
+    "valor_total": -15173.5,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "ESTAMPAGEM",
+      "UNIFORMES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "AUTO POSTO ROTA SP -",
+    "valor_total": -15051.98,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "MAX ALBERTO DE SOUSA",
+    "valor_total": -14878.16,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MARCELLO MARSZOLEK BARAZAL",
+    "valor_total": -14838.1,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FERIAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "OSVALDO LUIZ CASSIANO",
+    "valor_total": -14732.74,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "POLIMIX CONCRETO LTDA",
+    "valor_total": -14455.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LUIZ ALLAN PONCIANO DE ALMEIDA",
+    "valor_total": -14366.44,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "KAIZEN SERVICOS",
+    "valor_total": -14069.08,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "TERCEIRIZACAO LIMPEZA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSUE ERNESTO COMBI",
+    "valor_total": -14040.45,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "JOSE ARILDO FERREIRA",
+    "valor_total": -13869.05,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ELTROMARZINHO",
+    "valor_total": -13804.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "CONTRATOS COM MANUTENCAO EXTER",
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JACOBS",
+    "valor_total": -13798.44,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES - EXTE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RODRIGO APARECIDO TACAO",
+    "valor_total": -13495.6,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "DESPESAS COM FURACAO EXTERNA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BRADESCO VIDA E PREVIDENCIA S.A.",
+    "valor_total": -13486.49,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SEGURO DE VIDA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SUPER BAG IMPOR EXPOR LTDA",
+    "valor_total": -13440.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS EXPORTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ELEMIG LTDA",
+    "valor_total": -12816.48,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "V & V CORRETORA",
+    "valor_total": -12501.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "H. IMPEX - HELLMEISTER ASSESSORIA ADUAN",
+    "valor_total": -12419.1,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE EXPORTACAO (FOB)"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "GERALDO DONIZETE DA",
+    "valor_total": -12382.4,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CARLOS FAUSTINO",
+    "valor_total": -12232.36,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CARLOS DONIZETI DE FREITAS - MEI",
+    "valor_total": -12198.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM DIA DE CAMPO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MELLAO MARTINI NEGOCIOS EM CAFE",
+    "valor_total": -12070.3,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CASTELHANO CAFE",
+    "valor_total": -11617.7,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PEDRO FUTURO RODRIGUES HAZAN",
+    "valor_total": -11600.64,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS",
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RAMON MENDES JARDIM",
+    "valor_total": -11516.5,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "F. M. CORRETAGENS DE MERCADORIAS LTDA",
+    "valor_total": -11457.5,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JULIO AUGUSTO PEREIRA",
+    "valor_total": -10574.56,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "VOGEL TELECOM",
+    "valor_total": -10394.26,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COMERCIAL ELETRICA PJ LTDA",
+    "valor_total": -10332.21,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GP SERVICE LTDA",
+    "valor_total": -10320.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS EXPORTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "OPPORTUNE CITY RESOURCES LIMITED",
+    "valor_total": -10216.2,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "BARBARA DE FARIA CIVIDATI - MEI",
+    "valor_total": -10200.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "COMERCIAL MARTINS BENTO LTDA",
+    "valor_total": -9993.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM DIA DE CAMPO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "EDGE.UOL TECNOLOGIA LTDA",
+    "valor_total": -9961.74,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PEDRO HENRIQUE DE OLIVEIRA",
+    "valor_total": -9939.22,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15",
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "CARLOS ALBERTO PEREIRA GRILO",
+    "valor_total": -9931.21,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "DAVI CRISPINIANO RIOS DA CRUZ",
+    "valor_total": -9512.26,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "JOAO FRANCISCO SOARES",
+    "valor_total": -9300.68,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "WASHINGTON FERNANDES",
+    "valor_total": -9100.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LENOVO TECNOLOGIA",
+    "valor_total": -8997.72,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ATIVOS DE TI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MALU MANZANO GUERRA SANTOS",
+    "valor_total": -8864.33,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FERIAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CPFL ENERGIA",
+    "valor_total": -8619.55,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "ENERGIA ELETRICA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BLOOMBERG FINANCE L.P",
+    "valor_total": -8520.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICOS DE COTACOES"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "MARIA APARECIDA DO CARMO CARVALHO",
+    "valor_total": -8508.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE",
+      "DESPESAS COM DIA DE CAMPO",
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LOCALIZA FLEET",
+    "valor_total": -8391.34,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE VEICULOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CENTRO DE GESTAO DE MEIOS DE PGTO. S/A",
+    "valor_total": -8305.95,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PEDAGIO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RENATA HELENA ADAO SIGNORETE",
+    "valor_total": -8190.0,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LEANDRO BARBOSA BASTOS",
+    "valor_total": -8182.95,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CICERO DE LIMA BRAGA",
+    "valor_total": -8100.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LEONARDO FUTURO RODRIGUES HAZAN",
+    "valor_total": -8000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DIVIDENDOS ORDINARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ELETROTUBOS",
+    "valor_total": -7926.55,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MUNICIPIO",
+    "valor_total": -7878.14,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA",
+      "REFORMA ADM E ESTACIONAMENTO",
+      "TERCEIRIZACAO LIMPEZA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "JCZ CRIACAO & PRODUCAO",
+    "valor_total": -7865.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM BRINDES E BONIFIC",
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "EUROFINS DO BRASIL ANALISES DE ALIMENTOS",
+    "valor_total": -7800.91,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TELEFONICA",
+    "valor_total": -7608.29,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "SERVICO DE TELEFONIA MOVEL E F"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PREF. MUNICIPAL SANT",
+    "valor_total": -7547.7,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "ALVARA DE FUNCIONAMENTO",
+      "IMPOSTOS INDIRETOS (ESTADUAL)",
+      "IPTU / ITR"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "WALDYR FREITAS",
+    "valor_total": -7347.85,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ICOMATIC SOLUCOES INDUSTRIAIS, ICOMATIC",
+    "valor_total": -7317.56,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "INFRAGERAL COMERCIO DE EQUIPAMENTOS E SE",
+    "valor_total": -7035.73,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR",
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "D.D. DISK SANEAMENTO AMBIENTAL LTDA",
+    "valor_total": -6935.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MADINE AUTO POSTO LTDA",
+    "valor_total": -6801.41,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PRISCILA MARCONDES SOUZA",
+    "valor_total": -6686.37,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "DESPESAS COM FURACAO EXTERNA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "REGINALDO FERREIRA DE CAMPOS",
+    "valor_total": -6680.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "INOVA GR",
+    "valor_total": -6675.68,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MONITORAMAMENTO TERCEIROS",
+      "MONITORAMENTO FROTA PROPRIA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "RICHARD",
+    "valor_total": -6514.13,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "EDIF.MARIA APARECIDA",
+    "valor_total": -6471.44,
+    "quantidade_pagamentos": 8,
+    "naturezas": [
+      "CONDOMINIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JT VISTORIA DE CONTEINERES LTDA",
+    "valor_total": -6424.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MOVIMENTACAO DE CONTAINERS"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "CAIXA CONSORCIOS S.A. ADMINISTRADORA DE",
+    "valor_total": -6414.18,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "CONSORCIOS"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "EAST BAY LOGISTICS, INC",
+    "valor_total": -6268.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "ANA PAULA SANTOS DE FREITAS REIS",
+    "valor_total": -6234.35,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ESTAMPAGEM"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GAUCHO SANTOS GRILL LTDA",
+    "valor_total": -6000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LUCAS JOAO DO CARMO",
+    "valor_total": -5968.87,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ASSOCIACAO",
+    "valor_total": -5892.0,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "DESPESAS DE EXPORTACOES VARIAV",
+      "MENSALIDADE ASSOCIACAO COMERCI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COND LUIZ S CLUBE 22",
+    "valor_total": -5733.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ROMILSON RAIMUNDO FARIA",
+    "valor_total": -5700.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONTRATOS COM MANUTENCAO EXTER",
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BRADESCO VIDA E PREVIDENCIA",
+    "valor_total": -5476.57,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "SEGURO DE VIDA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ADDEPT AUTOMACAO LTDA",
+    "valor_total": -5400.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESENVOLVIMENTO DE SOFTWARE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LILIAN TERCIA LAMAS DOS SANTOS",
+    "valor_total": -5340.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BENEDITO LIMA",
+    "valor_total": -5296.24,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "THIEGO DUARTE DA COS",
+    "valor_total": -5039.13,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GILBERTO SILVA JUNIOR",
+    "valor_total": -4988.77,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "STAR OFFICE SOLUCOES EM ENERGIA E INFORM",
+    "valor_total": -4940.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PREFEITURA DE OF",
+    "valor_total": -4847.88,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "IPTU / ITR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JOAO BATISTA CUNHA TADINI",
+    "valor_total": -4716.38,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA",
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ANDRADESSZ LOGISTICA INTEGRADA E SERVICO",
+    "valor_total": -4670.66,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA JURIDICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "NEO-TAGUS INDUSTRIAL LTDA",
+    "valor_total": -4632.96,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "INVESTIMENTO GERAL"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PAULISCHMIEDE GBR",
+    "valor_total": -4600.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE IMOVEIS"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "AUTO POSTO CAPIXABA LTDA",
+    "valor_total": -4582.25,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "VALTER ZAMPIM",
+    "valor_total": -4544.55,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "PADARIA PAO DE ACUCA",
+    "valor_total": -4540.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BENEDITO DE LIMA",
+    "valor_total": -4519.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "AGROINTEGRA TREINAMENTOS E CONSULTORIA A",
+    "valor_total": -4500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "POSTO DE MOLAS OURO FINO",
+    "valor_total": -4448.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ESTADO",
+    "valor_total": -4403.03,
+    "quantidade_pagamentos": 2,
+    "naturezas": [],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE ANTONIO CALCADA JUNIOR",
+    "valor_total": -4389.33,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CARLOS EDUARDO DE PAULA SANTOS",
+    "valor_total": -4354.42,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "GGA CORRETORA",
+    "valor_total": -4335.89,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DISTRIBUIDORA CUMMINS MINAS LTDA.",
+    "valor_total": -4308.92,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JOSE DONIZETE",
+    "valor_total": -4232.55,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "COCKTAIL IMPRESSOS LTDA",
+    "valor_total": -4224.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM BRINDES E BONIFIC"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ODONTOPREV S A",
+    "valor_total": -4219.4,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PLANO ODONTOLOGICO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MEDITERRANEAN SHIPPING COMPANY CANADA IN",
+    "valor_total": -4083.39,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "COMAR",
+    "valor_total": -4071.43,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DIGITAL COMUNICACAO",
+    "valor_total": -3970.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM CERTIFICACAO CAFE",
+      "EQUIPAMENTOS DE PROTECAO INDIV"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JOSE ALTAIR DA LUZ",
+    "valor_total": -3831.83,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "UNISEPE UNIAO DAS INSTITUICOES DE SERVIC",
+    "valor_total": -3778.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ISSO DIGITAL LTDA",
+    "valor_total": -3763.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "OPVS CONSULTORES",
+    "valor_total": -3754.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MEDITERRANEAN SHIPPING COMPANY (USA) INC",
+    "valor_total": -3698.16,
+    "quantidade_pagamentos": 12,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "PINHALENSE S/A MAQUINAS AGRICOLAS",
+    "valor_total": -3683.12,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RICARDO MORALES CAVALIN",
+    "valor_total": -3672.25,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "EDGE.UOL TECNOLOGIA",
+    "valor_total": -3594.43,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "EUGEN ATTE",
+    "valor_total": -3570.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE IMOVEIS"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "EMPORIO AO BARATEIRO",
+    "valor_total": -3501.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LOGCOMEX LTDA.",
+    "valor_total": -3500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MATEUS BRAS MENDES",
+    "valor_total": -3473.61,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ELIAS MESQUITA DOS SANTOS",
+    "valor_total": -3431.38,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PORTAL TELECOMUNICAC",
+    "valor_total": -3194.42,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE TELEFONIA MOVEL E F"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ENCOPEL COMERCIO DE ROLAMENTOS E PECAS L",
+    "valor_total": -3123.59,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CTR CURSOS DE IDIOMAS LTDA",
+    "valor_total": -3064.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SERGIO LOPES CAFE",
+    "valor_total": -3031.65,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MARCELO DA SILVA",
+    "valor_total": -3010.85,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "LZTV PRODUCOES AUDIOVISUAIS",
+    "valor_total": -3000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "FERREIRA E AMORIM COM. E LOCACOES LTDA",
+    "valor_total": -3000.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "WAGNER FAGIANI",
+    "valor_total": -3000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PAGAMENTO DE CORRETORES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "FELIPE MARTINS FERREIRA",
+    "valor_total": -2964.2,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LUBEKA INDUSTRIA E COMERCIO LTDA",
+    "valor_total": -2962.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EQUIPAMENTOS DE PROTECAO INDIV"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TECHNIKER KRANKENKASSE (TK)",
+    "valor_total": -2928.2,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PLANO DE SAUDE"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "AMEV IMPORTADORA E DISTRIBUIDORA LTDA",
+    "valor_total": -2894.6,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "IOB",
+    "valor_total": -2882.04,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "VOLLERS HAMBURG GMBH",
+    "valor_total": -2870.41,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "JM PECAS PARA MAQUINAS AGRICOLAS LTDA -",
+    "valor_total": -2832.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PLASTICOS PUMA LTDA",
+    "valor_total": -2830.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "AGTRACE RASTREABILIDADE AGRICOLA LTDA",
+    "valor_total": -2817.58,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GUILHERME FRANCISCO DA SILVA",
+    "valor_total": -2748.88,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "UPS REMESSAS EXPRESSAS",
+    "valor_total": -2738.27,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "NIFE LOCACAO DE RASTREADORES LTDA",
+    "valor_total": -2717.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MONITORAMAMENTO TERCEIROS"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "TOLIMAN TRANSPORTES LTDA",
+    "valor_total": -2660.0,
+    "quantidade_pagamentos": 7,
+    "naturezas": [
+      "DESPESAS COM FITO (MAPA)",
+      "DESPESAS COM PRE-STACKING"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "TRANSPORTADORA SUL MINEIRA",
+    "valor_total": -2632.63,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA JURIDICA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "POSTO TREVO DE OURO",
+    "valor_total": -2617.59,
+    "quantidade_pagamentos": 6,
+    "naturezas": [
+      "COMBUSTIVEL"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MAGALUPAY",
+    "valor_total": -2554.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ATIVOS DE TI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "STICORP",
+    "valor_total": -2553.38,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM SOFTWARES E SISTE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RODOLFO RODRIGUES PIRES",
+    "valor_total": -2551.5,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CIVIDATTI CASA CONSTRUCAO LTDA",
+    "valor_total": -2542.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "METALURGICA MONFARDINI LTDA",
+    "valor_total": -2540.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JUVICOL",
+    "valor_total": -2536.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM LIMPEZA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DIONE DA SILVA FEIJO",
+    "valor_total": -2529.52,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FERIAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "AUTOPARTS GPS",
+    "valor_total": -2517.2,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MONITORAMENTO FROTA PROPRIA"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "PADUA E SANTOS TRANSPORTES LTDA",
+    "valor_total": -2500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA JURIDICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "TELEFONICA BRASIL SA - VIVO",
+    "valor_total": -2496.76,
+    "quantidade_pagamentos": 9,
+    "naturezas": [
+      "SERVICO DE INTERNET",
+      "SERVICO DE TELEFONIA MOVEL E F"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GZV COMERCIO E LOCACOES DE EQUIPAMENTOS",
+    "valor_total": -2475.68,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TRUCKS CONTROL - SERVICOS DE LOGISTICA L",
+    "valor_total": -2457.54,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MONITORAMENTO FROTA PROPRIA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "DON PAOLO",
+    "valor_total": -2389.7,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GISELE APARECIDA DE OLIVEIRA GOMES DE LI",
+    "valor_total": -2385.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "4C SERVICES GMBH",
+    "valor_total": -2372.18,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM CERTIFICACAO 4C"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "ATLANTICO GOLDEN",
+    "valor_total": -2354.94,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MASIQUES SERV LOG Y ADUANEROS",
+    "valor_total": -2332.65,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "VASQUINHO",
+    "valor_total": -2313.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "QAP AUTO PECAS LTDA",
+    "valor_total": -2292.14,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "MEMORIAL - GESTORA DE NECROPOLES LTDA",
+    "valor_total": -2225.95,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CORREIO",
+    "valor_total": -2205.46,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CORREIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BR MOBILIDADE BAIXADA SANTISTA",
+    "valor_total": -2109.44,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "TRANSPORTE FUNCIONARIOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "NELITO DE ALMEIDA",
+    "valor_total": -2101.68,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "BRAZ LUIZ LIMA",
+    "valor_total": -2101.68,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES PESSOA FISICA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "STEUERKASSE HAMBURG",
+    "valor_total": -2092.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "BIOPOLIS CENTRO DE CONTROLE DE PRAGAS UR",
+    "valor_total": -2088.54,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JUNIOR TRANSPORTES RODOVIARIOS",
+    "valor_total": -2068.92,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CASA BAGANHA",
+    "valor_total": -2000.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "VALE PRESENTES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ISAAC NEWTON DO AMARAL",
+    "valor_total": -2000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ITAU UNIBANCO HOLDING S.A.",
+    "valor_total": -1983.2,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CLAUDINEI APARECIDO DE GODOI",
+    "valor_total": -1899.06,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TRANSPORTE FUNCIONARIOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "OPEN OFFICES ESCRITORIOS COMPARTILHADOS",
+    "valor_total": -1878.83,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE IMOVEIS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ICE DATA DESKTOP SOLUTIONS LIMITED",
+    "valor_total": -1846.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "COMMERZBANK USD"
+    ]
+  },
+  {
+    "fornecedor": "QAQC LAB, INC.",
+    "valor_total": -1845.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "INVESTIMENTO GERAL"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "ODONTOPREV S.A.",
+    "valor_total": -1821.82,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PLANO DE SAUDE"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "JULIANO CESAR BERTOZZI UNTURA",
+    "valor_total": -1791.24,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DEPOSITO BANDEIRANTES MAT. DE CONSTRUCAO",
+    "valor_total": -1756.6,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MSD ENGENHARIA LTDA",
+    "valor_total": -1750.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "VITORIA FITOPRAG",
+    "valor_total": -1750.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS COM FUMIGACAO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SAFRAS E MERCADO LTDA",
+    "valor_total": -1735.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICOS DE COTACOES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BERTHOLD VOLLERS GMBH",
+    "valor_total": -1726.94,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM AMOSTRAS",
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "SUPERMERCADOS BALEIA LTDA",
+    "valor_total": -1714.19,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SANTA FER TRANSPORTES E VEIUCLO LTDA",
+    "valor_total": -1700.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MARIA APARECIDA CARMO DE CARVALHO",
+    "valor_total": -1696.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM BRINDES E BONIFIC"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "JOSE DOS REIS DE JESUS SOUZA",
+    "valor_total": -1690.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "LAVAGEM EXTERNA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "BRUNO DO NASCIMENTO SILVA",
+    "valor_total": -1610.42,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FERIAS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "RAINFOREST ALLIANCE, INC",
+    "valor_total": -1593.35,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM CERTIFICACAO RAIN"
+    ],
+    "bancos": [
+      "COMMERZBANK USD"
+    ]
+  },
+  {
+    "fornecedor": "AGRO TEC TOPOGRAFIA",
+    "valor_total": -1569.5,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CLARO",
+    "valor_total": -1511.71,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CHEAP2SHIP",
+    "valor_total": -1500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "FRETES EXTERNOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CHOCOCENTER",
+    "valor_total": -1476.4,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ENGEQUISA ENGENHARIA QUIMICA SANITARIA E",
+    "valor_total": -1463.72,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SERRALHERIA JUNQUEIRA LTDA - ME",
+    "valor_total": -1456.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CERTEC",
+    "valor_total": -1449.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ASSOCIACAO COMERCIAL DOS TRANSPORTADORES",
+    "valor_total": -1440.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESENGATE DE BITREM"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "SEAL LACRES IND. E COM. LACRES LTDA",
+    "valor_total": -1386.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PAULINERIS TRANSPORTES E ENCOMENDAS LTDA",
+    "valor_total": -1384.79,
+    "quantidade_pagamentos": 3,
+    "naturezas": [],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ANJOS EQUIPAMENTOS DE PROTECAO E FERRAME",
+    "valor_total": -1354.52,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EQUIPAMENTOS DE PROTECAO INDIV"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CULTURA INGLESA",
+    "valor_total": -1345.6,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "C.R.M PHAROS",
+    "valor_total": -1313.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "UIRAPURU ALUGUEL DE MAQ. E COM. DE EQUIP",
+    "valor_total": -1313.6,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ANA MARIA APARECIDA ANDRADE MAXIMIANO LT",
+    "valor_total": -1304.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)",
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "GRAFICA POPULAR",
+    "valor_total": -1295.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PINHALENSE  0001",
+    "valor_total": -1291.14,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JOSE CARLOS FLEMING- BORRAHARIA",
+    "valor_total": -1285.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO CORRETIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "OTICA MA & LI",
+    "valor_total": -1270.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "EQUIPAMENTOS DE PROTECAO INDIV"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ALEX SANDRO DA SILVA",
+    "valor_total": -1200.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA",
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JEFFERSON ALVES SOBREIRO",
+    "valor_total": -1200.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERV MANUTENCAO PREDIAL"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "USI FELX",
+    "valor_total": -1186.19,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA",
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SERASA",
+    "valor_total": -1177.37,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ADS MICROLOGISTICA LTDA",
+    "valor_total": -1149.3,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MN CONSERVACAO DE ELEVADORES E COM DE PE",
+    "valor_total": -1144.2,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONTRATOS COM MANUTENCAO EXTER"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GBH SERVICOS ADMINISTRATIVOS ESPECIALIZA",
+    "valor_total": -1136.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM SOFTWARES E SISTE"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "FUNDACAO DE ESTUDOS AGRARIOS LUIZ DE QUE",
+    "valor_total": -1129.1,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "FUNDACAO DE APOIO A UNIVERSIDADE DE SAO",
+    "valor_total": -1129.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JORNADASAT SOLUCOES INTELIGENTES LTDA",
+    "valor_total": -1128.6,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MONITORAMENTO FROTA PROPRIA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MARCO AURELIO",
+    "valor_total": -1126.95,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SANTISTA MOTO EXPRESS",
+    "valor_total": -1123.84,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE MOTOBOY"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PACORINI ANTWERP NV",
+    "valor_total": -1119.37,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI BANK  NY",
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "LEME ARMAZENS",
+    "valor_total": -1118.95,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM ARMAZENAGEM"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SOC. GUARDA MIRIM TARCILA G. DA ROCHA",
+    "valor_total": -1075.2,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CESAR ADAO",
+    "valor_total": -1062.6,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JRS INSTALACOES E MANUTENCOES ELETRICAS",
+    "valor_total": -1050.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SEXTO TABELIAO DE NOTAS DA COMARCA DE SA",
+    "valor_total": -1034.24,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "CARTORIO - CERTIDOES E AUTENTI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "BARRIGA VERDE",
+    "valor_total": -1033.37,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "PHILIP GUILHERME FAVA RIBEIRO",
+    "valor_total": -1032.4,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ENZOMAX COMERCIO LTDA - ME",
+    "valor_total": -1022.6,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LOCALIZA RENT A CAR SA",
+    "valor_total": -1016.24,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LUCIANA APARECIDA GOES DE ALMEIDA",
+    "valor_total": -1015.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MAIA & MAIA LTDA",
+    "valor_total": -1007.94,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "PLANO DE SAUDE"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PADUA E SANTOS TRANSPORTES LTDA - ME",
+    "valor_total": -1000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MECANICA DO BODAO",
+    "valor_total": -1000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ANDRE FERNANDES DA SILVA",
+    "valor_total": -1000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MARIA APARECIDA DE SOUZA ZAMBROCI",
+    "valor_total": -1000.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "POUSADA DON PAOLO",
+    "valor_total": -978.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CLASS HOTEL",
+    "valor_total": -972.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CORREA E VIANNA LTDA",
+    "valor_total": -963.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM ALIMENTACAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SETRA PRESTACAO DE SERVICOS LTDA",
+    "valor_total": -950.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "EXAMES E DESP MED COMPLEMENTAR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RAQUEL GANGI DOS SANTOS",
+    "valor_total": -929.79,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ALUGUEL SEGURO JACUTINGA ALUGUEL DE EQUI",
+    "valor_total": -915.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LUIZ GUILHERME VENANCIO ALEIXO",
+    "valor_total": -915.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "TOTAL TAPE COMERCIO DE FECHAMENTO PARA E",
+    "valor_total": -909.14,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "EMBALAGENS ACESSORIAS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CASA DO PEREGRINO LTDA ME",
+    "valor_total": -897.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C",
+      "DESPESAS COM CERTIFICACAO RAIN",
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "SEAFORTH SUPPLY CHAIN SOLUTIO",
+    "valor_total": -887.25,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "ALEX CHANDER ZUCATO LTDA",
+    "valor_total": -877.56,
+    "quantidade_pagamentos": 1,
+    "naturezas": [],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "ITAFERRO",
+    "valor_total": -855.25,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA",
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LOCAACAO OURO FINO ALUGUEL DE EQUIPAMENT",
+    "valor_total": -848.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "REFORMA ADM E ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "UNIRAD UNIDADE RADIOLOGICA EIRELI",
+    "valor_total": -840.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "EXAMES E DESP MED COMPLEMENTAR"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ESTACIONAMENTO EL- SHADAI",
+    "valor_total": -834.2,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM ESTACIONAMENTO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ETALENT",
+    "valor_total": -829.54,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "PLANNER CONSULTORIA DE INFORMATICA E TRA",
+    "valor_total": -816.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM SOFTWARES E SISTE"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "TAGUS-TEC",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DEBORA VITOR PRADO",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "GABRIELA MAIA DE JESUS BONAMICHI",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MARIA LUISA CASTELLI SILVA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DIOGO HENRIQUE RIBEIRO CORREA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RICARDO GERALDO BALTAZAR",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LARISSA EDUARDA SOUZA DOS SANTOS",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RAFAELA FERRAZ BARRETO",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LUANA AGUIAR BATISTA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "THIAGO MADUREIRA DA COSTA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MILENA BATISTA DA SILVA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "HELLEN DE CASSIA SALVADOR TEODORO",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MARIA ELOISA FIUZA DE MORAES",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "JULIA MENDONCA DA SILVA",
+    "valor_total": -800.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESA COM PROJETO JDE"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BMP UTILIDADES DOMESTICAS S.A.",
+    "valor_total": -774.78,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "VICENTE DE PAULA CHAVES",
+    "valor_total": -764.48,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "VERBAS RECISORIAS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ANA FLAVIA JARDINETTI MARTINI",
+    "valor_total": -723.75,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE MOTOBOY"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SWISS TRADING SOLUTIONS LTD",
+    "valor_total": -705.43,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO",
+      "SEGURO INTERNACIONAL DE CARGA"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "LITORAL CERTIFICADO",
+    "valor_total": -698.4,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TRAVAGIN E TRAVAGIN LTDA",
+    "valor_total": -681.56,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SONIA MARIA FERNANDES MARTINS",
+    "valor_total": -650.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM DIA DE CAMPO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ADMILSON OLIVEIRA DAS NEVES",
+    "valor_total": -645.42,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CONSELHO REGIONAL DE CONTABILIDADE DO ES",
+    "valor_total": -627.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SWISS TRADING SOLUTIONS",
+    "valor_total": -621.08,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SEGURO INTERNACIONAL DE CARGA"
+    ],
+    "bancos": [
+      "COMMERZBANK USD"
+    ]
+  },
+  {
+    "fornecedor": "ASSOCIACAO COMERCIAL",
+    "valor_total": -614.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MOVEIS GARCIA",
+    "valor_total": -600.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PROGRAMADA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CONDOMINIO EDIFICIO PEDRO DOS SANTOS",
+    "valor_total": -598.7,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONDOMINIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "EDIVIL MODAS LTDA - ME",
+    "valor_total": -594.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "UNIFORMES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LUIZ GUILHERME BURALLI",
+    "valor_total": -589.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "FRETEBRAS INTERNET E SERVICOS LTDA",
+    "valor_total": -566.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MENSALIDADE ASSOCIACAO COMERCI"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "GABRIEL MEIRELES ENGLISH",
+    "valor_total": -560.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TRUCKS COMERCIO E TECNOLOGIA DE RASTREAD",
+    "valor_total": -554.17,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MONITORAMENTO FROTA PROPRIA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "1 OFICIAL DE REGISTRO DE TITULOS E DOCUM",
+    "valor_total": -552.51,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS EMPRESTIMOS E FINANC"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "IND. E COM. DE VASSOURAS SUL MINEIRA LTD",
+    "valor_total": -549.6,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CAFE COLUCCI MAQUINAS DE CAFE",
+    "valor_total": -540.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "AGROUROFINO LTDA",
+    "valor_total": -528.7,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CLODOALDO DOS SANTOS - OFI.BODAO",
+    "valor_total": -500.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "FUNDACAO EDUCANDARIO SANTARRITENSE",
+    "valor_total": -499.74,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "HUMANIZE COMERCIO E SERVICOS GERENCIAIS",
+    "valor_total": -498.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "MAPA ADMINISTRADORA DE CONVENIOS",
+    "valor_total": -496.48,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PLANO DE SAUDE"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "MERCADOPAGO.COM REPRESENTACOES LTDA.",
+    "valor_total": -492.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "FELISBERTO RODRIGUES",
+    "valor_total": -490.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ONE SIGNS LTDA",
+    "valor_total": -485.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "YAPAY PAGAMENTOS ON LINE LTDA",
+    "valor_total": -475.62,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SN LANCHES",
+    "valor_total": -475.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CONTABILIDADE GILBERTO GONCALEZ PALAGI",
+    "valor_total": -450.0,
+    "quantidade_pagamentos": 3,
+    "naturezas": [
+      "TAXAS E CONTRIBUICOES"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "JOSE MAURICIO DA SILVA",
+    "valor_total": -450.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ALUGUEL DE IMOVEIS"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ROMANI",
+    "valor_total": -444.71,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "EDER RUI CANDIDO LTDA",
+    "valor_total": -439.26,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "UNINTER EDUCACIONAL S/A",
+    "valor_total": -428.19,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DESPACHANTE ADAURY",
+    "valor_total": -420.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MAO DE OBRA"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CENTRO COMERCIO",
+    "valor_total": -415.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SINDICATO DAS EMPRESAS DE TRANSPORTES",
+    "valor_total": -402.6,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CONTRIBUICOES SINDICAIS"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CASA NOVOA",
+    "valor_total": -400.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CASA DA LAVOURA",
+    "valor_total": -390.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "A TRIBUNA",
+    "valor_total": -380.52,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "J. CARELO SERVICOS LTDA",
+    "valor_total": -361.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "DAVIDSON E SONS CUSTOMS BROKERS LTD",
+    "valor_total": -345.48,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO",
+      "FRETES MARITIMOS"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "PREF. MUN CUBATAO",
+    "valor_total": -342.32,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "IPTU / ITR"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "KUHL E MORAES LTDA",
+    "valor_total": -340.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANSP 16"
+    ]
+  },
+  {
+    "fornecedor": "IVONE",
+    "valor_total": -336.89,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MARILIA TOSTA SILVA DE SOUZA",
+    "valor_total": -310.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "SUPER 1,99 DA CLAUDI",
+    "valor_total": -307.7,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "EQUIPAMENTOS DE PROTECAO INDIV"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DROGARIA ULTRAPOPULAR",
+    "valor_total": -304.92,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS COM DIA DE CAMPO",
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "LEONARDO",
+    "valor_total": -300.13,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "FABRICIO BRAGANCA - MEI",
+    "valor_total": -300.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CATHO",
+    "valor_total": -290.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "TREINAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "COMERCIAL AUTOMOTIVA S.A.",
+    "valor_total": -276.72,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "SANDRA ELISA FERREIRA LEANDRO ME",
+    "valor_total": -275.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "UNIFORMES"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CEF MATRIZ",
+    "valor_total": -268.52,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SALARIO FIXO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CAMILO SOM",
+    "valor_total": -266.8,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ADM INVESTOR SERVICE, INC",
+    "valor_total": -266.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICOS DE COTACOES"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "MECAINOX",
+    "valor_total": -258.13,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ADVANCE SISTEMAS E SOLUCOES TECNOLOGICAS",
+    "valor_total": -255.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "LOPES & RIBEIRO",
+    "valor_total": -244.44,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "AQUISICAO DE COMPRESSOR",
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DBS SERVICOS MEDICOS E SAUDE OCUPACIONAL",
+    "valor_total": -200.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "EXAMES E DESP MED COMPLEMENTAR",
+      "PCMSO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM",
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "EMPRESA BRASILEIRA DE CORREIOS E TELEGRA",
+    "valor_total": -200.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "CORREIO"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "WHIRLPOOL S/A",
+    "valor_total": -196.63,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ALUGUEL DE EQUIPAMENTOS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "GUILHERME DUARTE COSTA",
+    "valor_total": -186.9,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CARTORIO - CERTIDOES E AUTENTI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "INSTITUTO DE ESTUDOS DE PROTESTO DE TITU",
+    "valor_total": -186.2,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CARTORIO - CERTIDOES E AUTENTI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "CONFECCOES RODRIELLI LTDA - ME",
+    "valor_total": -180.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM DIA DE CAMPO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "BAILONI AUTO PECAS",
+    "valor_total": -179.12,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CIRCULA GMBH",
+    "valor_total": -178.5,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CONSULTORIA E ASSESSORIA"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "DUPUY JACKSONVILLE",
+    "valor_total": -176.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI - CUSA"
+    ]
+  },
+  {
+    "fornecedor": "HARD SOFT",
+    "valor_total": -170.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "COMPRA DE MATERIAIS DE USO E C"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "ASSUPERO ENSINO SUPERIOR S/S LTDA",
+    "valor_total": -167.08,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "CURSOS ACADEMICOS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RJ OBRIEN",
+    "valor_total": -164.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "SERVICOS DE COTACOES"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  },
+  {
+    "fornecedor": "NIC.BR",
+    "valor_total": -160.0,
+    "quantidade_pagamentos": 4,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "MASTER FORMULA FARMACIA DE MANIPULACAO L",
+    "valor_total": -158.8,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ECONET",
+    "valor_total": -141.98,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS GERAIS"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "DHL EXPRESS ALEMANHA GMBH",
+    "valor_total": -136.06,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO EXTERNO ADMINISTRATIVO"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "JORRI PAPELARIA",
+    "valor_total": -131.4,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "CONSIGAZ",
+    "valor_total": -124.13,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "ENERGIA ELETRICA"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "OXIGENIO DO VALE LTDA",
+    "valor_total": -120.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUTENCAO PREVENTIVA"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "VM METROLOGIA POUSO ALEGRE LTDA",
+    "valor_total": -120.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "DIEGO SALGADO DOS SANTOS",
+    "valor_total": -119.28,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "ACIAOF",
+    "valor_total": -112.0,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "MENSALIDADE ASSOCIACAO COMERCI"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "PEDAGIO SEM PARAR",
+    "valor_total": -101.06,
+    "quantidade_pagamentos": 2,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "HERBERT FERNANDES  TEODORO",
+    "valor_total": -99.85,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "PAULA TAKAHASHI",
+    "valor_total": -68.89,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MANUT GERAL (COMPRA DE PECAS)"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "OI S.A",
+    "valor_total": -67.67,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO DE TELEFONIA MOVEL E F"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "WILHELM.TEL GMBH SERVICE CENTER NORDERST",
+    "valor_total": -59.38,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "ACAT - RADIO TAXI",
+    "valor_total": -55.49,
+    "quantidade_pagamentos": 5,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SPC KORNHAUSKELLER, HAMBURG",
+    "valor_total": -55.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "INSTITUTO DE PRESERVACAO E DIFUSAO DA HI",
+    "valor_total": -50.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MENSALIDADE ASSOCIACAO COMERCI"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SETRA",
+    "valor_total": -50.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PCMSO"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "ANTONIO BRAZIL PLACAS LTDA - ME",
+    "valor_total": -40.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "MATERIAL DE ESCRITORIO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TRIBUNAL DE JUSTICA",
+    "valor_total": -34.35,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DEPOSITO RECURSAL"
+    ],
+    "bancos": [
+      "BB SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "TELEFONICA BRASIL S.A",
+    "valor_total": -21.91,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "SERVICO DE INTERNET"
+    ],
+    "bancos": [
+      "ITAU ARMAZEM"
+    ]
+  },
+  {
+    "fornecedor": "RUNDFUNK ARD, ZDF, DRADI",
+    "valor_total": -18.36,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS DE VIAGENS"
+    ],
+    "bancos": [
+      "COMMERZBANK"
+    ]
+  },
+  {
+    "fornecedor": "METHODOS LABORATORIO, ANALISES CLINICAS",
+    "valor_total": -16.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "PCMSO"
+    ],
+    "bancos": [
+      "ITAU TRANS 15"
+    ]
+  },
+  {
+    "fornecedor": "CHAVEIRO MAGENTA LTD",
+    "valor_total": -10.0,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS COM MANUTENCAO"
+    ],
+    "bancos": [
+      "ITAU SANTOS"
+    ]
+  },
+  {
+    "fornecedor": "SDI SERVIZI",
+    "valor_total": -2.4,
+    "quantidade_pagamentos": 1,
+    "naturezas": [
+      "DESPESAS EXPORTACAO NO DESTINO"
+    ],
+    "bancos": [
+      "CITI BANK  NY"
+    ]
+  }
+]
+
+CAMPOS DISPONÍVEIS POR FORNECEDOR:
+- fornecedor: Nome do fornecedor/beneficiário
+- valor_total: Total pago para este fornecedor (R$)
+- quantidade_pagamentos: Número de pagamentos realizados
+- naturezas: Lista de naturezas/tipos de despesa
+- bancos: Lista de bancos utilizados nos pagamentos
+
+IMPORTANTE:
+1. Estes são pagamentos JÁ EFETUADOS (contas pagas)
+2. O valor_total já está calculado e somado por fornecedor
+3. Para ver detalhes de um fornecedor específico, o usuário pode perguntar sobre ele especificamente

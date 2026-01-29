@@ -1,0 +1,1995 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 107
+Total de clientes: 33
+
+Dados agregados:
+[
+  {
+    "cliente": "BERNHARD ROTHFOS GMB",
+    "total_contratos": 11,
+    "total_sacas": 27529.35,
+    "total_valor": 11656693.96,
+    "valor_unitario_medio": 333.31,
+    "valor_fixado_medio": 363.22,
+    "diferencial_medio": -29.91,
+    "peneira_mtgb_media": 72.73,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 27.27,
+    "certificados": [
+      "4C",
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS GOOD CUP 13 UP RFA EUDR",
+      "GRINDERS NY 5/6 SCREEN 13 UP SS GC RFA",
+      "NESTLE 4.2 RS EUDR",
+      "NY 3/4 MTGB GOOD CUP - UP TO TWO RIOY CUPS",
+      "TOP GERMAN MTGB EUDR"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN2",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 , 556/25C",
+    "contratos_com_bl": "500/25A, 547/25 , 548/25 ",
+    "total_contratos_com_bl": 3,
+    "contratos_embarcados": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 ",
+    "total_contratos_embarcados": 9,
+    "contratos_com_corretor": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 , 556/25C, 001/26 ",
+    "total_contratos_com_corretor": 11,
+    "contratos_amostra_enviada": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 , 556/25C",
+    "total_contratos_amostra_enviada": 10,
+    "contratos_amostra_aprovada": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 , 556/25C",
+    "total_contratos_amostra_aprovada": 10,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "500/25A (20260123), 547/25  (20260123)",
+    "total_contratos_baixados": 2,
+    "contratos_baixados_jan2026": "500/25A, 547/25 ",
+    "total_baixados_jan2026": 2,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05",
+      "61"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "THE FOLGER COFFEE   ",
+    "total_contratos": 4,
+    "total_sacas": 17572.88,
+    "total_valor": 7469839.92,
+    "valor_unitario_medio": 326.8,
+    "valor_fixado_medio": 351.8,
+    "diferencial_medio": -25.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "FOLGER B"
+    ],
+    "paises": [
+      "ESTADOS UNIDOS"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "565/25A, 565/25B, 566/25A, 566/25B",
+    "contratos_com_bl": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_embarcados": 4,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_amostra_enviada": 4,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_amostra_pendente": 4,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "VOLCAFE             ",
+    "total_contratos": 4,
+    "total_sacas": 10210.15,
+    "total_valor": 4073110.83,
+    "valor_unitario_medio": 336.88,
+    "valor_fixado_medio": 348.12,
+    "diferencial_medio": -11.25,
+    "peneira_mtgb_media": 75.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 25.0,
+    "certificados": [
+      "GCP",
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDER 13 GC RFA - 10% LEAKAGE - NO OTA ON ARRIVAL",
+      "NESTLE 1.2 RS",
+      "NY 2/3 MTGB FINE CUP RFA"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1",
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "588/25A, 588/25B, 003/26 , 009/26 ",
+    "contratos_com_bl": "588/25B",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "588/25A, 588/25B, 003/26 , 009/26 ",
+    "total_contratos_embarcados": 4,
+    "contratos_com_corretor": "588/25A, 003/26 ",
+    "total_contratos_com_corretor": 2,
+    "contratos_amostra_enviada": "588/25A, 588/25B, 003/26 , 009/26 ",
+    "total_contratos_amostra_enviada": 4,
+    "contratos_amostra_aprovada": "588/25A, 588/25B, 009/26 ",
+    "total_contratos_amostra_aprovada": 3,
+    "contratos_amostra_pendente": "003/26 ",
+    "total_contratos_amostra_pendente": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "JDE                 ",
+    "total_contratos": 4,
+    "total_sacas": 6589.81,
+    "total_valor": 2826499.92,
+    "valor_unitario_medio": 343.56,
+    "valor_fixado_medio": 331.29,
+    "diferencial_medio": 12.28,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "FT"
+    ],
+    "qualidades": [
+      "PRIMEIRO MTGB",
+      "TOP GERMAN 15 UP FAIRTRADE",
+      "TOP GERMAN MIXED CROP 24/25 - 25/26 - peas option yes"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "256/25R, 256/25S, 544/25 , 594/25 ",
+    "contratos_com_bl": "594/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "256/25R, 256/25S, 544/25 , 594/25 ",
+    "total_contratos_embarcados": 4,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "256/25R, 256/25S, 544/25 , 594/25 ",
+    "total_contratos_amostra_enviada": 4,
+    "contratos_amostra_aprovada": "256/25R, 256/25S, 544/25 , 594/25 ",
+    "total_contratos_amostra_aprovada": 4,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "NESTRADE S.A.       ",
+    "total_contratos": 8,
+    "total_sacas": 4759.3,
+    "total_valor": 2366587.43,
+    "valor_unitario_medio": 381.02,
+    "valor_fixado_medio": 372.33,
+    "diferencial_medio": 8.69,
+    "peneira_mtgb_media": 12.5,
+    "peneira_grauda_media": 87.5,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "4C",
+      "FT",
+      "GCP",
+      "RF"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 MTGB RS EUDR",
+      "NESTLE 4.2 SCR17 FT EUDR",
+      "NESTLE 4.2 SCR17 RFA EUDR",
+      "NESTLE 4.3 SCR17 RS EUDR"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2",
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "contratos_com_bl": "378/25 , 535/25 , 536/25 , 375/25C",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "total_contratos_embarcados": 8,
+    "contratos_com_corretor": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "total_contratos_com_corretor": 8,
+    "contratos_amostra_enviada": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "total_contratos_amostra_enviada": 8,
+    "contratos_amostra_aprovada": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "total_contratos_amostra_aprovada": 8,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "375/25C (20260121)",
+    "total_contratos_baixados": 1,
+    "contratos_baixados_jan2026": "375/25C",
+    "total_baixados_jan2026": 1,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "NESTLE ARARAS       ",
+    "total_contratos": 9,
+    "total_sacas": 4576.23,
+    "total_valor": 2247524.56,
+    "valor_unitario_medio": 377.58,
+    "valor_fixado_medio": 370.36,
+    "diferencial_medio": 7.22,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "GCP"
+    ],
+    "qualidades": [
+      "NESTLE NY 5 MTGB RS - ARARAS",
+      "NESTLE NY 5 RS"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "093/25A, 093/25B, 093/25C, 094/25A, 094/25B, 002/26C, 002/26D, 002/26E, 002/26F",
+    "contratos_com_bl": "093/25A, 093/25B, 093/25C, 094/25A, 094/25B, 002/26C, 002/26D, 002/26E, 002/26F",
+    "total_contratos_com_bl": 9,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "093/25C (20260122), 094/25A (20260122), 094/25B (20260122)",
+    "total_contratos_baixados": 3,
+    "contratos_baixados_jan2026": "093/25C, 094/25A, 094/25B",
+    "total_baixados_jan2026": 3,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "MI"
+    ]
+  },
+  {
+    "cliente": "COFFEA IMPORTACAO, E",
+    "total_contratos": 6,
+    "total_sacas": 5033.87,
+    "total_valor": 1365957.89,
+    "valor_unitario_medio": 212.9,
+    "valor_fixado_medio": 212.9,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 95; Impureza: 5;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "089/25 , 081/25A, 081/25B, 082/25A, 082/25B, 079/25D",
+    "contratos_com_bl": "081/25A, 079/25D",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "081/25A (20260120), 079/25D (20260120)",
+    "total_contratos_baixados": 2,
+    "contratos_baixados_jan2026": "081/25A, 079/25D",
+    "total_baixados_jan2026": 2,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "MI"
+    ]
+  },
+  {
+    "cliente": "NESTLE BRASIL LTDA. ",
+    "total_contratos": 7,
+    "total_sacas": 2372.86,
+    "total_valor": 1126716.5,
+    "valor_unitario_medio": 365.05,
+    "valor_fixado_medio": 339.05,
+    "diferencial_medio": 26.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "4C"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 RS MONTES CLAROS"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "096/25A, 096/25B, 096/25C, 096/25D, 096/25E, 096/25F, 096/25G",
+    "contratos_com_bl": "096/25A, 096/25B, 096/25C, 096/25D, 096/25E, 096/25F",
+    "total_contratos_com_bl": 6,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "096/25A (20260122)",
+    "total_contratos_baixados": 1,
+    "contratos_baixados_jan2026": "096/25A",
+    "total_baixados_jan2026": 1,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "FINLAY BEVERAGES    ",
+    "total_contratos": 3,
+    "total_sacas": 2461.86,
+    "total_valor": 1007285.08,
+    "valor_unitario_medio": 316.8,
+    "valor_fixado_medio": 364.13,
+    "diferencial_medio": -47.33,
+    "peneira_mtgb_media": 33.33,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 66.67,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS 12 RFA",
+      "GRINDERS 13 UP RFA EUDR",
+      "NY 3/4 MTGB GOOD CUP RFA EUDR"
+    ],
+    "paises": [
+      "REINO UNIDO"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "549/25 , 553/25 , 592/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "549/25 , 553/25 , 592/25 ",
+    "total_contratos_embarcados": 3,
+    "contratos_com_corretor": "592/25 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "549/25 , 553/25 , 592/25 ",
+    "total_contratos_amostra_enviada": 3,
+    "contratos_amostra_aprovada": "549/25 , 553/25 ",
+    "total_contratos_amostra_aprovada": 2,
+    "contratos_amostra_pendente": "592/25 ",
+    "total_contratos_amostra_pendente": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "UCC-COFFEE SERVICES ",
+    "total_contratos": 4,
+    "total_sacas": 2466.1,
+    "total_valor": 912783.54,
+    "valor_unitario_medio": 345.69,
+    "valor_fixado_medio": 270.62,
+    "diferencial_medio": -21.12,
+    "peneira_mtgb_media": 25.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 75.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL ARABICA GRINDERS 12 UP RFA (UCC SPEC NY 5/6, GC, MAX 300 DEF)",
+      "Grinders 12up",
+      "NY 3/4 MTGB FC"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "472/25 , 477/25 , 503/25 , 515/25 ",
+    "contratos_com_bl": "472/25 , 503/25 ",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "472/25 , 477/25 , 503/25 , 515/25 ",
+    "total_contratos_embarcados": 4,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "472/25 , 477/25 , 503/25 , 515/25 ",
+    "total_contratos_amostra_enviada": 4,
+    "contratos_amostra_aprovada": "472/25 , 477/25 , 503/25 , 515/25 ",
+    "total_contratos_amostra_aprovada": 4,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "ALEX PERK"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "MEIRA (MZB GROUP)   ",
+    "total_contratos": 1,
+    "total_sacas": 1694.91,
+    "total_valor": 859031.2,
+    "valor_unitario_medio": 389.65,
+    "valor_fixado_medio": 361.65,
+    "diferencial_medio": 28.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, NY 2/3 MTGB FINE CUP"
+    ],
+    "paises": [
+      "FINLANDIA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "027/25 ",
+    "contratos_com_bl": "027/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "027/25 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "027/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "027/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [],
+    "filiais": [
+      "61"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "EFICO NV            ",
+    "total_contratos": 6,
+    "total_sacas": 1990.93,
+    "total_valor": 817850.29,
+    "valor_unitario_medio": 315.1,
+    "valor_fixado_medio": 361.77,
+    "diferencial_medio": -46.67,
+    "peneira_mtgb_media": 16.67,
+    "peneira_grauda_media": 16.67,
+    "peneira_grinder_media": 66.67,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS 12 TS",
+      "GRINDERS 12 TS RFA",
+      "GRINDERS 12 UP",
+      "GRINDERS TS 13 UP RFA+EUDR",
+      "MOGIANA SCREEN 16+ FC",
+      "NY 3/4 MTGB GOOD CUP RFA EUDR"
+    ],
+    "paises": [
+      "BELGICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "contratos_com_bl": "529/25 , 555/25 , 585/25 , 586/25 ",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "total_contratos_embarcados": 6,
+    "contratos_com_corretor": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "total_contratos_com_corretor": 6,
+    "contratos_amostra_enviada": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "total_contratos_amostra_enviada": 6,
+    "contratos_amostra_aprovada": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "total_contratos_amostra_aprovada": 6,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "THE DRIP CO.LTD     ",
+    "total_contratos": 1,
+    "total_sacas": 1355.93,
+    "total_valor": 696484.38,
+    "valor_unitario_medio": 394.9,
+    "valor_fixado_medio": 403.9,
+    "diferencial_medio": -9.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NY 2/3 GOOD CUP SCREEN 15/16"
+    ],
+    "paises": [
+      "COREIA, REPUBLICA DA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "383/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "383/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "383/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "NEUMANN GRUPPE USA I",
+    "total_contratos": 1,
+    "total_sacas": 1357.54,
+    "total_valor": 647695.43,
+    "valor_unitario_medio": 366.8,
+    "valor_fixado_medio": 341.8,
+    "diferencial_medio": 25.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "GCP"
+    ],
+    "qualidades": [
+      "NY 2/3 SCREEN 15/16 FC"
+    ],
+    "paises": [
+      "ESTADOS UNIDOS"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "001/26 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "60"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "LOS CINCO HISPANOS S",
+    "total_contratos": 3,
+    "total_sacas": 1320.0,
+    "total_valor": 635360.0,
+    "valor_unitario_medio": 481.33,
+    "valor_fixado_medio": 481.33,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "GOOD CUP SUPERIOR 17/18",
+      "NATURAL CARAMEL 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "590/25 , 019/26 , 021/26 ",
+    "contratos_com_bl": "590/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "590/25 , 019/26 , 021/26 ",
+    "total_contratos_embarcados": 3,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "590/25 , 019/26 , 021/26 ",
+    "total_contratos_amostra_enviada": 3,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "590/25 , 019/26 , 021/26 ",
+    "total_contratos_amostra_pendente": 3,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "AHOLD COFFEE        ",
+    "total_contratos": 4,
+    "total_sacas": 4550.0,
+    "total_valor": 539385.62,
+    "valor_unitario_medio": 229.65,
+    "valor_fixado_medio": 86.55,
+    "diferencial_medio": -50.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, GRINDERS AHOLD SPEC"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "031/25 , 034/25 , 039/25 , 040/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "031/25 , 034/25 , 039/25 , 040/25 ",
+    "total_contratos_com_corretor": 4,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BERNARDO HAZAN"
+    ],
+    "filiais": [
+      "61"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "COMEXIM EUROPE GMBH.",
+    "total_contratos": 5,
+    "total_sacas": 5600.0,
+    "total_valor": 532556.8,
+    "valor_unitario_medio": 325.97,
+    "valor_fixado_medio": 69.24,
+    "diferencial_medio": -53.75,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, GRINDERS AHOLD SPEC"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "contratos_com_bl": "482/25 , 537/25 , 538/25 ",
+    "total_contratos_com_bl": 3,
+    "contratos_embarcados": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "total_contratos_embarcados": 5,
+    "contratos_com_corretor": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "total_contratos_com_corretor": 5,
+    "contratos_amostra_enviada": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "total_contratos_amostra_enviada": 5,
+    "contratos_amostra_aprovada": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "total_contratos_amostra_aprovada": 5,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BERNARDO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "DEUTSCHE EXTRAKT KAF",
+    "total_contratos": 1,
+    "total_sacas": 1098.3,
+    "total_valor": 528580.32,
+    "valor_unitario_medio": 370.0,
+    "valor_fixado_medio": 370.0,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "SEMI-WASHED NY 2, SCR 17, SS, FINE CUP, CROP 25/26"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "568/25 ",
+    "contratos_com_bl": "568/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "568/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "568/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "568/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "J R COMERCIO E EXPOR",
+    "total_contratos": 5,
+    "total_sacas": 2053.2,
+    "total_valor": 506333.24,
+    "valor_unitario_medio": 189.61,
+    "valor_fixado_medio": 189.61,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 92; Impureza: 8;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "085/25D, 086/25A, 086/25B, 087/25A, 087/25B",
+    "contratos_com_bl": "085/25D, 086/25A",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "085/25D (20260116), 086/25A (20260116)",
+    "total_contratos_baixados": 2,
+    "contratos_baixados_jan2026": "085/25D, 086/25A",
+    "total_baixados_jan2026": 2,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "IMPORTADORA REAL    ",
+    "total_contratos": 2,
+    "total_sacas": 880.0,
+    "total_valor": 440440.0,
+    "valor_unitario_medio": 500.5,
+    "valor_fixado_medio": 500.5,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NATURAL CARAMEL 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "010/26 , 013/26 ",
+    "contratos_com_bl": "010/26 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "010/26 , 013/26 ",
+    "total_contratos_embarcados": 2,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "010/26 , 013/26 ",
+    "total_contratos_amostra_enviada": 2,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "010/26 , 013/26 ",
+    "total_contratos_amostra_pendente": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "BROOKS CO. LTD.     ",
+    "total_contratos": 1,
+    "total_sacas": 960.0,
+    "total_valor": 415192.17,
+    "valor_unitario_medio": 332.5,
+    "valor_fixado_medio": 349.5,
+    "diferencial_medio": -17.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NY 2 SCREEN 17/18 SS FINE CUP - CROP 2025-2026"
+    ],
+    "paises": [
+      "JAPAO"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "526/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "526/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "526/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "526/25 ",
+    "total_contratos_amostra_pendente": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "CAFES LA VIRGINIA   ",
+    "total_contratos": 2,
+    "total_sacas": 881.34,
+    "total_valor": 414237.28,
+    "valor_unitario_medio": 470.0,
+    "valor_fixado_medio": 470.0,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "GOOD CUP 14/16",
+      "SEMI-WASHED 14/16"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "CD",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "577/25 , 578/25 ",
+    "contratos_com_bl": "577/25 , 578/25 ",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "577/25 , 578/25 ",
+    "total_contratos_embarcados": 2,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "577/25 , 578/25 ",
+    "total_contratos_amostra_enviada": 2,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "577/25 , 578/25 ",
+    "total_contratos_amostra_pendente": 2,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "FALCON COFFEES LIMIT",
+    "total_contratos": 1,
+    "total_sacas": 677.96,
+    "total_valor": 332986.2,
+    "valor_unitario_medio": 377.6,
+    "valor_fixado_medio": 375.6,
+    "diferencial_medio": 2.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "NY 2/3 MTGB FINE CUP RFA+FDV"
+    ],
+    "paises": [
+      "REINO UNIDO"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "510/25 ",
+    "contratos_com_bl": "510/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "510/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "510/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "510/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "INTERAMERICAN COFFEE",
+    "total_contratos": 1,
+    "total_sacas": 650.0,
+    "total_valor": 320391.91,
+    "valor_unitario_medio": 378.95,
+    "valor_fixado_medio": 379.95,
+    "diferencial_medio": -1.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "STS NY 2/3 15/16 SS FINE CUP EUDR"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "518/25 ",
+    "contratos_com_bl": "518/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "518/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "518/25 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "518/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "518/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "INTERAMERICAN COFFE ",
+    "total_contratos": 2,
+    "total_sacas": 650.0,
+    "total_valor": 308893.48,
+    "valor_unitario_medio": 365.35,
+    "valor_fixado_medio": 355.35,
+    "diferencial_medio": 10.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "CERRADO 17/18 FC"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "011/26 , 012/26 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "011/26 , 012/26 ",
+    "total_contratos_embarcados": 2,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "011/26 , 012/26 ",
+    "total_contratos_amostra_enviada": 2,
+    "contratos_amostra_aprovada": "011/26 , 012/26 ",
+    "total_contratos_amostra_aprovada": 2,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "ATLANTIC USA IN     ",
+    "total_contratos": 1,
+    "total_sacas": 640.0,
+    "total_valor": 243371.29,
+    "valor_unitario_medio": 292.35,
+    "valor_fixado_medio": 355.35,
+    "diferencial_medio": -63.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [],
+    "qualidades": [
+      "GRINDERS 13 UP BASED STO 504/25"
+    ],
+    "paises": [
+      "ESTADOS UNIDOS"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "589/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "589/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "589/25 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "589/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "589/25 ",
+    "total_contratos_amostra_pendente": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": []
+  },
+  {
+    "cliente": "CAFE FUNDADOR       ",
+    "total_contratos": 3,
+    "total_sacas": 447.0,
+    "total_valor": 217171.0,
+    "valor_unitario_medio": 486.33,
+    "valor_fixado_medio": 486.33,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 33.33,
+    "peneira_grauda_media": 66.67,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "MOKA MARACUYA",
+      "NATURAL CARAMEL 17/18",
+      "SEMI-WASHED 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "CD",
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "582/25 , 583/25 , 584/25 ",
+    "contratos_com_bl": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_com_bl": 3,
+    "contratos_embarcados": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_embarcados": 3,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_amostra_enviada": 3,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_amostra_pendente": 3,
+    "contratos_baixados": "582/25  (20260120), 583/25  (20260120), 584/25  (20260120)",
+    "total_contratos_baixados": 3,
+    "contratos_baixados_jan2026": "582/25 , 583/25 , 584/25 ",
+    "total_baixados_jan2026": 3,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "F&J COMERCIO DE CAFE",
+    "total_contratos": 2,
+    "total_sacas": 762.7,
+    "total_valor": 215706.7,
+    "valor_unitario_medio": 217.43,
+    "valor_fixado_medio": 217.43,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 95; Impureza: 5;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "080/25B, 080/25F",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "MI"
+    ]
+  },
+  {
+    "cliente": "ECOM AGROINDUSTRIAL ",
+    "total_contratos": 1,
+    "total_sacas": 915.25,
+    "total_valor": 207682.06,
+    "valor_unitario_medio": 174.45,
+    "valor_fixado_medio": 319.45,
+    "diferencial_medio": -145.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "PA 85%"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "272/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "272/25 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "272/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "272/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "IVAN HAZAN"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": []
+  },
+  {
+    "cliente": "WILLIAMS MANUFACTUR ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 169000.0,
+    "valor_unitario_medio": 8.45,
+    "valor_fixado_medio": 8.45,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "CERRADO FC 17/18"
+    ],
+    "paises": [
+      "POLONIA, REPUBLICA DA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "567/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "567/25 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "567/25 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "567/25 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "IRAKLIS ROUPAS LTDA ",
+    "total_contratos": 1,
+    "total_sacas": 325.0,
+    "total_valor": 161379.62,
+    "valor_unitario_medio": 381.75,
+    "valor_fixado_medio": 364.75,
+    "diferencial_medio": 17.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "FINE CUP 17/18 SS MOGIANA"
+    ],
+    "paises": [
+      "GRECIA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "001/26 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "001/26 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "001/26 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "001/26 ",
+    "total_contratos_amostra_pendente": 1,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "COBRA"
+    ]
+  },
+  {
+    "cliente": "BERO COFFEE SING    ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 154477.91,
+    "valor_unitario_medio": 350.35,
+    "valor_fixado_medio": 355.35,
+    "diferencial_medio": -5.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 RFA SCR 17 UP"
+    ],
+    "paises": [
+      "SINGAPURA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "008/26 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "008/26 ",
+    "total_contratos_embarcados": 1,
+    "contratos_com_corretor": "008/26 ",
+    "total_contratos_com_corretor": 1,
+    "contratos_amostra_enviada": "008/26 ",
+    "total_contratos_amostra_enviada": 1,
+    "contratos_amostra_aprovada": "008/26 ",
+    "total_contratos_amostra_aprovada": 1,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ],
+    "filiais": [
+      "05"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "cliente": "BIJDENDIJK          ",
+    "total_contratos": 1,
+    "total_sacas": 324.23,
+    "total_valor": 138332.13,
+    "valor_unitario_medio": 328.0,
+    "valor_fixado_medio": 373.0,
+    "diferencial_medio": -45.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "Grinders 13up"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "036/25 ",
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "contratos_com_corretor": "",
+    "total_contratos_com_corretor": 0,
+    "contratos_amostra_enviada": "",
+    "total_contratos_amostra_enviada": 0,
+    "contratos_amostra_aprovada": "",
+    "total_contratos_amostra_aprovada": 0,
+    "contratos_amostra_pendente": "",
+    "total_contratos_amostra_pendente": 0,
+    "contratos_baixados": "",
+    "total_contratos_baixados": 0,
+    "contratos_baixados_jan2026": "",
+    "total_baixados_jan2026": 0,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "vendedores": [],
+    "filiais": [
+      "61"
+    ],
+    "grupos_venda": []
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
+
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
+- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+
+  IMPORTANTE - COMO USAR:
+  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados

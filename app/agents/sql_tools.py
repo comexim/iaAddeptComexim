@@ -21,7 +21,8 @@ class SQLTools:
 
     def __init__(self, user: UserPermissions):
         self.user = user
-        self.user_query = ""  # Armazena última pergunta do usuário
+        self.user_query = ""  # Armazena última pergunta do usuário (CONTEXTUALIZADA para IA)
+        self.user_query_original = ""  # Armazena pergunta ORIGINAL (sem contexto) para filtros
 
     def _remove_accents(self, text: str) -> str:
         """Remove acentos de uma string usando normalização Unicode"""
@@ -336,7 +337,7 @@ class SQLTools:
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0: Query sobre "corretor" ou "referência de corretor"
-        if self.user_query and re.search(r'\bcorret[oa]r|referência.*corretor', self.user_query.lower()):
+        if self.user_query_original and re.search(r'\bcorret[oa]r|referência.*corretor', self.user_query_original.lower()):
             # Filtra apenas clientes com contratos que têm corretor
             filtered_list = [
                 r for r in result_list
@@ -369,7 +370,7 @@ class SQLTools:
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0.4: Query sobre "clientes sem referência/código"
-        if self.user_query and re.search(r'(clientes?|quais).*\b(sem|não\s+t[eê]m?)\s+(código|codigo|referência|referencia)', self.user_query.lower()):
+        if self.user_query_original and re.search(r'(clientes?|quais).*\b(sem|não\s+t[eê]m?)\s+(código|codigo|referência|referencia)', self.user_query_original.lower()):
             # Filtra clientes sem refCliente
             clientes_sem_ref = []
             clientes_com_ref = []
@@ -412,7 +413,7 @@ class SQLTools:
                     logger.info(f"[OTIMIZAÇÃO SEM BL] Pergunta menciona país '{pais}', NÃO vai aplicar otimização")
                     break
 
-        if self.user_query and re.search(r'(sem|não\s+t[eê]m?|ainda\s+não|falta[m]?)\s+(número\s+de\s+)?bl\b', self.user_query.lower()) and not menciona_pais:
+        if self.user_query_original and re.search(r'(sem|não\s+t[eê]m?|ainda\s+não|falta[m]?)\s+(número\s+de\s+)?bl\b', self.user_query_original.lower()) and not menciona_pais:
             # Calcula totais
             total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
             total_com_bl = sum(r.get("total_contratos_com_bl", 0) for r in result_list)
@@ -451,7 +452,7 @@ class SQLTools:
 
         # OTIMIZAÇÃO ESPECIAL 0.6: Query sobre "contratos sem amostra" ou "não enviaram amostra"
         # MAS NÃO aplica se a pergunta menciona país específico
-        if self.user_query and re.search(r'(sem\s+amostra|não\s+(enviaram|enviou|mandaram|mandou|tiraram|tirou)\s+amostra|ainda\s+não.*amostra|falta[m]?\s+amostra)', self.user_query.lower()) and not menciona_pais:
+        if self.user_query_original and re.search(r'(sem\s+amostra|não\s+(enviaram|enviou|mandaram|mandou|tiraram|tirou)\s+amostra|ainda\s+não.*amostra|falta[m]?\s+amostra)', self.user_query_original.lower()) and not menciona_pais:
             # Calcula totais
             total_contratos = sum(r.get("total_contratos", 0) for r in result_list)
             total_com_amostra = sum(r.get("total_contratos_amostra_enviada", 0) for r in result_list)
@@ -503,7 +504,7 @@ class SQLTools:
             return result
 
         # OTIMIZAÇÃO ESPECIAL 0.7: Query pergunta "quais contratos" (lista individual de contratos)
-        if self.user_query and re.search(r'(quais?|que)\s+contratos?\s+(foram|foi|est[aã]o|de)', self.user_query.lower()):
+        if self.user_query_original and re.search(r'(quais?|que)\s+contratos?\s+(foram|foi|est[aã]o|de)', self.user_query_original.lower()):
             logger.info(f"[OTIMIZAÇÃO LISTA CONTRATOS] Detectado query sobre 'quais contratos' - retornando lista individual")
 
             contratos_list = []
@@ -561,10 +562,10 @@ class SQLTools:
 
         # OTIMIZAÇÃO ESPECIAL 2: Query sobre período específico (ex: "em janeiro", "por grupo em 2026")
         # Detecta queries com menção a mês/ano e retorna campos resumidos
-        if self.user_query and re.search(r'\b(em|no|de)\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b', self.user_query.lower()):
+        if self.user_query_original and re.search(r'\b(em|no|de)\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro|jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)\b', self.user_query_original.lower()):
 
             # OTIMIZAÇÃO ESPECIAL 2.1: Se a query menciona "por grupo", agregar por grupo de venda
-            if re.search(r'\bpor\s+grupo', self.user_query.lower()):
+            if re.search(r'\bpor\s+grupo', self.user_query_original.lower()):
                 from collections import defaultdict
 
                 por_grupo = defaultdict(lambda: {"valor": 0, "sacas": 0, "clientes": 0})
@@ -598,7 +599,7 @@ class SQLTools:
                 return grupos_list
 
             # OTIMIZAÇÃO ESPECIAL 2.2: Se a query menciona "fixado" ou "importador/exportador", agregar por fixador
-            if re.search(r'\bfixad[oa]s?|importador|exportador', self.user_query.lower()):
+            if re.search(r'\bfixad[oa]s?|importador|exportador', self.user_query_original.lower()):
                 from collections import defaultdict
 
                 por_fixador = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0})
@@ -633,7 +634,7 @@ class SQLTools:
                 return fixadores_list
 
             # OTIMIZAÇÃO ESPECIAL 2.3: Se a query menciona "vendedor", agregar por vendedor
-            if re.search(r'\bvendedor[ea]?s?', self.user_query.lower()):
+            if re.search(r'\bvendedor[ea]?s?', self.user_query_original.lower()):
                 from collections import defaultdict
 
                 por_vendedor = defaultdict(lambda: {
@@ -702,7 +703,7 @@ class SQLTools:
                 return vendedores_list
 
             # OTIMIZAÇÃO ESPECIAL 2.4: Se a query menciona "filial", agregar por filial
-            if re.search(r'\bfiliai?s?', self.user_query.lower()):
+            if re.search(r'\bfiliai?s?', self.user_query_original.lower()):
                 from collections import defaultdict
 
                 por_filial = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
@@ -740,7 +741,7 @@ class SQLTools:
                 return filiais_list
 
             # OTIMIZAÇÃO ESPECIAL 2.5: Se a query menciona "linha", agregar por linha de café
-            if re.search(r'\blinha[s]?(\s+de\s+caf[eé])?', self.user_query.lower()):
+            if re.search(r'\blinha[s]?(\s+de\s+caf[eé])?', self.user_query_original.lower()):
                 from collections import defaultdict
 
                 por_linha = defaultdict(lambda: {"valor": 0, "sacas": 0, "contratos": 0, "clientes": set()})
@@ -782,7 +783,7 @@ class SQLTools:
 
             # Se não menciona "por grupo" nem "fixado" nem "vendedor" nem "filial" nem "linha", retorna por cliente
             # EXCETO se menciona "embarcad" ou "bl" ou "amostra" ou "referência/código" - nesse caso precisa dos campos completos
-            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)|\bbl\b|bill\s+of\s+lading|amostra|referência|referencia|código|codigo', self.user_query.lower()):
+            if not re.search(r'embarc(ad[oa]s?|aram|ou|am)|\bbl\b|bill\s+of\s+lading|amostra|referência|referencia|código|codigo', self.user_query_original.lower()):
                 # Retorna apenas campos essenciais (permite retornar TODOS os clientes sem rate limit)
                 minimal_list = []
                 for r in result_list:
@@ -991,8 +992,9 @@ class SQLTools:
             total_records = len(results)
 
         # ESTRATÉGIA 1.5: Detecta e aplica filtros específicos mencionados na pergunta
-        if self.user_query:
-            query_lower = self.user_query.lower()
+        # USA user_query_original (sem contexto) para evitar falsos positivos
+        if self.user_query_original:
+            query_lower = self.user_query_original.lower()
             filtros_aplicados = []
 
             # FILTROS PARA VENDAS
@@ -1063,11 +1065,11 @@ class SQLTools:
         menciona_criterio_especifico = False
         menciona_categoria_orcamento = False
 
-        if self.user_query:
-            query_lower = self.user_query.lower()
+        if self.user_query_original:
+            query_lower = self.user_query_original.lower()
 
             # Padrão: número/ano (ex: 488/25, 453/25A, 513/25)
-            if re.search(r'\d{2,4}/\d{2}[A-Z]?', self.user_query):
+            if re.search(r'\d{2,4}/\d{2}[A-Z]?', self.user_query_original):
                 menciona_contrato = True
                 logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
 
@@ -1099,9 +1101,10 @@ class SQLTools:
 
         # FORÇA agregação se a pergunta é sobre "baixados EM [mês]" ou "EM [mês]... baixados"
         # OU se menciona "embarcados" E "baixados" simultaneamente (precisa dos campos contratos_baixados_*)
+        # USA user_query_original (sem contexto) para evitar falsos positivos
         forcar_agregacao_baixados = False
-        if self.user_query:
-            query_lower = self.user_query.lower()
+        if self.user_query_original:
+            query_lower = self.user_query_original.lower()
             # Detecta: "baixados EM" OU "EM [mês]... baixados/pagos/quitados"
             if re.search(r'baixad[oa]s?\s+(no\s+contas\s+a\s+receber\s+)?em\s+', query_lower):
                 forcar_agregacao_baixados = True
@@ -1244,9 +1247,10 @@ Exemplos corretos:
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 # SUMÁRIO ESPECIAL: Se query é sobre "embarcados não baixados", calcula explicitamente
+                # USA user_query_original (sem contexto) para evitar falsos positivos
                 sumario_embarcados_nao_baixados = ""
-                if self.user_query and re.search(r'embarc(ad[oa]s?|aram|ou)', self.user_query.lower()) and \
-                   re.search(r'(não\s+foram\s+|ainda\s+não\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)', self.user_query.lower()):
+                if self.user_query_original and re.search(r'embarc(ad[oa]s?|aram|ou)', self.user_query_original.lower()) and \
+                   re.search(r'(não\s+foram\s+|ainda\s+não\s+)?(baixad[oa]s?|pagos?|quitad[oa]s?)', self.user_query_original.lower()):
                     # Calcula total de contratos embarcados não baixados
                     total_embarcados_nao_baixados = 0
                     clientes_com_nao_baixados = []

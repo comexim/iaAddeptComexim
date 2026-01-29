@@ -1,0 +1,293 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 107
+Total de clientes: 6
+
+Dados agregados:
+[
+  {
+    "vendedor": "MAURICIO DICUNTO",
+    "sacas_total": 80850.01,
+    "valor_total": 34914405.81,
+    "numero_contratos": 57,
+    "numero_clientes": 19,
+    "paises": [
+      "ALEMANHA",
+      "ARGENTINA",
+      "BELGICA",
+      "COREIA, REPUBLICA DA",
+      "ESTADOS UNIDOS",
+      "GRECIA",
+      "JAPAO",
+      "PAISES BAIXOS (HOLANDA)",
+      "POLONIA, REPUBLICA DA",
+      "REINO UNIDO",
+      "SINGAPURA",
+      "SUICA"
+    ],
+    "certificados": [
+      "4C",
+      "FT",
+      "GCP",
+      "RF"
+    ],
+    "qualidades": [
+      "CERRADO 17/18 FC",
+      "CERRADO FC 17/18",
+      "FINE CUP 17/18 SS MOGIANA",
+      "FOLGER B",
+      "GOOD CUP 14/16",
+      "GOOD CUP SUPERIOR 17/18",
+      "GRINDER 13 GC RFA - 10% LEAKAGE - NO OTA ON ARRIVAL",
+      "GRINDERS 12 RFA",
+      "GRINDERS 12 TS",
+      "GRINDERS 12 TS RFA",
+      "GRINDERS 12 UP",
+      "GRINDERS 13 UP RFA EUDR",
+      "GRINDERS GOOD CUP 13 UP RFA EUDR",
+      "GRINDERS NY 5/6 SCREEN 13 UP SS GC RFA",
+      "GRINDERS TS 13 UP RFA+EUDR",
+      "MOGIANA SCREEN 16+ FC",
+      "NATURAL CARAMEL 17/18",
+      "NESTLE 1.2 RS",
+      "NESTLE 4.2 MTGB RS EUDR",
+      "NESTLE 4.2 RFA SCR 17 UP",
+      "NESTLE 4.2 RS EUDR",
+      "NESTLE 4.2 SCR17 FT EUDR",
+      "NESTLE 4.2 SCR17 RFA EUDR",
+      "NESTLE 4.3 SCR17 RS EUDR",
+      "NY 2 SCREEN 17/18 SS FINE CUP - CROP 2025-2026",
+      "NY 2/3 GOOD CUP SCREEN 15/16",
+      "NY 2/3 MTGB FINE CUP RFA",
+      "NY 2/3 MTGB FINE CUP RFA+FDV",
+      "NY 2/3 SCREEN 15/16 FC",
+      "NY 3/4 MTGB GOOD CUP - UP TO TWO RIOY CUPS",
+      "NY 3/4 MTGB GOOD CUP RFA EUDR",
+      "PRIMEIRO MTGB",
+      "SEMI-WASHED 14/16",
+      "STS NY 2/3 15/16 SS FINE CUP EUDR",
+      "TOP GERMAN 15 UP FAIRTRADE",
+      "TOP GERMAN MIXED CROP 24/25 - 25/26 - peas option yes",
+      "TOP GERMAN MTGB EUDR"
+    ],
+    "linhas": [
+      "CD",
+      "GRD",
+      "LN1",
+      "LN1/2",
+      "LN2",
+      "LN2/3",
+      "LN3"
+    ],
+    "grupos_venda": [
+      "CEU",
+      "COBRA"
+    ]
+  },
+  {
+    "vendedor": "BRUNO HAZAN",
+    "sacas_total": 16344.16,
+    "valor_total": 6207990.21,
+    "numero_contratos": 33,
+    "numero_clientes": 7,
+    "paises": [
+      "ALEMANHA",
+      "ARGENTINA",
+      "BRASIL"
+    ],
+    "certificados": [
+      "4C",
+      "GCP"
+    ],
+    "qualidades": [
+      "MOKA MARACUYA",
+      "NATURAL CARAMEL 17/18",
+      "NESTLE 4.2 RS MONTES CLAROS",
+      "NESTLE NY 5 MTGB RS - ARARAS",
+      "NESTLE NY 5 RS",
+      "Padrao: PVA; PVA: 92; Impureza: 8;",
+      "Padrao: PVA; PVA: 95; Impureza: 5;",
+      "SEMI-WASHED 17/18",
+      "SEMI-WASHED NY 2, SCR 17, SS, FINE CUP, CROP 25/26"
+    ],
+    "linhas": [
+      "CD",
+      "LN1",
+      "LN1/2",
+      "LN2/3",
+      "PVA"
+    ],
+    "grupos_venda": [
+      "COBRA",
+      "MI"
+    ]
+  },
+  {
+    "vendedor": "BERNARDO HAZAN",
+    "sacas_total": 10150.0,
+    "valor_total": 1071942.42,
+    "numero_contratos": 9,
+    "numero_clientes": 2,
+    "paises": [
+      "ALEMANHA",
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, GRINDERS AHOLD SPEC"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "vendedor": "SEM VENDEDOR",
+    "sacas_total": 2659.14,
+    "valor_total": 1240734.62,
+    "numero_contratos": 3,
+    "numero_clientes": 3,
+    "paises": [
+      "ESTADOS UNIDOS",
+      "FINLANDIA",
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, NY 2/3 MTGB FINE CUP",
+      "GRINDERS 13 UP BASED STO 504/25",
+      "Grinders 13up"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1/2"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "vendedor": "ALEX PERK",
+    "sacas_total": 2466.1,
+    "valor_total": 912783.54,
+    "numero_contratos": 4,
+    "numero_clientes": 1,
+    "paises": [
+      "SUICA"
+    ],
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL ARABICA GRINDERS 12 UP RFA (UCC SPEC NY 5/6, GC, MAX 300 DEF)",
+      "Grinders 12up",
+      "NY 3/4 MTGB FC"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1"
+    ],
+    "grupos_venda": [
+      "CEU"
+    ]
+  },
+  {
+    "vendedor": "IVAN HAZAN",
+    "sacas_total": 915.25,
+    "valor_total": 207682.06,
+    "numero_contratos": 1,
+    "numero_clientes": 1,
+    "paises": [
+      "SUICA"
+    ],
+    "certificados": [],
+    "qualidades": [
+      "PA 85%"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "grupos_venda": []
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
+
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
+- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+
+  IMPORTANTE - COMO USAR:
+  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados

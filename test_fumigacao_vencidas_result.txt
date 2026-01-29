@@ -1,0 +1,162 @@
+Resultados da consulta IA_ContasAPagar:
+
+Total de registros: 8
+
+Dados completos:
+[
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001944",
+    "parcela": "01",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 457.98,
+    "rateio": 457.98,
+    "percrat": 100.0,
+    "emissao": "20251201",
+    "vencimento": "20260109",
+    "pedido": "968495"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001944",
+    "parcela": "02",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 198.46,
+    "rateio": 198.46,
+    "percrat": 100.0,
+    "emissao": "20251201",
+    "vencimento": "20260120",
+    "pedido": "968495"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001944",
+    "parcela": "03",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 915.97,
+    "rateio": 915.97,
+    "percrat": 100.0,
+    "emissao": "20251201",
+    "vencimento": "20260120",
+    "pedido": "968495"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001944",
+    "parcela": "04",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 305.32,
+    "rateio": 305.32,
+    "percrat": 100.0,
+    "emissao": "20251201",
+    "vencimento": "20260120",
+    "pedido": "968495"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001923",
+    "parcela": "01",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 482.56,
+    "rateio": 482.56,
+    "percrat": 100.0,
+    "emissao": "20251113",
+    "vencimento": "20251210",
+    "pedido": "968229"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001923",
+    "parcela": "02",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 209.11,
+    "rateio": 209.11,
+    "percrat": 100.0,
+    "emissao": "20251113",
+    "vencimento": "20251219",
+    "pedido": "968229"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001923",
+    "parcela": "03",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 965.12,
+    "rateio": 965.12,
+    "percrat": 100.0,
+    "emissao": "20251113",
+    "vencimento": "20251219",
+    "pedido": "968229"
+  },
+  {
+    "tipo": "Realizado",
+    "filial": "05",
+    "prefixo": "0  ",
+    "numero": "000001923",
+    "parcela": "04",
+    "fornecedor": "UNIAO                                   ",
+    "loja": "0000",
+    "centroCusto": "LOGISTICA OF                            ",
+    "natureza": "DESPESAS COM FUMIGACAO        ",
+    "valor": 321.71,
+    "rateio": 321.71,
+    "percrat": 100.0,
+    "emissao": "20251113",
+    "vencimento": "20251219",
+    "pedido": "968229"
+  }
+]
+
+CAMPOS DISPONÍVEIS:
+- tipo: Tipo do título (Realizado, etc.)
+- filial: Código da filial
+- prefixo: Prefixo do título
+- numero: Número do título
+- parcela: Parcela do título
+- fornecedor: Nome do fornecedor/credor
+- loja: Código da loja do fornecedor
+- centroCusto: Centro de custo associado
+- natureza: Natureza/tipo da despesa
+- valor: Valor a pagar
+- rateio: Valor do rateio
+- percrat: Percentual do rateio
+- emissao: Data de emissão (YYYYMMDD)
+- vencimento: Data de vencimento (YYYYMMDD)
+- pedido: Número do pedido relacionado
+
+Analise TODOS os 8 registros acima e responda com base nos campos disponíveis.

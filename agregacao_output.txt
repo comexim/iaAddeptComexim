@@ -1,0 +1,438 @@
+[
+  {
+    "cliente": "BERNHARD ROTHFOS GMB",
+    "total_contratos": 11,
+    "total_sacas": 27529.35,
+    "total_valor": 10015491.75,
+    "contratos_com_bl": "500/25A, 547/25 ",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 ",
+    "total_contratos_embarcados": 9,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "THE FOLGER COFFEE   ",
+    "total_contratos": 4,
+    "total_sacas": 17572.88,
+    "total_valor": 7469839.92,
+    "contratos_com_bl": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "565/25A, 565/25B, 566/25A, 566/25B",
+    "total_contratos_embarcados": 4,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "JDE                 ",
+    "total_contratos": 4,
+    "total_sacas": 6589.81,
+    "total_valor": 2826499.92,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "256/25R, 256/25S, 544/25 , 594/25 ",
+    "total_contratos_embarcados": 4,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "NESTRADE S.A.       ",
+    "total_contratos": 8,
+    "total_sacas": 4759.3,
+    "total_valor": 2366587.43,
+    "contratos_com_bl": "378/25 , 535/25 , 536/25 , 375/25C",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I",
+    "total_contratos_embarcados": 8,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "NESTLE ARARAS       ",
+    "total_contratos": 9,
+    "total_sacas": 4576.23,
+    "total_valor": 2247524.56,
+    "contratos_com_bl": "093/25A, 093/25B, 093/25C, 094/25A, 094/25B, 002/26C, 002/26D, 002/26E, 002/26F",
+    "total_contratos_com_bl": 9,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "COFFEA IMPORTACAO, E",
+    "total_contratos": 6,
+    "total_sacas": 5033.87,
+    "total_valor": 1365957.89,
+    "contratos_com_bl": "081/25A, 079/25D",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "VOLCAFE             ",
+    "total_contratos": 4,
+    "total_sacas": 10210.15,
+    "total_valor": 1343832.12,
+    "contratos_com_bl": "588/25B",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "588/25A, 588/25B, 003/26 , 009/26 ",
+    "total_contratos_embarcados": 4,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "NESTLE BRASIL LTDA. ",
+    "total_contratos": 7,
+    "total_sacas": 2372.86,
+    "total_valor": 1126716.5,
+    "contratos_com_bl": "096/25A, 096/25B, 096/25C, 096/25D",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "FINLAY BEVERAGES    ",
+    "total_contratos": 3,
+    "total_sacas": 2461.86,
+    "total_valor": 1007285.08,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "549/25 , 553/25 , 592/25 ",
+    "total_contratos_embarcados": 3,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "UCC-COFFEE SERVICES ",
+    "total_contratos": 4,
+    "total_sacas": 2466.1,
+    "total_valor": 912783.54,
+    "contratos_com_bl": "472/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "472/25 , 477/25 , 503/25 , 515/25 ",
+    "total_contratos_embarcados": 4,
+    "vendedores": [
+      "ALEX PERK"
+    ]
+  },
+  {
+    "cliente": "MEIRA (MZB GROUP)   ",
+    "total_contratos": 1,
+    "total_sacas": 1694.91,
+    "total_valor": 859031.2,
+    "contratos_com_bl": "027/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": []
+  },
+  {
+    "cliente": "EFICO NV            ",
+    "total_contratos": 6,
+    "total_sacas": 1990.93,
+    "total_valor": 817850.29,
+    "contratos_com_bl": "529/25 , 555/25 , 585/25 , 586/25 ",
+    "total_contratos_com_bl": 4,
+    "contratos_embarcados": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 ",
+    "total_contratos_embarcados": 6,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "THE DRIP CO.LTD     ",
+    "total_contratos": 1,
+    "total_sacas": 1355.93,
+    "total_valor": 696484.38,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "NEUMANN GRUPPE USA I",
+    "total_contratos": 1,
+    "total_sacas": 1355.93,
+    "total_valor": 646924.46,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "LOS CINCO HISPANOS S",
+    "total_contratos": 3,
+    "total_sacas": 1320.0,
+    "total_valor": 635360.0,
+    "contratos_com_bl": "590/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "590/25 , 019/26 , 021/26 ",
+    "total_contratos_embarcados": 3,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "AHOLD COFFEE        ",
+    "total_contratos": 4,
+    "total_sacas": 4550.0,
+    "total_valor": 539385.62,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BERNARDO HAZAN"
+    ]
+  },
+  {
+    "cliente": "COMEXIM EUROPE GMBH.",
+    "total_contratos": 5,
+    "total_sacas": 5600.0,
+    "total_valor": 532556.8,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 ",
+    "total_contratos_embarcados": 5,
+    "vendedores": [
+      "BERNARDO HAZAN"
+    ]
+  },
+  {
+    "cliente": "DEUTSCHE EXTRAKT KAF",
+    "total_contratos": 1,
+    "total_sacas": 1098.3,
+    "total_valor": 528580.32,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "568/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "J R COMERCIO E EXPOR",
+    "total_contratos": 4,
+    "total_sacas": 2053.2,
+    "total_valor": 506333.24,
+    "contratos_com_bl": "085/25D, 086/25A",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "IMPORTADORA REAL    ",
+    "total_contratos": 2,
+    "total_sacas": 880.0,
+    "total_valor": 440440.0,
+    "contratos_com_bl": "010/26 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "010/26 , 013/26 ",
+    "total_contratos_embarcados": 2,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "BROOKS CO. LTD.     ",
+    "total_contratos": 1,
+    "total_sacas": 960.0,
+    "total_valor": 415192.17,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "526/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "CAFES LA VIRGINIA   ",
+    "total_contratos": 2,
+    "total_sacas": 881.34,
+    "total_valor": 414237.28,
+    "contratos_com_bl": "577/25 , 578/25 ",
+    "total_contratos_com_bl": 2,
+    "contratos_embarcados": "577/25 , 578/25 ",
+    "total_contratos_embarcados": 2,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "FALCON COFFEES LIMIT",
+    "total_contratos": 1,
+    "total_sacas": 677.96,
+    "total_valor": 332986.2,
+    "contratos_com_bl": "510/25 ",
+    "total_contratos_com_bl": 1,
+    "contratos_embarcados": "510/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "INTERAMERICAN COFFEE",
+    "total_contratos": 1,
+    "total_sacas": 650.0,
+    "total_valor": 320391.91,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "518/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "CAFE FUNDADOR       ",
+    "total_contratos": 3,
+    "total_sacas": 447.0,
+    "total_valor": 217171.0,
+    "contratos_com_bl": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_com_bl": 3,
+    "contratos_embarcados": "582/25 , 583/25 , 584/25 ",
+    "total_contratos_embarcados": 3,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "F&J COMERCIO DE CAFE",
+    "total_contratos": 2,
+    "total_sacas": 762.7,
+    "total_valor": 215706.7,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "BRUNO HAZAN"
+    ]
+  },
+  {
+    "cliente": "ECOM AGROINDUSTRIAL ",
+    "total_contratos": 1,
+    "total_sacas": 915.25,
+    "total_valor": 207682.06,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": [
+      "IVAN HAZAN"
+    ]
+  },
+  {
+    "cliente": "WILLIAMS MANUFACTUR ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 169000.0,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "567/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "IRAKLIS ROUPAS LTDA ",
+    "total_contratos": 1,
+    "total_sacas": 325.0,
+    "total_valor": 161379.62,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "001/26 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "BIJDENDIJK          ",
+    "total_contratos": 1,
+    "total_sacas": 324.23,
+    "total_valor": 138332.13,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "",
+    "total_contratos_embarcados": 0,
+    "vendedores": []
+  },
+  {
+    "cliente": "MIORI               ",
+    "total_contratos": 1,
+    "total_sacas": 650.0,
+    "total_valor": 0,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "514/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "ALEX PERK"
+    ]
+  },
+  {
+    "cliente": "ATLANTIC USA IN     ",
+    "total_contratos": 1,
+    "total_sacas": 640.0,
+    "total_valor": 0,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "589/25 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": []
+  },
+  {
+    "cliente": "BERO COFFEE SING    ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 0,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "008/26 ",
+    "total_contratos_embarcados": 1,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  },
+  {
+    "cliente": "INTERAMERICAN COFFE ",
+    "total_contratos": 2,
+    "total_sacas": 650.0,
+    "total_valor": 0,
+    "contratos_com_bl": "",
+    "total_contratos_com_bl": 0,
+    "contratos_embarcados": "011/26 , 012/26 ",
+    "total_contratos_embarcados": 2,
+    "vendedores": [
+      "MAURICIO DICUNTO"
+    ]
+  }
+]

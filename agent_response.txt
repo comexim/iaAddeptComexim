@@ -1,0 +1,539 @@
+Resultados da consulta IA_Orcamento (AGREGADOS POR CATEGORIA):
+
+Total de registros SQL: 63
+Total de categorias: 63
+
+TOTAIS GERAIS (PRE-CALCULADOS):
+- Total Orcado: R$ 11,903,243.89
+- Total Realizado: R$ 6,850,782.24
+- Total Saldo: R$ 5,052,461.65
+- Percentual Realizado: 57.55%
+
+Dados por categoria:
+[
+  {
+    "categoria": "SERVICO DE APOIO",
+    "orcado": 4999881.08,
+    "realizado": 95400.45,
+    "saldo": 4904480.63,
+    "percentual_realizado": 1.91,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "REMUNERACAO",
+    "orcado": 1147237.6,
+    "realizado": 269529.52,
+    "saldo": 877708.08,
+    "percentual_realizado": 23.49,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ALMOXARIFADO",
+    "orcado": 791705.88,
+    "realizado": 137062.31,
+    "saldo": 654643.57,
+    "percentual_realizado": 17.31,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "INVESTIMENTO REF REFORMA ESCRIT OF",
+    "orcado": 660078.05,
+    "realizado": 146590.74,
+    "saldo": 513487.31,
+    "percentual_realizado": 22.21,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "BENEFICIOS",
+    "orcado": 543907.64,
+    "realizado": 378353.21,
+    "saldo": 165554.43,
+    "percentual_realizado": 69.56,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ENCARGOS",
+    "orcado": 525361.82,
+    "realizado": 0,
+    "saldo": 525361.82,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "OPERACIONAL",
+    "orcado": 507060.42,
+    "realizado": 119509.29,
+    "saldo": 387551.13,
+    "percentual_realizado": 23.57,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ADMINISTRACAO GERAL",
+    "orcado": 316198.49,
+    "realizado": 94437.95,
+    "saldo": 221760.54,
+    "percentual_realizado": 29.87,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM PESSOAL",
+    "orcado": 284486.85,
+    "realizado": 10008.26,
+    "saldo": 274478.59,
+    "percentual_realizado": 3.52,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESPESAS DE RH ANUAIS",
+    "orcado": 201942.0,
+    "realizado": 14404.45,
+    "saldo": 187537.55,
+    "percentual_realizado": 7.13,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "MOTORISTA CARRETA",
+    "orcado": 177930.14,
+    "realizado": 10209.72,
+    "saldo": 167720.42,
+    "percentual_realizado": 5.74,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESPESAS DE EXPORTACOES VARIAVEIS",
+    "orcado": 176527.53,
+    "realizado": 176527.53,
+    "saldo": 0,
+    "percentual_realizado": 100.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP FAZ PARAISO",
+    "orcado": 152515.0,
+    "realizado": 113875.42,
+    "saldo": 38639.58,
+    "percentual_realizado": 74.67,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP TEC INFORMACAO",
+    "orcado": 140255.0,
+    "realizado": 90501.16,
+    "saldo": 49753.84,
+    "percentual_realizado": 64.53,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESPESAS ADM ANUAIS",
+    "orcado": 124931.0,
+    "realizado": 82109.92,
+    "saldo": 42821.08,
+    "percentual_realizado": 65.72,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP ADMINISTRATIVAS",
+    "orcado": 94879.21,
+    "realizado": 42465.02,
+    "saldo": 52414.19,
+    "percentual_realizado": 44.76,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ENERGIA ELETRICA",
+    "orcado": 85513.0,
+    "realizado": 78529.05,
+    "saldo": 6983.95,
+    "percentual_realizado": 91.83,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM FURACAO EXTERNA",
+    "orcado": 85237.56,
+    "realizado": 39886.68,
+    "saldo": 45350.88,
+    "percentual_realizado": 46.79,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM FITO (MAPA)",
+    "orcado": 84702.8,
+    "realizado": 0,
+    "saldo": 84702.8,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ALUGUEL E DESP COM IMOVEIS",
+    "orcado": 75200.0,
+    "realizado": 45299.87,
+    "saldo": 29900.13,
+    "percentual_realizado": 60.24,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM PROJETO JDE",
+    "orcado": 71712.5,
+    "realizado": 2585.11,
+    "saldo": 69127.39,
+    "percentual_realizado": 3.6,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "EMBALAGENS ARMAZEM",
+    "orcado": 68228.98,
+    "realizado": 6234.35,
+    "saldo": 61994.63,
+    "percentual_realizado": 9.14,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM CERTIFICACAO RAIN",
+    "orcado": 67300.98,
+    "realizado": 47464.31,
+    "saldo": 19836.67,
+    "percentual_realizado": 70.53,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "CONSULTORIA",
+    "orcado": 53930.0,
+    "realizado": 16197.67,
+    "saldo": 37732.33,
+    "percentual_realizado": 30.03,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM FUMIGACAO",
+    "orcado": 47945.27,
+    "realizado": 30384.65,
+    "saldo": 17560.62,
+    "percentual_realizado": 63.37,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "MANUTENCAO PREVENTIVA",
+    "orcado": 36823.9,
+    "realizado": 11125.87,
+    "saldo": 25698.03,
+    "percentual_realizado": 30.21,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "MANUTENCAO PROGRAMADA",
+    "orcado": 33692.0,
+    "realizado": 13598.14,
+    "saldo": 20093.86,
+    "percentual_realizado": 40.36,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP TERCEIRIZACAO",
+    "orcado": 32862.42,
+    "realizado": 0,
+    "saldo": 32862.42,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "ALUGUEL DE EQUIPAMENTOS",
+    "orcado": 29610.25,
+    "realizado": 28101.52,
+    "saldo": 1508.73,
+    "percentual_realizado": 94.9,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "OFICINA/MECANICA",
+    "orcado": 28202.98,
+    "realizado": 1114.94,
+    "saldo": 27088.04,
+    "percentual_realizado": 3.95,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "GAS LIQUIFEITO DE PETROLEO",
+    "orcado": 27129.57,
+    "realizado": 16605.39,
+    "saldo": 10524.18,
+    "percentual_realizado": 61.21,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COPA COZINHA LIMPEZA",
+    "orcado": 25300.0,
+    "realizado": 4714.16,
+    "saldo": 20585.84,
+    "percentual_realizado": 18.63,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "TARIFAS BANCARIAS",
+    "orcado": 20000.0,
+    "realizado": 2458.67,
+    "saldo": 17541.33,
+    "percentual_realizado": 12.29,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP ARMAZEM ANUAIS",
+    "orcado": 16619.35,
+    "realizado": 6639.84,
+    "saldo": 9979.51,
+    "percentual_realizado": 39.95,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "EQUIPAMENTOS DE PROTECAO INDIV",
+    "orcado": 16202.91,
+    "realizado": 7212.57,
+    "saldo": 8990.34,
+    "percentual_realizado": 44.51,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP AMOSTRAS",
+    "orcado": 16000.0,
+    "realizado": 5778.2,
+    "saldo": 10221.8,
+    "percentual_realizado": 36.11,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "LOGISTICA INTERNA",
+    "orcado": 15548.22,
+    "realizado": 1578.47,
+    "saldo": 13969.75,
+    "percentual_realizado": 10.15,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM CERTIFICACAO 4C",
+    "orcado": 13916.1,
+    "realizado": 12584.2,
+    "saldo": 1331.9,
+    "percentual_realizado": 90.43,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "CONTRATOS COM MANUTENCAO EXTER",
+    "orcado": 11810.34,
+    "realizado": 15301.3,
+    "saldo": -3490.96,
+    "percentual_realizado": 129.56,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP CERTIFICACAO",
+    "orcado": 11762.27,
+    "realizado": 1408.79,
+    "saldo": 10353.48,
+    "percentual_realizado": 11.98,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "SEGURO NACIONAL DE CARGA",
+    "orcado": 11677.58,
+    "realizado": 7873.04,
+    "saldo": 3804.54,
+    "percentual_realizado": 67.42,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP MANUTENCAO",
+    "orcado": 11000.0,
+    "realizado": 3550.0,
+    "saldo": 7450.0,
+    "percentual_realizado": 32.27,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM CERTIFICACAO PLAT",
+    "orcado": 9915.82,
+    "realizado": 7526.4,
+    "saldo": 2389.42,
+    "percentual_realizado": 75.9,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP CLASSIFICACAO",
+    "orcado": 8607.2,
+    "realizado": 0,
+    "saldo": 8607.2,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP ARMAZEM",
+    "orcado": 8164.83,
+    "realizado": 11449.36,
+    "saldo": -3284.53,
+    "percentual_realizado": 140.23,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM MOBI 1",
+    "orcado": 7730.0,
+    "realizado": 5552.11,
+    "saldo": 2177.89,
+    "percentual_realizado": 71.83,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "SEGURO INTERNACIONAL DE CARGA",
+    "orcado": 7108.69,
+    "realizado": 0,
+    "saldo": 7108.69,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP SESMT",
+    "orcado": 4980.0,
+    "realizado": 1970.97,
+    "saldo": 3009.03,
+    "percentual_realizado": 39.58,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM MOBI 2",
+    "orcado": 4132.98,
+    "realizado": 4505.47,
+    "saldo": -372.49,
+    "percentual_realizado": 109.01,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "COMBUSTIVEL",
+    "orcado": 3000.0,
+    "realizado": 0,
+    "saldo": 3000.0,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP LOGISTIC",
+    "orcado": 2300.0,
+    "realizado": 1932.5,
+    "saldo": 367.5,
+    "percentual_realizado": 84.02,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "MANUTENCAO CORRETIVA",
+    "orcado": 1918.6,
+    "realizado": 0,
+    "saldo": 1918.6,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM FURACAO E EMBARQU",
+    "orcado": 1500.0,
+    "realizado": 722.18,
+    "saldo": 777.82,
+    "percentual_realizado": 48.15,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM CERTIFICACAO CAFE",
+    "orcado": 428.08,
+    "realizado": 2100.0,
+    "saldo": -1671.92,
+    "percentual_realizado": 490.56,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP FINANCEIRAS",
+    "orcado": 300.0,
+    "realizado": 119878.87,
+    "saldo": -119578.87,
+    "percentual_realizado": 39959.62,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP EXPORTACAO",
+    "orcado": 225.0,
+    "realizado": 113707.73,
+    "saldo": -113482.73,
+    "percentual_realizado": 50536.77,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP BALANCA",
+    "orcado": 106.0,
+    "realizado": 0,
+    "saldo": 106.0,
+    "percentual_realizado": 0.0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM DIA DE CAMPO",
+    "orcado": 0,
+    "realizado": 0,
+    "saldo": 0,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP AUDITORIA E PROCESSOS",
+    "orcado": 0,
+    "realizado": 17317.82,
+    "saldo": -17317.82,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "DESP COM CERTIFICACAO FAIR",
+    "orcado": 0,
+    "realizado": 13473.77,
+    "saldo": -13473.77,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "PAGAMENTO DE PREMIO ASSOPRO",
+    "orcado": 0,
+    "realizado": 966.43,
+    "saldo": -966.43,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "SEM ORCAMENTO",
+    "orcado": 0,
+    "realizado": 4362466.89,
+    "saldo": -4362466.89,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  },
+  {
+    "categoria": "SEGURO PATRIMONIAL",
+    "orcado": 0,
+    "realizado": 0,
+    "saldo": 0,
+    "percentual_realizado": 0,
+    "meses_incluidos": 1
+  }
+]
+
+Instruções: Os dados acima são de ORÇAMENTO (budget vs realizado).
+
+CAMPOS DISPONÍVEIS POR CATEGORIA:
+- categoria: nome da categoria/grupo orçamentário
+- orcado: valor orçado desta categoria (R$)
+- realizado: valor realizado desta categoria (R$)
+- saldo: saldo desta categoria (R$)
+- percentual_realizado: percentual realizado desta categoria (%)
+- meses_incluidos: quantidade de registros agregados
+
+IMPORTANTE:
+1. Orçamento NÃO tem contratos, sacas ou clientes. É uma previsão financeira.
+2. Para totais gerais, USE OS VALORES PRE-CALCULADOS acima. NÃO some manualmente.
+3. Os "TOTAIS GERAIS" já incluem TODAS as categorias somadas.
+
+Exemplos de perguntas:
+- "Qual o orçado total?" → Use "Total Orcado" dos TOTAIS GERAIS
+- "Quanto foi realizado?" → Use "Total Realizado" dos TOTAIS GERAIS
+- "Qual categoria teve maior gasto?" → Ordene as categorias por "realizado"
+- "Qual o percentual realizado?" → Use "Percentual Realizado" dos TOTAIS GERAIS

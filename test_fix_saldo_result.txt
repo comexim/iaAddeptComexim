@@ -1,0 +1,87 @@
+Resultados da consulta IA_SaldoBancario (AGREGADOS POR BANCO E MOEDA):
+
+Total de contas: 4
+Total de bancos únicos: 4
+
+⚠️ FILTRADO AUTOMATICAMENTE: Mostrando apenas bancos mencionados na pergunta (BB NY, ITAU STOS, BB STOS)
+
+SALDO TOTAL POR MOEDA (considerando todos os bancos listados abaixo):
+  Reais: R$ -10,524,187.88
+  Dolares: R$ 841.41
+
+Detalhamento por banco:
+[
+  {
+    "banco": "ITAU STOS",
+    "moeda": "Reais",
+    "saldo": -10592176.84,
+    "numero_contas": 1,
+    "contas": [
+      {
+        "agencia": "0021",
+        "conta": "11311-3",
+        "saldo": -10592176.84
+      }
+    ]
+  },
+  {
+    "banco": "BB STOS",
+    "moeda": "Reais",
+    "saldo": 67988.96,
+    "numero_contas": 1,
+    "contas": [
+      {
+        "agencia": "33596",
+        "conta": "148-1",
+        "saldo": 67988.96
+      }
+    ]
+  },
+  {
+    "banco": "BB NY DOLAR",
+    "moeda": "Dolares",
+    "saldo": 841.41,
+    "numero_contas": 1,
+    "contas": [
+      {
+        "agencia": "00686",
+        "conta": "76488011",
+        "saldo": 841.41
+      }
+    ]
+  },
+  {
+    "banco": "BB STOS",
+    "moeda": "Dolares",
+    "saldo": 0.0,
+    "numero_contas": 1,
+    "contas": [
+      {
+        "agencia": "03359",
+        "conta": "0000000148",
+        "saldo": 0.0
+      }
+    ]
+  }
+]
+
+IMPORTANTE:
+1. Saldos POSITIVOS = dinheiro disponível
+2. Saldos NEGATIVOS = saldo devedor (banco emprestou para empresa)
+3. Valores já agregados por banco e moeda
+4. numero_contas = quantidade de contas daquele banco naquela moeda
+
+⚠️ ATENÇÃO CRÍTICA - QUANDO A PERGUNTA MENCIONA MÚLTIPLOS BANCOS:
+- Se a pergunta menciona "Banco A e Banco B" ou "entre Banco A e Banco B"
+- Você DEVE incluir TODOS os bancos mencionados na resposta
+- Procure por TODOS os bancos na lista acima
+- SOME os saldos de TODOS os bancos mencionados
+- NÃO omita nenhum banco que foi explicitamente mencionado na pergunta
+- Mesmo que um banco tenha saldo NEGATIVO, ele DEVE ser mencionado
+
+EXEMPLO:
+Pergunta: "Quanto tenho no Banco A e Banco B?"
+Resposta CORRETA deve incluir:
+  - Banco A: [todos os saldos do Banco A]
+  - Banco B: [todos os saldos do Banco B]
+  - TOTAL: [soma de A + B]

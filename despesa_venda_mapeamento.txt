@@ -1,0 +1,101 @@
+MAPEAMENTO COMPLETO - IA_DespesaVenda()
+================================================================================
+
+Total de registros: 3
+Total de colunas: 21
+
+COLUNAS:
+  1. filial
+  2. dataBL
+  3. saidaBrasim
+  4. contrato
+  5. letra
+  6. idProtheus
+  7. cliente
+  8. mesEmbarque
+  9. containers
+ 10. padrao
+ 11. descrQualidade
+ 12. valorTotal
+ 13. sacas
+ 14. vendedor
+ 15. despesaRea
+ 16. despesaDolar
+ 17. pedido
+ 18. observacao
+ 19. despesaQuantidade
+ 20. fornecedor
+ 21. despesa
+
+
+PRIMEIROS 5 REGISTROS:
+================================================================================
+
+REGISTRO 1:
+filial: 05
+dataBL: 20250930
+saidaBrasim: 20250930
+contrato: 235/25
+letra:  
+idProtheus: 010987
+cliente: IMPORTADORA REAL    
+mesEmbarque: 2025/09
+containers: 1.0
+padrao: CD    
+descrQualidade: SEMI WASHED SCREEN 17/18                                                                                                                                                                                
+valorTotal: 48600.0
+sacas: 100.00
+vendedor: MAURICIO DICUNTO                                            
+despesaRea: 160.0
+despesaDolar: 0.0
+pedido: 967619
+observacao:                                                                                                                                                       
+despesaQuantidade: 1.0
+fornecedor: TERRA FORTE TRANSPORTE & SERVICOS       
+despesa: DESEMBARACO ADUANEIRO                   
+
+REGISTRO 2:
+filial: 05
+dataBL: 20250930
+saidaBrasim: 20250930
+contrato: 235/25
+letra:  
+idProtheus: 010987
+cliente: IMPORTADORA REAL    
+mesEmbarque: 2025/09
+containers: 1.0
+padrao: CD    
+descrQualidade: SEMI WASHED SCREEN 17/18                                                                                                                                                                                
+valorTotal: 48600.0
+sacas: 100.00
+vendedor: MAURICIO DICUNTO                                            
+despesaRea: 80.0
+despesaDolar: 0.0
+pedido: 967619
+observacao:                                                                                                                                                       
+despesaQuantidade: 1.0
+fornecedor: TERRA FORTE TRANSPORTE & SERVICOS       
+despesa: TAXA LAUDO / CERTIFICADO                
+
+REGISTRO 3:
+filial: 05
+dataBL: 20250930
+saidaBrasim: 20250930
+contrato: 235/25
+letra:  
+idProtheus: 010987
+cliente: IMPORTADORA REAL    
+mesEmbarque: 2025/09
+containers: 1.0
+padrao: CD    
+descrQualidade: SEMI WASHED SCREEN 17/18                                                                                                                                                                                
+valorTotal: 48600.0
+sacas: 100.00
+vendedor: MAURICIO DICUNTO                                            
+despesaRea: 256.8
+despesaDolar: 0.0
+pedido: 966428
+observacao: DESPESAS COM FUMIGACAO                                                                                                                                
+despesaQuantidade: 1.0
+fornecedor: S.V.I AMBIENTAL - FILIAL                
+despesa: DESPESA COM FUMIGACAO                   

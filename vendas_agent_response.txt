@@ -1,0 +1,1104 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 110
+Total de clientes: 34
+
+Dados agregados:
+[
+  {
+    "cliente": "BERNHARD ROTHFOS GMB",
+    "total_contratos": 11,
+    "total_sacas": 27529.35,
+    "total_valor": 10015491.75,
+    "valor_unitario_medio": 333.21,
+    "valor_fixado_medio": 330.92,
+    "diferencial_medio": -29.91,
+    "peneira_mtgb_media": 72.73,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 27.27,
+    "certificados": [
+      "4C",
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS GOOD CUP 13 UP RFA EUDR",
+      "GRINDERS NY 5/6 SCREEN 13 UP SS GC RFA",
+      "NESTLE 4.2 RS EUDR",
+      "NY 3/4 MTGB GOOD CUP - UP TO TWO RIOY CUPS",
+      "TOP GERMAN MTGB EUDR"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN2",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "400/25A, 400/25B, 500/25A, 500/25B, 547/25 , 548/25 , 557/25 , 556/25B, 580/25 , 556/25C"
+  },
+  {
+    "cliente": "THE FOLGER COFFEE   ",
+    "total_contratos": 4,
+    "total_sacas": 17572.88,
+    "total_valor": 7469839.92,
+    "valor_unitario_medio": 326.8,
+    "valor_fixado_medio": 351.8,
+    "diferencial_medio": -25.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "FOLGER B"
+    ],
+    "paises": [
+      "ESTADOS UNIDOS"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "565/25A, 565/25B, 566/25A, 566/25B"
+  },
+  {
+    "cliente": "JDE                 ",
+    "total_contratos": 4,
+    "total_sacas": 6589.81,
+    "total_valor": 2826499.92,
+    "valor_unitario_medio": 343.56,
+    "valor_fixado_medio": 331.29,
+    "diferencial_medio": 12.28,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "FT"
+    ],
+    "qualidades": [
+      "PRIMEIRO MTGB",
+      "TOP GERMAN 15 UP FAIRTRADE",
+      "TOP GERMAN MIXED CROP 24/25 - 25/26 - peas option yes"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "256/25R, 256/25S, 544/25 , 594/25 "
+  },
+  {
+    "cliente": "NESTRADE S.A.       ",
+    "total_contratos": 9,
+    "total_sacas": 5125.4,
+    "total_valor": 2547257.14,
+    "valor_unitario_medio": 380.84,
+    "valor_fixado_medio": 372.23,
+    "diferencial_medio": 8.61,
+    "peneira_mtgb_media": 11.11,
+    "peneira_grauda_media": 88.89,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "4C",
+      "FT",
+      "GCP",
+      "RF"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 MTGB RS EUDR",
+      "NESTLE 4.2 SCR17 FT EUDR",
+      "NESTLE 4.2 SCR17 RFA EUDR",
+      "NESTLE 4.3 SCR17 RS EUDR"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2",
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "378/25 , 535/25 , 536/25 , 573/25 , 375/25C, 375/25D, 379/25G, 379/25I, 379/25J"
+  },
+  {
+    "cliente": "NESTLE ARARAS       ",
+    "total_contratos": 9,
+    "total_sacas": 4576.23,
+    "total_valor": 2247524.56,
+    "valor_unitario_medio": 377.58,
+    "valor_fixado_medio": 370.36,
+    "diferencial_medio": 7.22,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "GCP"
+    ],
+    "qualidades": [
+      "NESTLE NY 5 MTGB RS - ARARAS",
+      "NESTLE NY 5 RS"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "093/25A, 093/25B, 093/25C, 094/25A, 094/25B, 002/26C, 002/26D, 002/26E, 002/26F"
+  },
+  {
+    "cliente": "COFFEA IMPORTACAO, E",
+    "total_contratos": 6,
+    "total_sacas": 5033.87,
+    "total_valor": 1365957.89,
+    "valor_unitario_medio": 212.9,
+    "valor_fixado_medio": 212.9,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 95; Impureza: 5;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "089/25 , 081/25A, 081/25B, 082/25A, 082/25B, 079/25D"
+  },
+  {
+    "cliente": "VOLCAFE             ",
+    "total_contratos": 4,
+    "total_sacas": 10210.15,
+    "total_valor": 1343832.12,
+    "valor_unitario_medio": 257.43,
+    "valor_fixado_medio": 173.38,
+    "diferencial_medio": -11.25,
+    "peneira_mtgb_media": 75.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 25.0,
+    "certificados": [
+      "GCP",
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDER 13 GC RFA - 10% LEAKAGE - NO OTA ON ARRIVAL",
+      "NESTLE 1.2 RS",
+      "NY 2/3 MTGB FINE CUP RFA"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1",
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "588/25A, 588/25B, 003/26 , 009/26 "
+  },
+  {
+    "cliente": "NESTLE BRASIL LTDA. ",
+    "total_contratos": 7,
+    "total_sacas": 2372.86,
+    "total_valor": 1126716.5,
+    "valor_unitario_medio": 365.05,
+    "valor_fixado_medio": 339.05,
+    "diferencial_medio": 26.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "4C"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 RS MONTES CLAROS"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "096/25A, 096/25B, 096/25C, 096/25D, 096/25E, 096/25F, 096/25G"
+  },
+  {
+    "cliente": "FINLAY BEVERAGES    ",
+    "total_contratos": 3,
+    "total_sacas": 2461.86,
+    "total_valor": 1007285.08,
+    "valor_unitario_medio": 316.8,
+    "valor_fixado_medio": 364.13,
+    "diferencial_medio": -47.33,
+    "peneira_mtgb_media": 33.33,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 66.67,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS 12 RFA",
+      "GRINDERS 13 UP RFA EUDR",
+      "NY 3/4 MTGB GOOD CUP RFA EUDR"
+    ],
+    "paises": [
+      "REINO UNIDO"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "549/25 , 553/25 , 592/25 "
+  },
+  {
+    "cliente": "MEIRA (MZB GROUP)   ",
+    "total_contratos": 1,
+    "total_sacas": 1694.91,
+    "total_valor": 859031.2,
+    "valor_unitario_medio": 389.65,
+    "valor_fixado_medio": 361.65,
+    "diferencial_medio": 28.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, NY 2/3 MTGB FINE CUP"
+    ],
+    "paises": [
+      "FINLANDIA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "027/25 "
+  },
+  {
+    "cliente": "LOS CINCO HISPANOS S",
+    "total_contratos": 4,
+    "total_sacas": 1760.0,
+    "total_valor": 847880.0,
+    "valor_unitario_medio": 481.75,
+    "valor_fixado_medio": 481.75,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "GOOD CUP SUPERIOR 17/18",
+      "NATURAL CARAMEL 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "590/25 , 019/26 , 020/26 , 021/26 "
+  },
+  {
+    "cliente": "EFICO NV            ",
+    "total_contratos": 6,
+    "total_sacas": 1990.93,
+    "total_valor": 817850.29,
+    "valor_unitario_medio": 315.1,
+    "valor_fixado_medio": 361.77,
+    "diferencial_medio": -46.67,
+    "peneira_mtgb_media": 16.67,
+    "peneira_grauda_media": 16.67,
+    "peneira_grinder_media": 66.67,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "GRINDERS 12 TS",
+      "GRINDERS 12 TS RFA",
+      "GRINDERS 12 UP",
+      "GRINDERS TS 13 UP RFA+EUDR",
+      "MOGIANA SCREEN 16+ FC",
+      "NY 3/4 MTGB GOOD CUP RFA EUDR"
+    ],
+    "paises": [
+      "BELGICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1",
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "529/25 , 555/25 , 585/25 , 586/25 , 591/25 , 595/25 "
+  },
+  {
+    "cliente": "THE DRIP CO.LTD     ",
+    "total_contratos": 1,
+    "total_sacas": 1355.93,
+    "total_valor": 696484.38,
+    "valor_unitario_medio": 394.9,
+    "valor_fixado_medio": 403.9,
+    "diferencial_medio": -9.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NY 2/3 GOOD CUP SCREEN 15/16"
+    ],
+    "paises": [
+      "COREIA, REPUBLICA DA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "383/25 "
+  },
+  {
+    "cliente": "DEUTSCHE EXTRAKT KAF",
+    "total_contratos": 1,
+    "total_sacas": 1098.3,
+    "total_valor": 528580.32,
+    "valor_unitario_medio": 370.0,
+    "valor_fixado_medio": 370.0,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "SEMI-WASHED NY 2, SCR 17, SS, FINE CUP, CROP 25/26"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "568/25 "
+  },
+  {
+    "cliente": "J R COMERCIO E EXPOR",
+    "total_contratos": 4,
+    "total_sacas": 2053.2,
+    "total_valor": 506333.24,
+    "valor_unitario_medio": 189.61,
+    "valor_fixado_medio": 189.61,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 92; Impureza: 8;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "087/25 , 085/25D, 086/25A, 086/25B"
+  },
+  {
+    "cliente": "UCC-COFFEE SERVICES ",
+    "total_contratos": 4,
+    "total_sacas": 2466.1,
+    "total_valor": 485162.92,
+    "valor_unitario_medio": 360.41,
+    "valor_fixado_medio": 183.6,
+    "diferencial_medio": -21.12,
+    "peneira_mtgb_media": 25.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 75.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL ARABICA GRINDERS 12 UP RFA (UCC SPEC NY 5/6, GC, MAX 300 DEF)",
+      "Grinders 12up",
+      "NY 3/4 MTGB FC"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD",
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "472/25 , 477/25 , 503/25 , 515/25 "
+  },
+  {
+    "cliente": "IMPORTADORA REAL    ",
+    "total_contratos": 2,
+    "total_sacas": 880.0,
+    "total_valor": 440440.0,
+    "valor_unitario_medio": 500.5,
+    "valor_fixado_medio": 500.5,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NATURAL CARAMEL 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "010/26 , 013/26 "
+  },
+  {
+    "cliente": "CAFES LA VIRGINIA   ",
+    "total_contratos": 2,
+    "total_sacas": 881.34,
+    "total_valor": 414237.28,
+    "valor_unitario_medio": 470.0,
+    "valor_fixado_medio": 470.0,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "GOOD CUP 14/16",
+      "SEMI-WASHED 14/16"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "CD",
+      "LN2/3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "577/25 , 578/25 "
+  },
+  {
+    "cliente": "FALCON COFFEES LIMIT",
+    "total_contratos": 1,
+    "total_sacas": 677.96,
+    "total_valor": 332986.2,
+    "valor_unitario_medio": 377.6,
+    "valor_fixado_medio": 375.6,
+    "diferencial_medio": 2.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "NY 2/3 MTGB FINE CUP RFA+FDV"
+    ],
+    "paises": [
+      "REINO UNIDO"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "510/25 "
+  },
+  {
+    "cliente": "INTERAMERICAN COFFEE",
+    "total_contratos": 1,
+    "total_sacas": 650.0,
+    "total_valor": 320391.91,
+    "valor_unitario_medio": 378.95,
+    "valor_fixado_medio": 379.95,
+    "diferencial_medio": -1.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "STS NY 2/3 15/16 SS FINE CUP EUDR"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "518/25 "
+  },
+  {
+    "cliente": "CAFE FUNDADOR       ",
+    "total_contratos": 3,
+    "total_sacas": 447.0,
+    "total_valor": 217171.0,
+    "valor_unitario_medio": 486.33,
+    "valor_fixado_medio": 486.33,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 33.33,
+    "peneira_grauda_media": 66.67,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "MOKA MARACUYA",
+      "NATURAL CARAMEL 17/18",
+      "SEMI-WASHED 17/18"
+    ],
+    "paises": [
+      "ARGENTINA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "CD",
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "582/25 , 583/25 , 584/25 "
+  },
+  {
+    "cliente": "F&J COMERCIO DE CAFE",
+    "total_contratos": 2,
+    "total_sacas": 762.7,
+    "total_valor": 215706.7,
+    "valor_unitario_medio": 217.43,
+    "valor_fixado_medio": 217.43,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "Padrao: PVA; PVA: 95; Impureza: 5;"
+    ],
+    "paises": [
+      "BRASIL"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "080/25B, 080/25F"
+  },
+  {
+    "cliente": "ECOM AGROINDUSTRIAL ",
+    "total_contratos": 1,
+    "total_sacas": 915.25,
+    "total_valor": 207682.06,
+    "valor_unitario_medio": 174.45,
+    "valor_fixado_medio": 319.45,
+    "diferencial_medio": -145.0,
+    "peneira_mtgb_media": 100.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "PA 85%"
+    ],
+    "paises": [
+      "SUICA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "PVA"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "272/25 "
+  },
+  {
+    "cliente": "WILLIAMS MANUFACTUR ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 169000.0,
+    "valor_unitario_medio": 8.45,
+    "valor_fixado_medio": 8.45,
+    "diferencial_medio": 0.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "CERRADO FC 17/18"
+    ],
+    "paises": [
+      "POLONIA, REPUBLICA DA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "567/25 "
+  },
+  {
+    "cliente": "IRAKLIS ROUPAS LTDA ",
+    "total_contratos": 1,
+    "total_sacas": 325.0,
+    "total_valor": 161379.62,
+    "valor_unitario_medio": 381.75,
+    "valor_fixado_medio": 364.75,
+    "diferencial_medio": 17.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "FINE CUP 17/18 SS MOGIANA"
+    ],
+    "paises": [
+      "GRECIA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN1"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "001/26 "
+  },
+  {
+    "cliente": "BIJDENDIJK          ",
+    "total_contratos": 1,
+    "total_sacas": 324.23,
+    "total_valor": 138332.13,
+    "valor_unitario_medio": 328.0,
+    "valor_fixado_medio": 373.0,
+    "diferencial_medio": -45.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "Grinders 13up"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "036/25 "
+  },
+  {
+    "cliente": "AHOLD COFFEE        ",
+    "total_contratos": 4,
+    "total_sacas": 4550.0,
+    "total_valor": 0,
+    "valor_unitario_medio": 238.7,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -50.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, GRINDERS AHOLD SPEC"
+    ],
+    "paises": [
+      "PAISES BAIXOS (HOLANDA)"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "031/25 , 034/25 , 039/25 , 040/25 "
+  },
+  {
+    "cliente": "COMEXIM EUROPE GMBH.",
+    "total_contratos": 5,
+    "total_sacas": 5600.0,
+    "total_valor": 0,
+    "valor_unitario_medio": 333.21,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -53.75,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "BRAZIL NATURAL ARABICA, GRINDERS AHOLD SPEC"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "482/25 , 483/25 , 489/25 , 537/25 , 538/25 "
+  },
+  {
+    "cliente": "MIORI               ",
+    "total_contratos": 1,
+    "total_sacas": 650.0,
+    "total_valor": 0,
+    "valor_unitario_medio": -58.0,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -58.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [],
+    "qualidades": [
+      "BRAZIL SEMI-WASHED, GRINDERS 12 UP"
+    ],
+    "paises": [
+      "RUSSIA, FEDERACAO DA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "514/25 "
+  },
+  {
+    "cliente": "BROOKS CO. LTD.     ",
+    "total_contratos": 1,
+    "total_sacas": 960.0,
+    "total_valor": 0,
+    "valor_unitario_medio": -17.0,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -17.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NY 2 SCREEN 17/18 SS FINE CUP - CROP 2025-2026"
+    ],
+    "paises": [
+      "JAPAO"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN3"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "526/25 "
+  },
+  {
+    "cliente": "ATLANTIC USA IN     ",
+    "total_contratos": 1,
+    "total_sacas": 640.0,
+    "total_valor": 0,
+    "valor_unitario_medio": 284.4,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -63.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 0.0,
+    "peneira_grinder_media": 100.0,
+    "certificados": [],
+    "qualidades": [
+      "GRINDERS 13 UP BASED STO 504/25"
+    ],
+    "paises": [
+      "ESTADOS UNIDOS"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "GRD"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "589/25 "
+  },
+  {
+    "cliente": "BERO COFFEE SING    ",
+    "total_contratos": 1,
+    "total_sacas": 338.98,
+    "total_valor": 0,
+    "valor_unitario_medio": 376.2,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": -5.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [
+      "RF"
+    ],
+    "qualidades": [
+      "NESTLE 4.2 RFA SCR 17 UP"
+    ],
+    "paises": [
+      "SINGAPURA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "008/26 "
+  },
+  {
+    "cliente": "UPSTREAM  COFFEE IMP",
+    "total_contratos": 2,
+    "total_sacas": 650.0,
+    "total_valor": 0,
+    "valor_unitario_medio": 381.5,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": 4.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "NY 2/3 GOOD CUP 16/18 - CROP 2025/2026 - MOISTURE LIMIT 11,5%"
+    ],
+    "paises": [
+      "AUSTRALIA"
+    ],
+    "fixadores": [
+      "Importador"
+    ],
+    "linhas": [
+      "LN2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "004/26A, 004/26B"
+  },
+  {
+    "cliente": "INTERAMERICAN COFFE ",
+    "total_contratos": 2,
+    "total_sacas": 650.0,
+    "total_valor": 0,
+    "valor_unitario_medio": 10.0,
+    "valor_fixado_medio": 0.0,
+    "diferencial_medio": 10.0,
+    "peneira_mtgb_media": 0.0,
+    "peneira_grauda_media": 100.0,
+    "peneira_grinder_media": 0.0,
+    "certificados": [],
+    "qualidades": [
+      "CERRADO 17/18 FC"
+    ],
+    "paises": [
+      "ALEMANHA"
+    ],
+    "fixadores": [
+      "Exportador"
+    ],
+    "linhas": [
+      "LN1/2"
+    ],
+    "meses_embarque": [
+      "2026/01"
+    ],
+    "contratos": "011/26 , 012/26 "
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises

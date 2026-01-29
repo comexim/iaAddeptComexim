@@ -1,0 +1,147 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 107
+Total de clientes: 8
+
+Dados agregados:
+[
+  {
+    "linha": "LN2",
+    "valor_total": 20808934.4,
+    "sacas_total": 47703.7,
+    "media_por_saca": 436.21,
+    "numero_contratos": 38,
+    "numero_clientes": 9
+  },
+  {
+    "linha": "GRD",
+    "valor_total": 19921369.54,
+    "sacas_total": 55772.62,
+    "media_por_saca": 357.19,
+    "numero_contratos": 39,
+    "numero_clientes": 9
+  },
+  {
+    "linha": "LN2/3",
+    "valor_total": 17144955.72,
+    "sacas_total": 39576.73,
+    "media_por_saca": 433.21,
+    "numero_contratos": 26,
+    "numero_clientes": 4
+  },
+  {
+    "linha": "LN3",
+    "valor_total": 10251619.52,
+    "sacas_total": 23292.18,
+    "media_por_saca": 440.13,
+    "numero_contratos": 13,
+    "numero_clientes": 3
+  },
+  {
+    "linha": "LN1",
+    "valor_total": 7955675.6,
+    "sacas_total": 19076.46,
+    "media_por_saca": 417.04,
+    "numero_contratos": 25,
+    "numero_clientes": 9
+  },
+  {
+    "linha": "LN1/2",
+    "valor_total": 7021130.12,
+    "sacas_total": 16255.88,
+    "media_por_saca": 431.91,
+    "numero_contratos": 16,
+    "numero_clientes": 6
+  },
+  {
+    "linha": "PVA",
+    "valor_total": 2295679.89,
+    "sacas_total": 8765.02,
+    "media_por_saca": 261.91,
+    "numero_contratos": 14,
+    "numero_clientes": 4
+  },
+  {
+    "linha": "CD",
+    "valor_total": 631408.28,
+    "sacas_total": 1328.34,
+    "media_por_saca": 475.34,
+    "numero_contratos": 5,
+    "numero_clientes": 2
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
+
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
+- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+
+  IMPORTANTE - COMO USAR:
+  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados

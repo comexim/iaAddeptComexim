@@ -157,6 +157,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         break
 
             sql_tools.user_query = contextualized_query
+            sql_tools.user_query_original = message  # Query SEM contexto para filtros
             self.tools = sql_tools.get_all_tools()
 
             logger.info(f"Processando mensagem do usuário {self.user.nome}: {message[:100]}...")

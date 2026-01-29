@@ -1,0 +1,159 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 10238
+Total de clientes: 1
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Contratos: 0
+- Total de Sacas: 0.00
+- Valor Total: R$ 0.00
+
+CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):
+  • DINAMARCA: 2 contrato(s), 650.84 sacas, 1 cliente(s)
+    Contratos: 530/25, 531/25
+
+Dados agregados:
+[
+  {
+    "cliente": "FREY A/S            ",
+    "contratos_baixados_jan2026": "530/25 , 531/25 ",
+    "total_baixados_jan2026": 2,
+    "contratos_baixados_dez2025": "",
+    "total_baixados_dez2025": 0,
+    "contratos_baixados_nov2025": "",
+    "total_baixados_nov2025": 0
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+
+  ⚠️ ATENÇÃO - CONTRATOS SEM BL:
+  Para calcular contratos SEM BL, use: total_contratos - total_contratos_com_bl
+  NÃO confunda com total_contratos_embarcados (são coisas diferentes!)
+  Exemplo: Se tem 107 contratos e 52 com BL, então 107 - 52 = 55 SEM BL
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
+
+⚠️⚠️⚠️ ATENÇÃO CRÍTICA - NÃO CONFUNDA MÊS DE EMBARQUE COM MÊS DE BAIXA! ⚠️⚠️⚠️
+
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data de BAIXA):
+- contratos_baixados_jan2026: lista de contratos QUE FORAM PAGOS/BAIXADOS EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos QUE FORAM PAGOS/BAIXADOS EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em dezembro/2025
+- contratos_baixados_nov2025: lista de contratos QUE FORAM PAGOS/BAIXADOS EM novembro/2025 (até 100)
+- total_baixados_nov2025: quantidade de contratos QUE FORAM PAGOS/BAIXADOS em novembro/2025
+
+  ⚠️⚠️⚠️ REGRA ABSOLUTA - LEIA COM MUITA ATENÇÃO ⚠️⚠️⚠️
+
+  "Contratos EM [mês] [ano]" pode significar DUAS COISAS DIFERENTES:
+
+  1️⃣ "Contratos COM EMBARQUE em nov/dez 2025" → Use o filtro de período (mesEmbarque)
+     Exemplo: "Quantos contratos do cliente X em novembro 2025?"
+     → Significa contratos que EMBARCARAM em nov/2025
+     → Use pesquisa_vendas(periodo="novembro 2025")
+
+  2️⃣ "Contratos QUE FORAM BAIXADOS/PAGOS em nov/dez 2025" → Use os campos contratos_baixados_*
+     Exemplo: "Quantos contratos do cliente X foram baixados em novembro 2025?"
+     → Significa contratos que foram PAGOS/BAIXADOS em nov/2025 (independente de quando embarcaram)
+     → Use contratos_baixados_nov2025 e total_baixados_nov2025
+
+  PALAVRAS-CHAVE que indicam BAIXA (opção 2):
+  - "baixados em", "foram baixados", "já foram baixados"
+  - "pagos em", "foram pagos", "já foram pagos"
+  - "quitados em", "foram quitados"
+  - "baixados financeiramente"
+  - "baixados no contas a receber"
+
+  Se a pergunta NÃO contém essas palavras-chave → é sobre EMBARQUE (opção 1)
+
+  EXEMPLO REAL:
+  ❌ ERRADO: "Contratos do FREY A/S em novembro 2025 já foram baixados?"
+     → A IA NÃO deve responder "2 contratos foram baixados em nov/2025"
+     → Os contratos embarcaram em nov/2025, mas foram baixados em JAN/2026!
+
+  ✅ CORRETO: Verificar a data REAL de baixa nos campos contratos_baixados_*
+     → Se contratos_baixados_nov2025 estiver vazio → responder "0 contratos foram baixados em nov/2025"
+     → Verificar contratos_baixados_jan2026 para ver quando foram realmente baixados
+
+  COMO USAR OS CAMPOS:
+  - Para "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - Para "contratos baixados EM novembro 2025" → use contratos_baixados_nov2025 e total_baixados_nov2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" ACIMA PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quantos contratos?" → Use "Total de Contratos" dos TOTAIS GERAIS
+   - "Qual o valor total?" → Use "Valor Total" dos TOTAIS GERAIS
+   - NÃO SOME manualmente os valores por cliente! Os TOTAIS GERAIS já estão corretos!
+
+2. ⚠️ PARA PERGUNTAS SOBRE PAÍSES ESPECÍFICOS, USE A SEÇÃO "CONTRATOS POR PAÍS"!
+   - "Quantas sacas para Argentina?" → Procure Argentina na seção CONTRATOS POR PAÍS
+   - "Quais contratos para país X?" → Use a lista de contratos da seção CONTRATOS POR PAÍS
+   - NÃO procure país por país nos dados agregados por cliente!
+   - A seção CONTRATOS POR PAÍS mostra TODOS os contratos de cada país, mesmo que estejam em clientes diferentes!
+
+3. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+4. NÃO tente recalcular médias manualmente.
+5. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+6. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+7. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
+
+Exemplos corretos de uso:
+- "Quantas sacas foram exportadas?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quantos contratos?" → Use "Total de Contratos" dos TOTAIS GERAIS
+- "Qual o valor total?" → Use "Valor Total" dos TOTAIS GERAIS
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quantos contratos NÃO têm BL?" → Calcule: total_contratos - total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados

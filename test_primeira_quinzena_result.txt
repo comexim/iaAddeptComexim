@@ -1,0 +1,513 @@
+Resultados da consulta IA_Vendas (AGREGADOS POR CLIENTE):
+
+Total de registros SQL: 107
+Total de clientes: 106
+
+Dados agregados:
+[
+  {
+    "numero_contrato": "272/25",
+    "cliente": "ECOM AGROINDUSTRIAL"
+  },
+  {
+    "numero_contrato": "378/25",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "535/25",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "536/25",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "573/25",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "375/25C",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "375/25D",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "379/25G",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "379/25I",
+    "cliente": "NESTRADE S.A."
+  },
+  {
+    "numero_contrato": "383/25",
+    "cliente": "THE DRIP CO.LTD"
+  },
+  {
+    "numero_contrato": "080/25B",
+    "cliente": "F&J COMERCIO DE CAFE"
+  },
+  {
+    "numero_contrato": "080/25F",
+    "cliente": "F&J COMERCIO DE CAFE"
+  },
+  {
+    "numero_contrato": "400/25A",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "400/25B",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "500/25A",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "500/25B",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "547/25",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "548/25",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "557/25",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "556/25B",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "580/25",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "556/25C",
+    "cliente": "BERNHARD ROTHFOS GMB"
+  },
+  {
+    "numero_contrato": "027/25",
+    "cliente": "MEIRA (MZB GROUP)"
+  },
+  {
+    "numero_contrato": "256/25R",
+    "cliente": "JDE"
+  },
+  {
+    "numero_contrato": "256/25S",
+    "cliente": "JDE"
+  },
+  {
+    "numero_contrato": "544/25",
+    "cliente": "JDE"
+  },
+  {
+    "numero_contrato": "594/25",
+    "cliente": "JDE"
+  },
+  {
+    "numero_contrato": "472/25",
+    "cliente": "UCC-COFFEE SERVICES"
+  },
+  {
+    "numero_contrato": "477/25",
+    "cliente": "UCC-COFFEE SERVICES"
+  },
+  {
+    "numero_contrato": "503/25",
+    "cliente": "UCC-COFFEE SERVICES"
+  },
+  {
+    "numero_contrato": "515/25",
+    "cliente": "UCC-COFFEE SERVICES"
+  },
+  {
+    "numero_contrato": "089/25",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "081/25A",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "081/25B",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "082/25A",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "082/25B",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "079/25D",
+    "cliente": "COFFEA IMPORTACAO, E"
+  },
+  {
+    "numero_contrato": "031/25",
+    "cliente": "AHOLD COFFEE"
+  },
+  {
+    "numero_contrato": "034/25",
+    "cliente": "AHOLD COFFEE"
+  },
+  {
+    "numero_contrato": "039/25",
+    "cliente": "AHOLD COFFEE"
+  },
+  {
+    "numero_contrato": "040/25",
+    "cliente": "AHOLD COFFEE"
+  },
+  {
+    "numero_contrato": "482/25",
+    "cliente": "COMEXIM EUROPE GMBH."
+  },
+  {
+    "numero_contrato": "483/25",
+    "cliente": "COMEXIM EUROPE GMBH."
+  },
+  {
+    "numero_contrato": "489/25",
+    "cliente": "COMEXIM EUROPE GMBH."
+  },
+  {
+    "numero_contrato": "537/25",
+    "cliente": "COMEXIM EUROPE GMBH."
+  },
+  {
+    "numero_contrato": "538/25",
+    "cliente": "COMEXIM EUROPE GMBH."
+  },
+  {
+    "numero_contrato": "036/25",
+    "cliente": "BIJDENDIJK"
+  },
+  {
+    "numero_contrato": "510/25",
+    "cliente": "FALCON COFFEES LIMIT"
+  },
+  {
+    "numero_contrato": "518/25",
+    "cliente": "INTERAMERICAN COFFEE"
+  },
+  {
+    "numero_contrato": "526/25",
+    "cliente": "BROOKS CO. LTD."
+  },
+  {
+    "numero_contrato": "529/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "555/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "585/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "586/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "591/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "595/25",
+    "cliente": "EFICO NV"
+  },
+  {
+    "numero_contrato": "085/25D",
+    "cliente": "J R COMERCIO E EXPOR"
+  },
+  {
+    "numero_contrato": "086/25A",
+    "cliente": "J R COMERCIO E EXPOR"
+  },
+  {
+    "numero_contrato": "086/25B",
+    "cliente": "J R COMERCIO E EXPOR"
+  },
+  {
+    "numero_contrato": "087/25A",
+    "cliente": "J R COMERCIO E EXPOR"
+  },
+  {
+    "numero_contrato": "087/25B",
+    "cliente": "J R COMERCIO E EXPOR"
+  },
+  {
+    "numero_contrato": "549/25",
+    "cliente": "FINLAY BEVERAGES"
+  },
+  {
+    "numero_contrato": "553/25",
+    "cliente": "FINLAY BEVERAGES"
+  },
+  {
+    "numero_contrato": "592/25",
+    "cliente": "FINLAY BEVERAGES"
+  },
+  {
+    "numero_contrato": "093/25A",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "093/25B",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "093/25C",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "094/25A",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "094/25B",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "002/26C",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "002/26D",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "002/26E",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "002/26F",
+    "cliente": "NESTLE ARARAS"
+  },
+  {
+    "numero_contrato": "567/25",
+    "cliente": "WILLIAMS MANUFACTUR"
+  },
+  {
+    "numero_contrato": "565/25A",
+    "cliente": "THE FOLGER COFFEE"
+  },
+  {
+    "numero_contrato": "565/25B",
+    "cliente": "THE FOLGER COFFEE"
+  },
+  {
+    "numero_contrato": "566/25A",
+    "cliente": "THE FOLGER COFFEE"
+  },
+  {
+    "numero_contrato": "566/25B",
+    "cliente": "THE FOLGER COFFEE"
+  },
+  {
+    "numero_contrato": "568/25",
+    "cliente": "DEUTSCHE EXTRAKT KAF"
+  },
+  {
+    "numero_contrato": "577/25",
+    "cliente": "CAFES LA VIRGINIA"
+  },
+  {
+    "numero_contrato": "578/25",
+    "cliente": "CAFES LA VIRGINIA"
+  },
+  {
+    "numero_contrato": "582/25",
+    "cliente": "CAFE FUNDADOR"
+  },
+  {
+    "numero_contrato": "583/25",
+    "cliente": "CAFE FUNDADOR"
+  },
+  {
+    "numero_contrato": "584/25",
+    "cliente": "CAFE FUNDADOR"
+  },
+  {
+    "numero_contrato": "589/25",
+    "cliente": "ATLANTIC USA IN"
+  },
+  {
+    "numero_contrato": "588/25A",
+    "cliente": "VOLCAFE"
+  },
+  {
+    "numero_contrato": "588/25B",
+    "cliente": "VOLCAFE"
+  },
+  {
+    "numero_contrato": "003/26",
+    "cliente": "VOLCAFE"
+  },
+  {
+    "numero_contrato": "009/26",
+    "cliente": "VOLCAFE"
+  },
+  {
+    "numero_contrato": "590/25",
+    "cliente": "LOS CINCO HISPANOS S"
+  },
+  {
+    "numero_contrato": "019/26",
+    "cliente": "LOS CINCO HISPANOS S"
+  },
+  {
+    "numero_contrato": "021/26",
+    "cliente": "LOS CINCO HISPANOS S"
+  },
+  {
+    "numero_contrato": "096/25A",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25B",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25C",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25D",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25E",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25F",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "096/25G",
+    "cliente": "NESTLE BRASIL LTDA."
+  },
+  {
+    "numero_contrato": "001/26",
+    "cliente": "IRAKLIS ROUPAS LTDA"
+  },
+  {
+    "numero_contrato": "008/26",
+    "cliente": "BERO COFFEE SING"
+  },
+  {
+    "numero_contrato": "010/26",
+    "cliente": "IMPORTADORA REAL"
+  },
+  {
+    "numero_contrato": "013/26",
+    "cliente": "IMPORTADORA REAL"
+  },
+  {
+    "numero_contrato": "011/26",
+    "cliente": "INTERAMERICAN COFFE"
+  },
+  {
+    "numero_contrato": "012/26",
+    "cliente": "INTERAMERICAN COFFE"
+  },
+  {
+    "numero_contrato": "001/26",
+    "cliente": "NEUMANN GRUPPE USA I"
+  }
+]
+
+Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
+
+TOTAIS (PRÉ-CALCULADOS):
+- total_contratos: quantidade de contratos daquele cliente
+- total_sacas: soma de sacas de todos os contratos
+- total_valor: soma do valor total de todos os contratos (em R$)
+
+MÉDIAS (PRÉ-CALCULADAS):
+- valor_unitario_medio: preço unitário médio (R$/saca)
+- valor_fixado_medio: preço fixado médio (R$/saca)
+- diferencial_medio: diferencial médio dos contratos
+- peneira_mtgb_media: média da peneira MTGB
+- peneira_grauda_media: média da peneira Grauda
+- peneira_grinder_media: média da peneira Grinder
+
+LISTAS DE VALORES DISTINTOS:
+- certificados: lista de todos os certificados únicos
+- qualidades: lista de todas as descrições de qualidade únicas
+- paises: lista de todos os países de destino únicos
+- fixadores: lista de todos os fixadores únicos
+- linhas: lista de todas as linhas únicas
+- meses_embarque: lista de todos os meses de embarque únicos
+- contratos: primeiros 10 números de contrato
+- vendedores: lista de todos os vendedores únicos
+- filiais: lista de todas as filiais únicas
+- grupos_venda: lista de todos os grupos de venda únicos
+
+INFORMAÇÕES LOGÍSTICAS E ADMINISTRATIVAS:
+- contratos_com_bl: lista de contratos que possuem número de BL (até 20 primeiros)
+- total_contratos_com_bl: quantidade total de contratos com BL
+- contratos_embarcados: lista de contratos que já embarcaram (até 20 primeiros)
+- total_contratos_embarcados: quantidade total de contratos embarcados
+
+  ⚠️ ATENÇÃO - CONTRATOS SEM BL:
+  Para calcular contratos SEM BL, use: total_contratos - total_contratos_com_bl
+  NÃO confunda com total_contratos_embarcados (são coisas diferentes!)
+  Exemplo: Se tem 107 contratos e 52 com BL, então 107 - 52 = 55 SEM BL
+- contratos_amostra_enviada: lista de contratos que enviaram amostra (até 20 primeiros)
+- total_contratos_amostra_enviada: quantidade de contratos que enviaram amostra
+- contratos_amostra_aprovada: lista de contratos com amostra aprovada (até 20 primeiros)
+- total_contratos_amostra_aprovada: quantidade de contratos com amostra aprovada
+- contratos_amostra_pendente: lista de contratos que ENVIARAM amostra mas NÃO APROVARAM ainda (até 20 primeiros)
+- total_contratos_amostra_pendente: quantidade de contratos com amostra pendente de aprovação
+- contratos_baixados: lista de contratos baixados financeiramente no formato "CONTRATO (YYYYMMDD)" onde YYYYMMDD é a data de baixa (até 100 primeiros)
+- total_contratos_baixados: quantidade de contratos baixados (TODAS as datas)
+
+CONTRATOS BAIXADOS POR MÊS ESPECÍFICO (use estes campos para queries com data):
+- contratos_baixados_jan2026: lista de contratos baixados EM janeiro/2026 (até 100)
+- total_baixados_jan2026: quantidade de contratos baixados em janeiro/2026
+- contratos_baixados_dez2025: lista de contratos baixados EM dezembro/2025 (até 100)
+- total_baixados_dez2025: quantidade de contratos baixados em dezembro/2025
+
+  IMPORTANTE - COMO USAR:
+  - Para perguntas como "contratos baixados EM janeiro 2026" → use contratos_baixados_jan2026 e total_baixados_jan2026
+  - Para perguntas como "contratos baixados EM dezembro 2025" → use contratos_baixados_dez2025 e total_baixados_dez2025
+  - NÃO use total_contratos_baixados para queries com data específica (ele conta TODOS os meses)
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+2. NÃO tente recalcular médias manualmente.
+3. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+4. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+5. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+   NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
+
+Exemplos corretos de uso:
+- "Qual o diferencial médio?" → Use o campo diferencial_medio DIRETAMENTE
+- "Quais certificados?" → Use o campo certificados
+- "Qual o preço médio?" → Use valor_unitario_medio ou valor_fixado_medio DIRETAMENTE
+- "Quais qualidades de café?" → Use o campo qualidades
+- "Para quais países?" → Use o campo paises
+- "Quais as peneiras?" → Use peneira_mtgb_media/peneira_grauda_media/peneira_grinder_media
+- "Quais contratos têm BL?" → Use contratos_com_bl e total_contratos_com_bl
+- "Quantos contratos NÃO têm BL?" → Calcule: total_contratos - total_contratos_com_bl
+- "Quais contratos já embarcaram?" → Use contratos_embarcados e total_contratos_embarcados
+- "Quais contratos enviaram amostra?" → Use contratos_amostra_enviada e total_contratos_amostra_enviada
+- "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
+- "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
+- "Quais vendedores?" → Use o campo vendedores
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados
