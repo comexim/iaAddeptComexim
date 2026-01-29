@@ -925,6 +925,120 @@ class SQLTools:
         logger.info(f"Agregados {len(results)} registros de orçamento em {len(result_list)} categorias (ordenado por: {'ESTOURO' if ordenar_por_estouro else 'ORÇADO'})")
         return result_list
 
+    def _aggregate_estoque(self, results: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        """
+        Agrega resultados de estoque por linha ou certificado
+
+        Campos disponíveis em IA_Estoque():
+        - filial: localização do estoque
+        - lote: código do lote
+        - loteFonecedor: código do fornecedor (pode ser vazio)
+        - linha: tipo de café (PVA, GRD, LN1, LN2, LN3, etc.)
+        - impureza, quebra, pva, grinder, peneiraGrauda, peneiraMTGB, fundo: métricas de qualidade (%)
+        - certificado: tipo de certificação (RF, 4C, GC, CP, GT)
+        - peso: peso em kg
+        - armazem: nome do armazém
+        - pais: país de origem
+        - sacas: total de sacas
+        - sacasConsumo: sacas para consumo interno
+        - sacasExportacao: sacas para exportação
+
+        Args:
+            results: Lista de resultados SQL de IA_Estoque()
+
+        Returns:
+            Lista agregada por linha ou certificado
+        """
+        from collections import defaultdict
+
+        # Decide critério de agregação: linha ou certificado
+        # Se query menciona certificado, agrega por certificado; caso contrário, por linha
+        agregar_por = "linha"  # default
+        if hasattr(self, 'user_query_original') and self.user_query_original:
+            query_lower = self.user_query_original.lower()
+            if any(termo in query_lower for termo in ["certificado", "certificação", "rainforest", "4c"]):
+                agregar_por = "certificado"
+                logger.info(f"[AGREGAÇÃO ESTOQUE] Detectado menção a certificado - agregando por certificado")
+
+        aggregated = defaultdict(lambda: {
+            "sacas_total": 0,
+            "sacas_consumo": 0,
+            "sacas_exportacao": 0,
+            "peso_total": 0,
+            "lotes": set(),
+            "filiais": set(),
+            "armazens": set(),
+            "certificados": set() if agregar_por == "linha" else None,
+            "linhas": set() if agregar_por == "certificado" else None,
+            "registros": 0,
+        })
+
+        for row in results:
+            # Define chave de agregação
+            if agregar_por == "linha":
+                key = row.get("linha", "SEM LINHA").strip() or "SEM LINHA"
+            else:
+                key = row.get("certificado", "SEM CERTIFICADO").strip() or "SEM CERTIFICADO"
+
+            # Agrega valores
+            aggregated[key]["sacas_total"] += row.get("sacas", 0) or 0
+            aggregated[key]["sacas_consumo"] += row.get("sacasConsumo", 0) or 0
+            aggregated[key]["sacas_exportacao"] += row.get("sacasExportacao", 0) or 0
+            aggregated[key]["peso_total"] += row.get("peso", 0) or 0
+            aggregated[key]["registros"] += 1
+
+            # Metadados
+            lote = row.get("lote", "").strip()
+            if lote:
+                aggregated[key]["lotes"].add(lote)
+
+            filial = row.get("filial", "").strip()
+            if filial:
+                aggregated[key]["filiais"].add(filial)
+
+            armazem = row.get("armazem", "").strip()
+            if armazem:
+                aggregated[key]["armazens"].add(armazem)
+
+            # Adiciona informações cruzadas
+            if agregar_por == "linha":
+                certificado = row.get("certificado", "").strip()
+                if certificado:
+                    aggregated[key]["certificados"].add(certificado)
+            else:
+                linha = row.get("linha", "").strip()
+                if linha:
+                    aggregated[key]["linhas"].add(linha)
+
+        # Converte para lista
+        result_list = []
+        for grupo, data in aggregated.items():
+            item = {
+                agregar_por: grupo,
+                "sacas_total": round(data["sacas_total"], 2),
+                "sacas_consumo": round(data["sacas_consumo"], 2),
+                "sacas_exportacao": round(data["sacas_exportacao"], 2),
+                "peso_kg": round(data["peso_total"], 2),
+                "qtd_lotes": len(data["lotes"]),
+                "qtd_registros": data["registros"],
+                "filiais": ", ".join(sorted(data["filiais"])) if data["filiais"] else "N/A",
+                "armazens": ", ".join(sorted(data["armazens"])) if data["armazens"] else "N/A",
+            }
+
+            # Adiciona informações cruzadas
+            if agregar_por == "linha":
+                item["certificados"] = ", ".join(sorted(data["certificados"])) if data["certificados"] else "N/A"
+            else:
+                item["linhas"] = ", ".join(sorted(data["linhas"])) if data["linhas"] else "N/A"
+
+            result_list.append(item)
+
+        # Ordena por sacas total (maior primeiro)
+        result_list.sort(key=lambda x: x["sacas_total"], reverse=True)
+
+        logger.info(f"Agregados {len(results)} registros de estoque em {len(result_list)} grupos (por {agregar_por})")
+        return result_list
+
     def _filter_by_client(self, results: list[Dict[str, Any]], client_name: str) -> list[Dict[str, Any]]:
         """
         Filtra resultados por nome do cliente (case insensitive, busca parcial)
@@ -1059,6 +1173,76 @@ class SQLTools:
                             filtros_aplicados.append(f"categoria '{nome_filtro}' ({results_antes} → {len(results)})")
                             logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro categoria '{nome_filtro}': {results_antes} → {len(results)}")
                             break  # Aplica apenas o primeiro filtro encontrado
+
+            # FILTROS PARA ESTOQUE
+            elif function_name == "IA_Estoque":
+                # Filtro: linha específica (PVA, GRD, LN1, LN2, LN3, etc.)
+                linhas_conhecidas = [
+                    ("pva", ["pva"]),
+                    ("grd", ["grd", "grinder"]),
+                    ("ln1", ["ln1", "linha 1"]),
+                    ("ln2", ["ln2", "linha 2"]),
+                    ("ln3", ["ln3", "linha 3"]),
+                    ("cd", ["cd"]),
+                    ("fundi", ["fundi", "fundo"]),
+                ]
+
+                for nome_filtro, termos in linhas_conhecidas:
+                    if any(termo in query_lower for termo in termos):
+                        results_antes = len(results)
+                        results = [
+                            r for r in results
+                            if any(termo in str(r.get("linha", "")).lower() for termo in termos)
+                        ]
+                        if len(results) < results_antes and len(results) > 0:
+                            filtros_aplicados.append(f"linha '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
+                            logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro linha '{nome_filtro.upper()}': {results_antes} → {len(results)}")
+                            break
+
+                # Filtro: certificado específico (RF/Rainforest, 4C, GC, etc.)
+                certificados_conhecidos = [
+                    ("rainforest", ["rainforest", "rf"]),
+                    ("4c", ["4c", "4 c"]),
+                    ("gc", ["gc"]),
+                    ("gt", ["gt"]),
+                    ("cp", ["cp"]),
+                ]
+
+                for nome_filtro, termos in certificados_conhecidos:
+                    if any(termo in query_lower for termo in termos):
+                        results_antes = len(results)
+                        results = [
+                            r for r in results
+                            if any(termo in str(r.get("certificado", "")).lower() for termo in termos)
+                        ]
+                        if len(results) < results_antes and len(results) > 0:
+                            filtros_aplicados.append(f"certificado '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
+                            logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado '{nome_filtro.upper()}': {results_antes} → {len(results)}")
+                            break
+
+                # Filtro: sacas para exportação
+                if any(term in query_lower for term in ["para exportação", "para exportacao", "exportação", "exportacao", "sacas de exportação"]):
+                    results_antes = len(results)
+                    results = [r for r in results if r.get("sacasExportacao", 0) > 0]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"sacas para exportação ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sacas para exportação': {results_antes} → {len(results)}")
+
+                # Filtro: sacas para consumo
+                if any(term in query_lower for term in ["para consumo", "consumo interno", "mercado interno", "sacas de consumo"]):
+                    results_antes = len(results)
+                    results = [r for r in results if r.get("sacasConsumo", 0) > 0]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"sacas para consumo ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sacas para consumo': {results_antes} → {len(results)}")
+
+                # Filtro: impureza baixa (< 10%)
+                if any(term in query_lower for term in ["baixa impureza", "pouca impureza", "impureza baixa", "menos de 10% de impureza", "impureza menor"]):
+                    results_antes = len(results)
+                    results = [r for r in results if r.get("impureza", 100) < 10]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"impureza < 10% ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'impureza < 10%': {results_antes} → {len(results)}")
 
             # Atualiza total de registros após filtros
             if filtros_aplicados:
@@ -1209,6 +1393,82 @@ Exemplos corretos:
 - "Quanto gastamos com combustível?" → Procure categoria "COMBUSTIVEL", use campo "realizado"
 - "Estouramos o orçamento?" → Compare Total Realizado vs Total Orçado (se realizado > orçado, estourou)
 - "Qual categoria mais estourou?" → Procure categoria com maior saldo NEGATIVO"""
+
+            # ESTOQUE: Agrega por linha ou certificado
+            elif function_name == "IA_Estoque":
+                logger.info(f"[AGREGAÇÃO] {len(results)} registros de estoque, agregando...")
+                aggregated = self._aggregate_estoque(results)
+
+                # CALCULA TOTAIS (não deixa a IA somar manualmente para evitar erros)
+                total_sacas = sum(item.get("sacas_total", 0) for item in aggregated)
+                total_sacas_consumo = sum(item.get("sacas_consumo", 0) for item in aggregated)
+                total_sacas_exportacao = sum(item.get("sacas_exportacao", 0) for item in aggregated)
+                total_peso = sum(item.get("peso_kg", 0) for item in aggregated)
+                total_lotes = sum(item.get("qtd_lotes", 0) for item in aggregated)
+
+                # Determina critério de agregação
+                criterio = "linha" if "linha" in aggregated[0] else "certificado"
+
+                formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta {function_name} (AGREGADOS POR {criterio.upper()}):
+
+Total de registros SQL: {original_count}
+Total de {criterio}s: {len(aggregated)}
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Sacas: {total_sacas:,.2f} sacas
+- Sacas para Consumo: {total_sacas_consumo:,.2f} sacas
+- Sacas para Exportação: {total_sacas_exportacao:,.2f} sacas
+- Peso Total: {total_peso:,.2f} kg
+- Total de Lotes: {total_lotes}
+
+Dados por {criterio}:
+{formatted}
+
+Instruções: Os dados acima são de ESTOQUE (snapshot atual).
+
+CAMPOS DISPONÍVEIS POR {criterio.upper()}:
+- {criterio}: tipo de {criterio} (ex: "PVA", "GRD" para linha; "RF", "4C" para certificado)
+- sacas_total: total de sacas deste {criterio}
+- sacas_consumo: sacas para consumo interno/mercado interno
+- sacas_exportacao: sacas para exportação
+- peso_kg: peso total em quilogramas
+- qtd_lotes: quantidade de lotes diferentes
+- qtd_registros: quantidade de registros SQL agregados
+- filiais: filiais onde este estoque está localizado
+- armazens: armazéns onde este estoque está localizado
+- {'certificados: certificações presentes neste tipo de café' if criterio == 'linha' else 'linhas: linhas/tipos presentes neste certificado'}
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quanto café temos?" → Use "Total de Sacas" e "Peso Total" dos TOTAIS GERAIS
+   - "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+   - NÃO some manualmente! Os TOTAIS GERAIS já estão corretos!
+
+2. Estoque NÃO tem contratos ou clientes. É um snapshot atual do estoque físico.
+
+3. Para perguntas sobre TIPOS ESPECÍFICOS:
+   - "Quanto café PVA temos?" → Procure {criterio} "PVA", use campo "sacas_total"
+   - "Café Rainforest?" → Procure certificado "RF", use campo "sacas_total"
+   - Use os campos apropriados do tipo específico
+
+4. CONVERSÃO PESO/SACAS:
+   - 1 saca de café ≈ 60 kg
+   - Peso e sacas são independentes (NÃO calcule um a partir do outro)
+
+5. INTERPRETAÇÃO DOS VALORES:
+   - sacas_total = sacas_consumo + sacas_exportacao (sempre)
+   - Se perguntam "para consumo", use sacas_consumo
+   - Se perguntam "para exportação", use sacas_exportacao
+   - Se perguntam "total", use sacas_total
+
+Exemplos corretos:
+- "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quanto café PVA?" → Procure {criterio} "PVA", use campo "sacas_total"
+- "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+- "Qual tipo tem mais café?" → Procure {criterio} com maior "sacas_total" """
 
             # VENDAS: Agrega por cliente
             else:
@@ -1579,9 +1839,47 @@ Verifique os campos retornados nos registros acima.
 Campos comuns: cliente, vencimentoReal, valor, saldo, etc.""",
 
             "IA_Estoque": """
-COLUNAS DISPONÍVEIS EM ESTOQUE:
-Verifique os campos retornados nos registros acima.
-Campos comuns: produto, descricao, quantidade, filial, etc.""",
+COLUNAS DISPONÍVEIS EM ESTOQUE (Total: 18 campos):
+
+IDENTIFICAÇÃO E LOCALIZAÇÃO:
+- filial: localização do estoque (ex: "OURO FINO")
+- armazem: nome do armazém (ex: "ARMAZEM OURO FINO")
+- pais: país de origem do café (ex: "BRASIL")
+- lote: código do lote (ex: "TR-06043100")
+- loteFonecedor: código do fornecedor (pode ser vazio)
+
+CLASSIFICAÇÃO DO CAFÉ:
+- linha: tipo de café (ex: "PVA", "GRD", "LN1", "LN2", "LN3", "CD", "FUNDI")
+- certificado: certificação (ex: "RF"=Rainforest, "4C", "GC", "GT", "CP")
+
+MÉTRICAS DE QUALIDADE (percentuais %):
+- impureza: percentual de impureza
+- quebra: percentual de grãos quebrados
+- pva: percentual PVA (Peneira Acima)
+- grinder: percentual tipo grinder
+- peneiraGrauda: percentual retido em peneira graúda
+- peneiraMTGB: percentual retido em peneira MTGB
+- fundo: percentual de fundo/resíduos
+
+QUANTIDADES:
+- peso: peso em quilogramas (float)
+- sacas: total de sacas (Decimal - campo principal)
+- sacasConsumo: sacas para consumo interno/mercado interno (Decimal)
+- sacasExportacao: sacas para exportação (Decimal)
+
+IMPORTANTE - REGRAS:
+1. sacas = sacasConsumo + sacasExportacao (sempre)
+2. 1 saca ≈ 60 kg (conversão aproximada, mas peso e sacas são campos independentes)
+3. Para "total de sacas", use campo "sacas"
+4. Para "sacas para consumo", use "sacasConsumo"
+5. Para "sacas para exportação", use "sacasExportacao"
+6. Estoque NÃO tem contratos ou clientes (é snapshot físico)
+
+VALORES COMUNS:
+- Linhas mais comuns: PVA, GRD, LN1, LN2, LN3
+- Certificados mais comuns: RF (Rainforest), 4C, GC
+- Sacas: valores típicos entre 1,96 a 975,58 sacas por lote
+- Peso: valores típicos entre 115 kg a 57.559 kg por lote""",
 
             "IA_SaldoBancario": """
 COLUNAS DISPONÍVEIS EM SALDO BANCÁRIO:
