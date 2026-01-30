@@ -2067,18 +2067,24 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             logger.info(f"[DEBUG] date_parser retornou: {parsed}")
 
             if parsed:
-                # PRIORIDADE 1: Se a pergunta menciona "embarcado" ou "embarque", usa mesEmbarque
-                if "mes_embarque" in parsed and ("embarcad" in self.user_query.lower() or "embarque" in self.user_query.lower()):
+                # PRIORIDADE 1: Se tem data_inicio E data_fim E são DIFERENTES (período específico de dias, ex: "últimos 7 dias")
+                # → Prioriza usar emissao com intervalo em vez de mesEmbarque (mais preciso)
+                if "data_inicio" in parsed and "data_fim" in parsed and parsed["data_inicio"] != parsed["data_fim"]:
+                    filters = {"emissao": parsed["data_inicio"]}
+                    filters["emissao_fim"] = parsed["data_fim"]
+                    logger.info(f"[DEBUG] Período específico detectado ({parsed['data_inicio']} até {parsed['data_fim']}) - Usando filtro emissao com intervalo: {filters}")
+                # PRIORIDADE 2: Se a pergunta menciona "embarcado" ou "embarque", usa mesEmbarque
+                elif "mes_embarque" in parsed and ("embarcad" in self.user_query.lower() or "embarque" in self.user_query.lower()):
                     filters = {"mesEmbarque": parsed["mes_embarque"]}
                     logger.info(f"[DEBUG] Palavra-chave 'embarcado/embarque' detectada - Usando filtro mesEmbarque: {filters}")
-                # PRIORIDADE 2: Se tem mes_embarque mas NÃO mencionou embarque, usa mesEmbarque (para consultas de mês)
+                # PRIORIDADE 3: Se tem mes_embarque mas NÃO mencionou embarque, usa mesEmbarque (para consultas de mês)
                 elif "mes_embarque" in parsed:
                     filters = {"mesEmbarque": parsed["mes_embarque"]}
                     logger.info(f"[DEBUG] Usando filtro mesEmbarque: {filters}")
-                # PRIORIDADE 3: Se tem data específica (dia), usa campo 'emissao'
+                # PRIORIDADE 4: Se tem data específica (dia único), usa campo 'emissao'
                 elif "data_inicio" in parsed:
                     filters = {"emissao": parsed["data_inicio"]}
-                    # CRÍTICO: Adiciona data_fim para limitar o período
+                    # Se tem data_fim, adiciona (mas isso já foi tratado na PRIORIDADE 1)
                     if "data_fim" in parsed:
                         filters["emissao_fim"] = parsed["data_fim"]
                     logger.info(f"[DEBUG] Usando filtro emissao: {filters}")
