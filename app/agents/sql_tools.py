@@ -44,6 +44,13 @@ class SQLTools:
         # Remove caracteres especiais e normaliza
         query_lower = query.lower().strip()
 
+        # NÃO tenta extrair cliente se a query menciona MÚLTIPLOS clientes
+        # Ex: "Nestlé ou Starbucks", "Nestlé, Starbucks", "entre Nestlé e Starbucks"
+        # Nesses casos, deve retornar TODOS os dados e a IA faz a comparação
+        if re.search(r'\bou\b.*\b(em|no|na|para)', query_lower) or re.search(r',.*\b(em|no|na|para)', query_lower):
+            logger.info(f"[PROTEÇÃO] Query comparativa com múltiplos clientes detectada - NÃO vai extrair cliente específico")
+            return None
+
         # NÃO tenta extrair cliente se a query é sobre agregações
         # (grupo, vendedor, filial, fixador, linha, etc.)
         if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|linha|cada\s+(grupo|vendedor|filial|linha))', query_lower):
