@@ -56,6 +56,26 @@ class SQLTools:
         if re.search(r'\b(por\s+grupo|vendedor|filial|fixad[oa]|importador|exportador|linha|cada\s+(grupo|vendedor|filial|linha))', query_lower):
             return None
 
+        # NÃO tenta extrair cliente se a query menciona TERMOS TÉCNICOS do sistema
+        # (módulos, funcionalidades, conceitos) que NÃO são nomes de clientes
+        termos_tecnicos = [
+            r'\bcontas\s+a\s+receber',  # "contas a receber"
+            r'\bcontas\s+a\s+pagar',  # "contas a pagar"
+            r'\bcontas\s+pagas',  # "contas pagas"
+            r'\bsaldo\s+bancário',  # "saldo bancário"
+            r'\borçamento',  # "orçamento"
+            r'\bcotação',  # "cotação"
+            r'\bdespesa\s+de\s+venda',  # "despesa de venda"
+            r'\bcompras',  # "compras"
+            r'\bvendas',  # "vendas"
+            r'\bestoque',  # "estoque"
+        ]
+
+        for termo in termos_tecnicos:
+            if re.search(termo, query_lower):
+                logger.info(f"[PROTEÇÃO] Query menciona termo técnico do sistema - NÃO vai extrair cliente")
+                return None
+
         # NÃO tenta extrair cliente se a query menciona operações financeiras/logísticas
         # que podem ser confundidas com nomes (ex: "não foram baixados", "foram embarcados")
         palavras_operacao = [
