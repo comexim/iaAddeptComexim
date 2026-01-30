@@ -1177,48 +1177,80 @@ class SQLTools:
             # FILTROS PARA ESTOQUE
             elif function_name == "IA_Estoque":
                 # Filtro: linha específica (PVA, GRD, LN1, LN2, LN3, etc.)
-                linhas_conhecidas = [
-                    ("pva", ["pva"]),
-                    ("grd", ["grd", "grinder"]),
-                    ("ln1", ["ln1", "linha 1"]),
-                    ("ln2", ["ln2", "linha 2"]),
-                    ("ln3", ["ln3", "linha 3"]),
-                    ("cd", ["cd"]),
-                    ("fundi", ["fundi", "fundo"]),
-                ]
+                # 🚨 DETECÇÃO DE QUERIES COMPLEXAS (NÃO aplicar filtros automáticos de linha/certificado)
+                # Problema: Filtros sequenciais destroem queries com múltiplas opções ou negações
+                # Exemplos problemáticos:
+                # - "Rainforest, 4C ou GC?" → filtra só Rainforest, perde 4C e GC
+                # - "PVA sem Rainforest" → filtra COM Rainforest (ignora negação)
+                # - "GRD brasileiro ou LN2 europeu" → aplica filtros sequencialmente, zera dados
 
-                for nome_filtro, termos in linhas_conhecidas:
-                    if any(termo in query_lower for termo in termos):
-                        results_antes = len(results)
-                        results = [
-                            r for r in results
-                            if any(termo in str(r.get("linha", "")).lower() for termo in termos)
-                        ]
-                        if len(results) < results_antes and len(results) > 0:
-                            filtros_aplicados.append(f"linha '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
-                            logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro linha '{nome_filtro.upper()}': {results_antes} → {len(results)}")
-                            break
+                skip_filtros_especificos = False
 
-                # Filtro: certificado específico (RF/Rainforest, 4C, GC, etc.)
-                certificados_conhecidos = [
-                    ("rainforest", ["rainforest", "rf"]),
-                    ("4c", ["4c", "4 c"]),
-                    ("gc", ["gc"]),
-                    ("gt", ["gt"]),
-                    ("cp", ["cp"]),
-                ]
+                # Detectar múltiplas opções separadas por vírgula + "ou"
+                # Ex: "A, B ou C?", "X ou Y?", "entre A e B?"
+                import re
+                tem_multiplas_opcoes = bool(re.search(r',.*\bou\b', query_lower))  # "A, B ou C"
+                tem_ou = ' ou ' in query_lower and ('?' in query_lower or ':' in query_lower)  # "A ou B?"
+                tem_virgula_lista = query_lower.count(',') >= 1 and ('?' in query_lower or ':' in query_lower)  # "A, B, C?"
 
-                for nome_filtro, termos in certificados_conhecidos:
-                    if any(termo in query_lower for termo in termos):
-                        results_antes = len(results)
-                        results = [
-                            r for r in results
-                            if any(termo in str(r.get("certificado", "")).lower() for termo in termos)
-                        ]
-                        if len(results) < results_antes and len(results) > 0:
-                            filtros_aplicados.append(f"certificado '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
-                            logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado '{nome_filtro.upper()}': {results_antes} → {len(results)}")
-                            break
+                # Detectar negações
+                palavras_negacao = [" sem ", "que não", "exceto", "não tem", "não há", "não possui", "não contem", "não contém", "fora", "além de"]
+                tem_negacao = any(palavra in query_lower for palavra in palavras_negacao)
+
+                if tem_multiplas_opcoes or tem_ou or tem_virgula_lista or tem_negacao:
+                    skip_filtros_especificos = True
+                    razoes = []
+                    if tem_multiplas_opcoes or tem_ou or tem_virgula_lista:
+                        razoes.append("múltiplas opções detectadas")
+                    if tem_negacao:
+                        razoes.append("negação detectada")
+                    logger.warning(f"[FILTRO AUTOMÁTICO] Query complexa detectada ({', '.join(razoes)}) - DESABILITANDO filtros de linha/certificado para evitar perda de dados")
+                    logger.warning(f"[FILTRO AUTOMÁTICO] IA fará agregação manual dos dados completos")
+
+                # Filtros de linha e certificado (SÓ aplicar se NÃO for query complexa)
+                if not skip_filtros_especificos:
+                    linhas_conhecidas = [
+                        ("pva", ["pva"]),
+                        ("grd", ["grd", "grinder"]),
+                        ("ln1", ["ln1", "linha 1"]),
+                        ("ln2", ["ln2", "linha 2"]),
+                        ("ln3", ["ln3", "linha 3"]),
+                        ("cd", ["cd"]),
+                        ("fundi", ["fundi", "fundo"]),
+                    ]
+
+                    for nome_filtro, termos in linhas_conhecidas:
+                        if any(termo in query_lower for termo in termos):
+                            results_antes = len(results)
+                            results = [
+                                r for r in results
+                                if any(termo in str(r.get("linha", "")).lower() for termo in termos)
+                            ]
+                            if len(results) < results_antes and len(results) > 0:
+                                filtros_aplicados.append(f"linha '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
+                                logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro linha '{nome_filtro.upper()}': {results_antes} → {len(results)}")
+                                break
+
+                    # Filtro: certificado específico (RF/Rainforest, 4C, GC, etc.)
+                    certificados_conhecidos = [
+                        ("rainforest", ["rainforest", "rf"]),
+                        ("4c", ["4c", "4 c"]),
+                        ("gc", ["gc"]),
+                        ("gt", ["gt"]),
+                        ("cp", ["cp"]),
+                    ]
+
+                    for nome_filtro, termos in certificados_conhecidos:
+                        if any(termo in query_lower for termo in termos):
+                            results_antes = len(results)
+                            results = [
+                                r for r in results
+                                if any(termo in str(r.get("certificado", "")).lower() for termo in termos)
+                            ]
+                            if len(results) < results_antes and len(results) > 0:
+                                filtros_aplicados.append(f"certificado '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
+                                logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado '{nome_filtro.upper()}': {results_antes} → {len(results)}")
+                                break
 
                 # Detectar se é uma query COMPARATIVA (não aplicar filtros específicos)
                 palavras_comparativas = ["mais", "menos", " ou ", " vs ", " versus ", "comparar", "comparação", "comparacao", "diferença", "diferenca"]
