@@ -69,6 +69,86 @@ class AuthService:
                 direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
             )
 
+        # BYPASS: Renan Hazan - acesso TOTAL
+        if phone == "13991386001":
+            logger.info(f"[BYPASS] {phone} Renan Hazan - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="13991386001",
+                nome="Renan Hazan",
+                email="renan.hazan@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Rodrigo Perez - acesso parcial
+        if phone == "13991555279":
+            logger.info(f"[BYPASS] {phone} Rodrigo Perez - ACESSO PARCIAL")
+            return UserPermissions(
+                telefone="13991555279",
+                nome="Rodrigo Perez",
+                email="rodrigo.perez@comexim.com.br",
+                direitos=["Financeiro", "Vendas", "Compras", "Orçamento"]
+            )
+
+        # BYPASS: Bruno Hazan - acesso TOTAL
+        if phone == "13988188810":
+            logger.info(f"[BYPASS] {phone} Bruno Hazan - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="13988188810",
+                nome="Bruno Hazan",
+                email="bruno@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Diego Salgado - sem RH
+        if phone == "13997783898":
+            logger.info(f"[BYPASS] {phone} Diego Salgado - ACESSO PARCIAL")
+            return UserPermissions(
+                telefone="13997783898",
+                nome="Diego Salgado",
+                email="diego.salgado@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Jonas Oshiro - sem RH
+        if phone == "13988188962":
+            logger.info(f"[BYPASS] {phone} Jonas Oshiro - ACESSO PARCIAL")
+            return UserPermissions(
+                telefone="13988188962",
+                nome="Jonas Oshiro",
+                email="jonas.oshiro@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Gilberto Silva - sem RH
+        if phone == "13991758737":
+            logger.info(f"[BYPASS] {phone} Gilberto Silva - ACESSO PARCIAL")
+            return UserPermissions(
+                telefone="13991758737",
+                nome="Gilberto Silva",
+                email="gilberto.silva@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Ricardo Cavalin - acesso TOTAL
+        if phone == "13988190217":
+            logger.info(f"[BYPASS] {phone} Ricardo Cavalin - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="13988190217",
+                nome="Ricardo Cavalin",
+                email="ricardo.cavalin@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Mara Yadoya - sem RH, Fiscal, Contábil
+        if phone == "13991758568":
+            logger.info(f"[BYPASS] {phone} Mara Yadoya - ACESSO PARCIAL")
+            return UserPermissions(
+                telefone="13991758568",
+                nome="Mara Yadoya",
+                email="mara.yadoya@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento"]
+            )
+
         # Verifica cache primeiro
         cached = await redis_client.get_cached_user(phone)
         if cached:
