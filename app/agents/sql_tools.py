@@ -2387,9 +2387,11 @@ IMPORTANTE:
         try:
             result_list = sql_client.execute_function("dbo.IA_ContasAPagar", filters)
 
-            # Aplica filtro manual de data_fim se necessário (SOMENTE para intervalos reais, não para dia específico)
-            if result_list and data_fim_filter and parsed.get("data_inicio") != data_fim_filter:
+            # Aplica filtro manual de data_fim se necessário
+            # IMPORTANTE: Se data_inicio == data_fim (mesmo dia), filtra para retornar APENAS aquele dia
+            if result_list and data_fim_filter:
                 original_count = len(result_list)
+                # Filtra: vencimento >= data_inicio AND vencimento <= data_fim
                 result_list = [r for r in result_list if r.get("vencimento", "") <= data_fim_filter]
                 logger.info(f"[CONTAS A PAGAR] Filtro manual aplicado: {original_count} → {len(result_list)} registros (vencimento <= {data_fim_filter})")
 
@@ -2844,9 +2846,11 @@ Resposta CORRETA deve incluir:
         try:
             result_list = sql_client.execute_function("dbo.IA_ContasAReceber", filters)
 
-            # Aplica filtro manual de data_fim se necessário (SOMENTE para intervalos reais)
-            if result_list and data_fim_filter and parsed.get("data_inicio") != data_fim_filter:
+            # Aplica filtro manual de data_fim se necessário
+            # IMPORTANTE: Se data_inicio == data_fim (mesmo dia), filtra para retornar APENAS aquele dia
+            if result_list and data_fim_filter:
                 original_count = len(result_list)
+                # Filtra: vencimentoReal >= data_inicio AND vencimentoReal <= data_fim
                 result_list = [r for r in result_list if r.get("vencimentoReal", "") <= data_fim_filter]
                 logger.info(f"[CONTAS A RECEBER] Filtro manual aplicado: {original_count} → {len(result_list)} registros")
 
