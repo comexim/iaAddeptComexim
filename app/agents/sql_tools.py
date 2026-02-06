@@ -2142,16 +2142,18 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 if menciona_embarque and "mes_embarque" in parsed:
                     filters = {"mesEmbarque": parsed["mes_embarque"]}
                     logger.info(f"[DEBUG] Palavra-chave 'embarcado/embarque' detectada - Usando filtro mesEmbarque: {filters}")
-                # PRIORIDADE 2: Se tem data_inicio E data_fim E são DIFERENTES (período específico de dias, ex: "últimos 7 dias")
-                # → Usa emissao com intervalo (mais preciso para queries como "últimos 7 dias")
+                # PRIORIDADE 2: Se tem mes_embarque (mês completo como "janeiro 2026") → usar mesEmbarque
+                # Queries de mês sempre devem filtrar por mesEmbarque (não por emissao)
+                # Ex: "contratos de janeiro 2026 com preço a fixar" → mesEmbarque='2026/01'
+                elif "mes_embarque" in parsed:
+                    filters = {"mesEmbarque": parsed["mes_embarque"]}
+                    logger.info(f"[DEBUG] Mês específico detectado - Usando filtro mesEmbarque: {filters}")
+                # PRIORIDADE 3: Se tem data_inicio E data_fim E são DIFERENTES mas NÃO tem mes_embarque
+                # (período específico de dias, ex: "últimos 7 dias") → Usa emissao com intervalo
                 elif "data_inicio" in parsed and "data_fim" in parsed and parsed["data_inicio"] != parsed["data_fim"]:
                     filters = {"emissao": parsed["data_inicio"]}
                     filters["emissao_fim"] = parsed["data_fim"]
-                    logger.info(f"[DEBUG] Período específico detectado ({parsed['data_inicio']} até {parsed['data_fim']}) - Usando filtro emissao com intervalo: {filters}")
-                # PRIORIDADE 3: Se tem mes_embarque (mesmo sem mencionar embarque), usa mesEmbarque (para consultas de mês genéricas)
-                elif "mes_embarque" in parsed:
-                    filters = {"mesEmbarque": parsed["mes_embarque"]}
-                    logger.info(f"[DEBUG] Usando filtro mesEmbarque: {filters}")
+                    logger.info(f"[DEBUG] Período de dias específico detectado ({parsed['data_inicio']} até {parsed['data_fim']}) - Usando filtro emissao com intervalo: {filters}")
                 # PRIORIDADE 4: Se tem data específica (dia único), usa campo 'emissao'
                 elif "data_inicio" in parsed:
                     filters = {"emissao": parsed["data_inicio"]}
