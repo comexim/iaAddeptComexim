@@ -1140,8 +1140,9 @@ class SQLTools:
 
             # FILTROS PARA VENDAS
             if function_name == "IA_Vendas":
-                # Filtro: sem valor fixado
-                if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação"]):
+                # Filtro: sem valor fixado / preço a fixar
+                # IMPORTANTE: "preço a fixar" significa que valorFixado = 0 ou null (preço ainda não foi fixado)
+                if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
                     results_antes = len(results)
                     results = [r for r in results if (r.get("valorFixado") is None or r.get("valorFixado") == 0 or r.get("valorFixado") == 0.0)]
                     if len(results) < results_antes:
@@ -1814,11 +1815,33 @@ Exemplos corretos de uso:
                 contrato_solicitado = match.group(1).upper()
                 logger.info(f"[FILTRO CONTRATO] Contrato específico solicitado: {contrato_solicitado}")
 
-                # Filtra resultados pelo contrato
-                results_filtrados = [
-                    r for r in results
-                    if contrato_solicitado in str(r.get("contrato", "")).upper().strip()
-                ]
+                # Função para normalizar número de contrato (remove zeros à esquerda)
+                # Ex: "031/25" → "31/25", "087/25A" → "87/25A"
+                def normalizar_contrato(num):
+                    if not num:
+                        return ""
+                    num = str(num).upper().strip()
+                    # Remove zeros à esquerda da parte antes da barra
+                    if "/" in num:
+                        partes = num.split("/")
+                        partes[0] = partes[0].lstrip("0") or "0"  # Mantém pelo menos um "0"
+                        return "/".join(partes)
+                    return num.lstrip("0") or "0"
+
+                contrato_normalizado = normalizar_contrato(contrato_solicitado)
+                logger.info(f"[FILTRO CONTRATO] Contrato normalizado: {contrato_normalizado}")
+
+                # Filtra resultados pelo contrato (tenta match exato e normalizado)
+                results_filtrados = []
+                for r in results:
+                    contrato_db = str(r.get("contrato", "")).upper().strip()
+                    contrato_db_normalizado = normalizar_contrato(contrato_db)
+
+                    # Match se contrato solicitado está no DB (substring) OU versões normalizadas são iguais
+                    if (contrato_solicitado in contrato_db or
+                        contrato_normalizado in contrato_db_normalizado or
+                        contrato_db_normalizado == contrato_normalizado):
+                        results_filtrados.append(r)
 
                 if results_filtrados:
                     logger.info(f"[FILTRO CONTRATO] Encontrados {len(results_filtrados)} registros do contrato {contrato_solicitado}")
