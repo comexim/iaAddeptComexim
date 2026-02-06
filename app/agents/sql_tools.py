@@ -1803,6 +1803,30 @@ Exemplos corretos de uso:
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
+
+        # FILTRO POR CONTRATO ESPECÍFICO: Se menciona contrato, filtra ANTES de limitar a 50
+        # Isso garante que o contrato solicitado esteja nos resultados mesmo com >50 registros
+        if menciona_contrato and self.user_query_original:
+            import re
+            # Extrai número do contrato da pergunta (ex: "087/25A", "453/25", "512/25B")
+            match = re.search(r'(\d{2,4}/\d{2}[A-Z]?)', self.user_query_original, re.IGNORECASE)
+            if match:
+                contrato_solicitado = match.group(1).upper()
+                logger.info(f"[FILTRO CONTRATO] Contrato específico solicitado: {contrato_solicitado}")
+
+                # Filtra resultados pelo contrato
+                results_filtrados = [
+                    r for r in results
+                    if contrato_solicitado in str(r.get("contrato", "")).upper().strip()
+                ]
+
+                if results_filtrados:
+                    logger.info(f"[FILTRO CONTRATO] Encontrados {len(results_filtrados)} registros do contrato {contrato_solicitado}")
+                    results = results_filtrados
+                    total_records = len(results_filtrados)
+                else:
+                    logger.warning(f"[FILTRO CONTRATO] Contrato {contrato_solicitado} NÃO encontrado nos {len(results)} resultados")
+
         if len(results) > 50:
             results = results[:50]
             warning = f"\n\nAtenção: Foram encontrados {total_records} registros. Exibindo apenas os primeiros 50."
