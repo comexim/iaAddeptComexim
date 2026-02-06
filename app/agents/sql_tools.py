@@ -69,6 +69,7 @@ class SQLTools:
             r'\bcompras',  # "compras"
             r'\bvendas',  # "vendas"
             r'\bestoque',  # "estoque"
+            r'\bmês\s+de\s+(embarque|emissão|emissao|fixação|fixacao)',  # "mês de embarque", "mês de emissão"
         ]
 
         for termo in termos_tecnicos:
