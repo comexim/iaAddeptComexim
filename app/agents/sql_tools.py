@@ -2410,20 +2410,24 @@ IMPORTANTE:
             if not result_list:
                 return "Nenhuma conta a pagar encontrada para o período especificado."
 
-            # DEDUPULICAÇÃO: Remove títulos duplicados (mesmo numero+parcela+filial)
-            # Bug da stored procedure que retorna mesmo título 2x com naturezas diferentes
+            # DEDUPULICAÇÃO: Remove títulos duplicados (mesmo numero+parcela+filial+fornecedor+valor)
+            # Bug: stored procedure retorna mesmo título 2x com naturezas diferentes
+            # IMPORTANTE: Incluir fornecedor+valor porque mesmo número pode ter fornecedores diferentes (rateio)
             titulos_vistos = set()
             result_dedup = []
 
             for r in result_list:
-                # Chave única: numero + parcela + filial
-                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}"
+                # Chave única: numero + parcela + filial + fornecedor + valor
+                # Exemplo: mesmo número 000040226 pode ter SERGIO HAZAN e RENAN M HAZAN (rateio)
+                fornecedor = str(r.get('fornecedor', '')).strip()
+                valor = float(r.get('valor', 0) or 0)
+                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}_{fornecedor}_{valor}"
 
                 if chave not in titulos_vistos:
                     titulos_vistos.add(chave)
                     result_dedup.append(r)
                 else:
-                    logger.warning(f"[CONTAS A PAGAR] Título duplicado removido: {r.get('numero')} - {r.get('fornecedor')} - R$ {r.get('valor')}")
+                    logger.warning(f"[CONTAS A PAGAR] Título duplicado removido: {r.get('numero')} - {fornecedor} - R$ {valor}")
 
             if len(result_dedup) < len(result_list):
                 logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
