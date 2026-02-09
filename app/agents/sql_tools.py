@@ -89,6 +89,10 @@ class SQLTools:
             r'\bainda\s+não',  # "ainda não"
             r'\bsem\s+bl',  # "sem bl"
             r'\bsem\s+valor\s+fixado',  # "sem valor fixado"
+            r'\btemos\s+par',  # "temos para embarcar" (não extrair "temos par" como cliente)
+            r'\bvamos\s+',  # "vamos embarcar"
+            r'\bqueremos\s+',  # "queremos embarcar"
+            r'\bprecisamos\s+',  # "precisamos embarcar"
         ]
 
         for padrao in palavras_operacao:
