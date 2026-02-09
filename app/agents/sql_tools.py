@@ -31,6 +31,34 @@ class SQLTools:
         # Remove combining marks (acentos)
         return ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
 
+    def _normalizar_contrato(self, contrato: str) -> str:
+        """
+        Normaliza número de contrato removendo zeros à esquerda.
+
+        Args:
+            contrato: Número do contrato (ex: "031/25", "000256/25R")
+
+        Returns:
+            Contrato normalizado (ex: "31/25", "256/25R")
+
+        Examples:
+            "031/25" -> "31/25"
+            "000256/25R" -> "256/25R"
+            "087/25A" -> "87/25A"
+        """
+        if not contrato:
+            return ""
+
+        contrato = str(contrato).upper().strip()
+
+        # Remove zeros à esquerda da parte antes da barra
+        if "/" in contrato:
+            partes = contrato.split("/")
+            partes[0] = partes[0].lstrip("0") or "0"  # Mantém pelo menos um "0"
+            return "/".join(partes)
+
+        return contrato.lstrip("0") or "0"
+
     def _extract_client_name(self, query: str) -> Optional[str]:
         """
         Extrai nome do cliente da pergunta do usuário
@@ -1820,27 +1848,14 @@ Exemplos corretos de uso:
                 contrato_solicitado = match.group(1).upper()
                 logger.info(f"[FILTRO CONTRATO] Contrato específico solicitado: {contrato_solicitado}")
 
-                # Função para normalizar número de contrato (remove zeros à esquerda)
-                # Ex: "031/25" → "31/25", "087/25A" → "87/25A"
-                def normalizar_contrato(num):
-                    if not num:
-                        return ""
-                    num = str(num).upper().strip()
-                    # Remove zeros à esquerda da parte antes da barra
-                    if "/" in num:
-                        partes = num.split("/")
-                        partes[0] = partes[0].lstrip("0") or "0"  # Mantém pelo menos um "0"
-                        return "/".join(partes)
-                    return num.lstrip("0") or "0"
-
-                contrato_normalizado = normalizar_contrato(contrato_solicitado)
+                contrato_normalizado = self._normalizar_contrato(contrato_solicitado)
                 logger.info(f"[FILTRO CONTRATO] Contrato normalizado: {contrato_normalizado}")
 
                 # Filtra resultados pelo contrato (tenta match exato e normalizado)
                 results_filtrados = []
                 for r in results:
                     contrato_db = str(r.get("contrato", "")).upper().strip()
-                    contrato_db_normalizado = normalizar_contrato(contrato_db)
+                    contrato_db_normalizado = self._normalizar_contrato(contrato_db)
 
                     # Match se contrato solicitado está no DB (substring) OU versões normalizadas são iguais
                     if (contrato_solicitado in contrato_db or
