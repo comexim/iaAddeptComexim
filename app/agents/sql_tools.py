@@ -2861,18 +2861,19 @@ Resposta CORRETA deve incluir:
         """
         return self._validate_and_execute("IA_Cotacao")
 
-    def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None) -> str:
+    def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """
         Consulta contas a receber (recebimentos futuros/pendentes).
 
         Args:
             data_vencimento: Data de vencimento (ex: "hoje", "próximos 7 dias", "este mês")
             cliente: Filtro por cliente (ex: "NESTLE", "STARBUCKS")
+            contrato: Filtro por contrato específico (ex: "256/25R", "031/25")
 
         Returns:
             Dados de contas a receber formatados
         """
-        logger.info(f"[CONTAS A RECEBER] Consultando contas a receber - data_vencimento: {data_vencimento}, cliente: {cliente}")
+        logger.info(f"[CONTAS A RECEBER] Consultando contas a receber - data_vencimento: {data_vencimento}, cliente: {cliente}, contrato: {contrato}")
 
         # Valida permissão
         has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAReceber")
@@ -2911,10 +2912,78 @@ Resposta CORRETA deve incluir:
                 result_list = [r for r in result_list if cliente_upper in str(r.get("cliente", "")).upper()]
                 logger.info(f"[CONTAS A RECEBER] Filtro por cliente '{cliente}': {original_count} → {len(result_list)} registros")
 
-            if not result_list:
-                return "Nenhuma conta a receber encontrada para o período especificado."
+            # Aplica filtro por contrato se fornecido
+            if result_list and contrato:
+                original_count = len(result_list)
+                contrato_normalizado = self._normalizar_contrato(contrato)
+                result_list = [r for r in result_list if self._normalizar_contrato(str(r.get("contrato", ""))) == contrato_normalizado]
+                logger.info(f"[CONTAS A RECEBER] Filtro por contrato '{contrato}' (normalizado: {contrato_normalizado}): {original_count} → {len(result_list)} registros")
 
-            # SEMPRE agrega por cliente para garantir valores corretos
+            if not result_list:
+                msg = "Nenhuma conta a receber encontrada"
+                if contrato:
+                    msg += f" para o contrato {contrato}"
+                if data_vencimento:
+                    msg += f" no período especificado"
+                return msg + "."
+
+            # Se contrato específico foi solicitado E poucos registros (<= 50), retorna detalhes completos
+            if contrato and len(result_list) <= 50:
+                # Calcula total geral
+                total_valor = 0
+                total_saldo = 0
+                for r in result_list:
+                    valor = r.get("valor", 0)
+                    saldo = r.get("saldo", 0)
+
+                    # Converte valores
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+                    elif isinstance(valor, str):
+                        try:
+                            valor = float(valor)
+                        except:
+                            valor = 0
+                    elif not isinstance(valor, (int, float)):
+                        valor = 0
+
+                    if isinstance(saldo, Decimal):
+                        saldo = float(saldo)
+                    elif isinstance(saldo, str):
+                        try:
+                            saldo = float(saldo)
+                        except:
+                            saldo = 0
+                    elif not isinstance(saldo, (int, float)):
+                        saldo = 0
+
+                    total_valor += valor
+                    total_saldo += saldo
+
+                def convert_decimals(obj):
+                    if isinstance(obj, Decimal):
+                        return float(obj)
+                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
+
+                return f"""Resultados da consulta IA_ContasAReceber para o contrato {contrato}:
+
+Total de títulos: {len(result_list)}
+Valor total a receber: R$ {total_valor:,.2f}
+Saldo total pendente: R$ {total_saldo:,.2f}
+
+Dados completos dos títulos:
+{formatted}
+
+IMPORTANTE:
+1. Estas são contas PENDENTES (a receber no futuro)
+2. Cada linha representa um título individual do contrato
+3. valor = valor total do título
+4. saldo = saldo pendente a receber
+5. Total geral: R$ {total_valor:,.2f}"""
+
+            # Se NÃO solicitou contrato específico, agrega por cliente para garantir valores corretos
             from collections import defaultdict
             por_cliente = defaultdict(lambda: {
                 "valor_total": 0,
@@ -3386,12 +3455,19 @@ Argumentos:
   - Se NÃO INFORMADO: retorna todos os clientes
   - Se INFORMADO: filtra apenas contas do cliente especificado
 
+- contrato (opcional): Filtro por contrato específico
+  - Exemplos: "256/25R", "031/25", "086/25B"
+  - Quando INFORMADO: retorna DETALHES COMPLETOS dos títulos (sem agregar)
+  - Útil para consultas como "dados do contrato X no contas a receber"
+
 Exemplos de uso:
 - "Quanto tenho a receber hoje?" → pesquisa_contas_a_receber(data_vencimento="hoje")
 - "Contas a receber nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias")
 - "Recebimentos deste mês" → pesquisa_contas_a_receber(data_vencimento="este mês")
 - "Quanto a NESTLE me deve?" → pesquisa_contas_a_receber(cliente="NESTLE")
 - "Recebimentos da NESTLE nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias", cliente="NESTLE")
+- "Dados do contrato 256/25R no contas a receber" → pesquisa_contas_a_receber(contrato="256/25R")
+- "Quero saber o contrato 256/25R no contas a receber para o dia 9 de fevereiro de 2026" → pesquisa_contas_a_receber(data_vencimento="9 de fevereiro de 2026", contrato="256/25R")
 """
             ),
             StructuredTool.from_function(
