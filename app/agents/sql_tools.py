@@ -1843,7 +1843,8 @@ Exemplos corretos de uso:
         if menciona_contrato and self.user_query_original:
             import re
             # Extrai número do contrato da pergunta (ex: "087/25A", "453/25", "512/25B")
-            match = re.search(r'(\d{2,4}/\d{2}[A-Z]?)', self.user_query_original, re.IGNORECASE)
+            # IMPORTANTE: (?!\d) garante que não é uma data (ex: "12/2025" não casa)
+            match = re.search(r'(\d{2,4}/\d{2}(?!\d)[A-Z]?)', self.user_query_original, re.IGNORECASE)
             if match:
                 contrato_solicitado = match.group(1).upper()
                 logger.info(f"[FILTRO CONTRATO] Contrato específico solicitado: {contrato_solicitado}")
