@@ -2438,6 +2438,25 @@ IMPORTANTE:
 
             # Se poucos registros (<= 50), retorna todos
             if len(result_list) <= 50:
+                # Calcula total geral
+                total_geral = 0
+                for r in result_list:
+                    valor = r.get("valor", 0)
+                    if isinstance(valor, Decimal):
+                        valor = float(valor)
+                    elif isinstance(valor, str):
+                        try:
+                            valor = float(valor)
+                        except:
+                            try:
+                                valor_limpo = valor.replace("R$", "").replace(",", "").strip()
+                                valor = float(valor_limpo)
+                            except:
+                                valor = 0
+                    elif not isinstance(valor, (int, float)):
+                        valor = 0
+                    total_geral += valor
+
                 def convert_decimals(obj):
                     if isinstance(obj, Decimal):
                         return float(obj)
@@ -2448,6 +2467,7 @@ IMPORTANTE:
                 return f"""Resultados da consulta IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
+Valor total a pagar: R$ {total_geral:,.2f}
 
 Dados completos:
 {formatted}
