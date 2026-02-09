@@ -2092,24 +2092,37 @@ Não conte manualmente - este é o número correto após aplicar os filtros.
         # Instrução especial para listar todos os contratos quando <= 50
         listar_todos_instrucao = ""
         if function_name == "IA_Vendas" and len(results) <= 50:
-            listar_todos_instrucao = f"""
+            # Detecta palavras-chave que indicam que usuário quer lista completa
+            palavras_lista_completa = ["todas", "todos", "liste", "informe", "mostre", "traga", "quais"]
+            quer_lista_completa = any(palavra in self.user_query_original.lower() for palavra in palavras_lista_completa)
 
-⚠️⚠️⚠️ INSTRUÇÃO CRÍTICA - LEIA COM ATENÇÃO ⚠️⚠️⚠️
+            if quer_lista_completa:
+                listar_todos_instrucao = f"""
 
-Esta consulta retornou {len(results)} contratos. Quando o usuário pede "liste todos os contratos" ou "informe quais os contratos" ou "me mostre os contratos":
+⚠️⚠️⚠️ INSTRUÇÃO OBRIGATÓRIA - O USUÁRIO PEDIU LISTA COMPLETA ⚠️⚠️⚠️
 
-✅ VOCÊ DEVE LISTAR **TODOS** OS {len(results)} CONTRATOS, NÃO APENAS ALGUNS EXEMPLOS!
+O usuário usou palavras como "todas", "todos", "liste", "informe" ou "mostre" na pergunta.
+Isso significa que ele quer a LISTA COMPLETA, NÃO apenas exemplos!
 
-Formato da lista:
-1. [Contrato] - [Cliente] - [País] (ou outras informações relevantes)
+✅ VOCÊ **DEVE** LISTAR **TODOS** OS {len(results)} CONTRATOS ABAIXO!
+❌ **NÃO** mostre apenas "alguns exemplos" ou "5 contratos"!
+
+Formato OBRIGATÓRIO da resposta:
+"Aqui está a lista completa dos {len(results)} contratos:
+
+1. [Contrato] - [Cliente] - [País]
 2. [Contrato] - [Cliente] - [País]
+3. [Contrato] - [Cliente] - [País]
 ...
-{len(results)}. [Contrato] - [Cliente] - [País]
+{len(results)}. [Contrato] - [Cliente] - [País]"
 
-❌ NÃO faça: "Aqui estão alguns exemplos: 1, 2, 3, 4, 5..."
-✅ FAÇA: Liste TODOS os {len(results)} contratos, um por um, numerados de 1 a {len(results)}.
+**IMPORTANTE**: Liste TODOS os {len(results)} contratos, numerados de 1 a {len(results)}!
+NÃO resuma, NÃO mostre só exemplos, liste TODOS!"""
+            else:
+                listar_todos_instrucao = f"""
 
-Se o usuário NÃO pediu explicitamente para listar, pode resumir com totais e exemplos."""
+Esta consulta retornou {len(results)} contratos.
+Você pode resumir com totais e mostrar alguns exemplos, a menos que o usuário peça explicitamente para listar todos."""
 
         return f"""Resultados da consulta {function_name}:{sumario_nao_embarcados_sem_bl}
 
