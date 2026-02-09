@@ -1870,6 +1870,31 @@ Exemplos corretos de uso:
                 else:
                     logger.warning(f"[FILTRO CONTRATO] Contrato {contrato_solicitado} NÃO encontrado nos {len(results)} resultados")
 
+        # DEDUPULICAÇÃO: Remove contratos duplicados (mesmo contrato+filial+cliente)
+        # Bug: stored procedure pode retornar mesmo contrato múltiplas vezes
+        if function_name == "IA_Vendas":
+            contratos_vistos = set()
+            results_dedup = []
+
+            for r in results:
+                # Chave única: contrato + filial + cliente
+                # IMPORTANTE: Incluir cliente porque mesmo contrato pode ter clientes diferentes (raro mas possível)
+                contrato = str(r.get('contrato', '')).strip()
+                filial = str(r.get('filial', '')).strip()
+                cliente = str(r.get('cliente', '')).strip()
+                chave = f"{contrato}_{filial}_{cliente}"
+
+                if chave not in contratos_vistos:
+                    contratos_vistos.add(chave)
+                    results_dedup.append(r)
+                else:
+                    logger.warning(f"[VENDAS] Contrato duplicado removido: {contrato} - {cliente}")
+
+            if len(results_dedup) < len(results):
+                logger.info(f"[VENDAS] Dedupulicação: {len(results)} → {len(results_dedup)} registros ({len(results) - len(results_dedup)} duplicatas removidas)")
+                results = results_dedup
+                total_records = len(results_dedup)
+
         if len(results) > 50:
             results = results[:50]
             warning = f"\n\nAtenção: Foram encontrados {total_records} registros. Exibindo apenas os primeiros 50."
@@ -2063,6 +2088,28 @@ Não conte manualmente - este é o número correto após aplicar os filtros.
 """
             logger.info(f"[SUMÁRIO ESPECIAL] Calculado: {total_contratos} contratos não embarcados sem BL")
 
+        # Instrução especial para listar todos os contratos quando <= 50
+        listar_todos_instrucao = ""
+        if function_name == "IA_Vendas" and len(results) <= 50:
+            listar_todos_instrucao = f"""
+
+⚠️⚠️⚠️ INSTRUÇÃO CRÍTICA - LEIA COM ATENÇÃO ⚠️⚠️⚠️
+
+Esta consulta retornou {len(results)} contratos. Quando o usuário pede "liste todos os contratos" ou "informe quais os contratos" ou "me mostre os contratos":
+
+✅ VOCÊ DEVE LISTAR **TODOS** OS {len(results)} CONTRATOS, NÃO APENAS ALGUNS EXEMPLOS!
+
+Formato da lista:
+1. [Contrato] - [Cliente] - [País] (ou outras informações relevantes)
+2. [Contrato] - [Cliente] - [País]
+...
+{len(results)}. [Contrato] - [Cliente] - [País]
+
+❌ NÃO faça: "Aqui estão alguns exemplos: 1, 2, 3, 4, 5..."
+✅ FAÇA: Liste TODOS os {len(results)} contratos, um por um, numerados de 1 a {len(results)}.
+
+Se o usuário NÃO pediu explicitamente para listar, pode resumir com totais e exemplos."""
+
         return f"""Resultados da consulta {function_name}:{sumario_nao_embarcados_sem_bl}
 
 Total de registros retornados pelo SQL: {original_count}
@@ -2071,7 +2118,7 @@ Registros nesta resposta: {len(results)}
 Dados:
 {formatted}{warning}
 
-{specific_instructions}
+{specific_instructions}{listar_todos_instrucao}
 
 Analise TODOS os {len(results)} registros acima e responda com base nos campos disponíveis."""
 
