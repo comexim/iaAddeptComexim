@@ -2410,6 +2410,25 @@ IMPORTANTE:
             if not result_list:
                 return "Nenhuma conta a pagar encontrada para o período especificado."
 
+            # DEDUPULICAÇÃO: Remove títulos duplicados (mesmo numero+parcela+filial)
+            # Bug da stored procedure que retorna mesmo título 2x com naturezas diferentes
+            titulos_vistos = set()
+            result_dedup = []
+
+            for r in result_list:
+                # Chave única: numero + parcela + filial
+                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}"
+
+                if chave not in titulos_vistos:
+                    titulos_vistos.add(chave)
+                    result_dedup.append(r)
+                else:
+                    logger.warning(f"[CONTAS A PAGAR] Título duplicado removido: {r.get('numero')} - {r.get('fornecedor')} - R$ {r.get('valor')}")
+
+            if len(result_dedup) < len(result_list):
+                logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
+                result_list = result_dedup
+
             # Se poucos registros (<= 50), retorna todos
             if len(result_list) <= 50:
                 def convert_decimals(obj):
