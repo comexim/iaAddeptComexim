@@ -2417,11 +2417,14 @@ IMPORTANTE:
             result_dedup = []
 
             for r in result_list:
-                # Chave única: numero + parcela + filial + fornecedor + valor
-                # Exemplo: mesmo número 000040226 pode ter SERGIO HAZAN e RENAN M HAZAN (rateio)
+                # Chave única: numero + parcela + filial + fornecedor + valor + natureza
+                # IMPORTANTE: Incluir natureza porque mesmo título pode ter naturezas diferentes (rateio legítimo)
+                # Exemplo 1: 000040226 pode ter SERGIO HAZAN e RENAN M HAZAN (fornecedores diferentes)
+                # Exemplo 2: 102295 pode ter TARIFAS BANCARIAS e COMPRA DE CAFE (naturezas diferentes, mesmo fornecedor)
                 fornecedor = str(r.get('fornecedor', '')).strip()
                 valor = float(r.get('valor', 0) or 0)
-                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}_{fornecedor}_{valor}"
+                natureza = str(r.get('natureza', '')).strip()
+                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}_{fornecedor}_{valor}_{natureza}"
 
                 if chave not in titulos_vistos:
                     titulos_vistos.add(chave)
