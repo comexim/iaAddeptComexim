@@ -233,6 +233,12 @@ class SQLServerClient:
             cursor = conn.cursor()
             cursor.execute(query)
 
+            # Verifica se a procedure retornou resultados
+            if cursor.description is None:
+                logger.warning(f"Procedure {procedure_name} executou mas não retornou resultados (sem SELECT)")
+                logger.warning(f"A procedure precisa ter um SELECT para retornar dados")
+                return []
+
             # Obtém nomes das colunas
             columns = [column[0] for column in cursor.description]
 
@@ -250,7 +256,7 @@ class SQLServerClient:
                     row_dict[column] = value
                 results.append(row_dict)
 
-            logger.info(f"Query executada: {len(results)} registros retornados")
+            logger.info(f"Procedure executada: {len(results)} registros retornados")
             return results
 
         except Exception as e:
