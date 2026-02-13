@@ -3334,6 +3334,18 @@ IMPORTANTE:
                 name="pesquisa_vendas",
                 description="""Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 
+🔄 REGRA DE CONTEXTO DE CONTRATO (NOVA!) 🔄
+Se o usuário já mencionou um número de contrato anteriormente (ex: "228/25", "031/25") e agora faz perguntas de seguimento sem mencionar o contrato novamente (ex: "Qual o total de sacas?", "Qual o vendedor?", "Preciso dos dados completos"), você DEVE entender que ele está se referindo ao mesmo contrato.
+
+IMPORTANTE: Use esta ferramenta SEM PASSAR PERIODO para consultas sobre o contrato específico já mencionado.
+O sistema detectará automaticamente o contexto e aplicará o filtro pelo contrato.
+
+Exemplos de perguntas de seguimento sobre contrato:
+- Usuário: "Quem é o vendedor do contrato 228/25?" → pesquisa_vendas()
+- Usuário: "Preciso do total e da quantidade de sacas" → pesquisa_vendas() (usa 228/25 automaticamente)
+- Usuário: "Qual o cliente?" → pesquisa_vendas() (usa 228/25 automaticamente)
+- Usuário: "Qual a qualidade?" → pesquisa_vendas() (usa 228/25 automaticamente)
+
 ⚠️⚠️⚠️ REGRA ABSOLUTA DE SELEÇÃO ⚠️⚠️⚠️
 SEMPRE USE ESTA FERRAMENTA (pesquisa_vendas) QUANDO A PERGUNTA CONTÉM A PALAVRA "CONTRATOS"
 Isso inclui queries como:
