@@ -233,31 +233,57 @@ class SQLServerClient:
             cursor = conn.cursor()
             cursor.execute(query)
 
-            # Verifica se a procedure retornou resultados
-            if cursor.description is None:
-                logger.warning(f"Procedure {procedure_name} executou mas não retornou resultados (sem SELECT)")
-                logger.warning(f"A procedure precisa ter um SELECT para retornar dados")
-                return []
+            # Procedures podem retornar múltiplos result sets
+            # Precisamos iterar por todos até encontrar o que tem dados
+            all_results = []
+            result_set_index = 0
 
-            # Obtém nomes das colunas
-            columns = [column[0] for column in cursor.description]
+            while True:
+                result_set_index += 1
 
-            # Converte resultados para lista de dicionários
-            results = []
-            for row in cursor.fetchall():
-                row_dict = {}
-                for i, column in enumerate(columns):
-                    value = row[i]
-                    # Converte tipos específicos para JSON-serializáveis
-                    if hasattr(value, 'isoformat'):  # datetime/date
-                        value = value.isoformat()
-                    elif isinstance(value, bytes):
-                        value = value.decode('utf-8', errors='ignore')
-                    row_dict[column] = value
-                results.append(row_dict)
+                # Verifica se este result set tem dados
+                if cursor.description is None:
+                    logger.debug(f"Result set {result_set_index}: sem description (UPDATE/INSERT/DELETE ou vazio)")
+                    # Tenta próximo result set
+                    if not cursor.nextset():
+                        break
+                    continue
 
-            logger.info(f"Procedure executada: {len(results)} registros retornados")
-            return results
+                # Obtém nomes das colunas
+                columns = [column[0] for column in cursor.description]
+                logger.debug(f"Result set {result_set_index}: colunas = {columns}")
+
+                # Converte resultados para lista de dicionários
+                results = []
+                for row in cursor.fetchall():
+                    row_dict = {}
+                    for i, column in enumerate(columns):
+                        value = row[i]
+                        # Converte tipos específicos para JSON-serializáveis
+                        if hasattr(value, 'isoformat'):  # datetime/date
+                            value = value.isoformat()
+                        elif isinstance(value, bytes):
+                            value = value.decode('utf-8', errors='ignore')
+                        row_dict[column] = value
+                    results.append(row_dict)
+
+                logger.info(f"Result set {result_set_index}: {len(results)} registros")
+
+                # Se encontrou dados, usa este result set
+                if results:
+                    all_results = results
+                    logger.info(f"✅ Usando result set {result_set_index} com {len(results)} registros")
+                    # Continua iterando para consumir todos os result sets
+
+                # Tenta próximo result set
+                if not cursor.nextset():
+                    break
+
+            if not all_results:
+                logger.warning(f"Procedure {procedure_name} executou mas nenhum result set retornou dados")
+                logger.warning(f"Verifique se a procedure tem SELECT ou se tem SET NOCOUNT ON")
+
+            return all_results
 
         except Exception as e:
             logger.error(f"Erro ao executar procedure: {e}")
