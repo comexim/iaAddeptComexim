@@ -3081,6 +3081,12 @@ Resposta CORRETA deve incluir:
         """
         logger.info(f"[LONGSHORT] Consultando Long/Short - query original: {self.user_query_original}")
 
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, "usp_LS_FILIAIS")
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: usp_LS_FILIAIS")
+            return error_msg
+
         # Detecta filial mencionada na query
         filial = None
         query_lower = self.user_query_original.lower() if self.user_query_original else ""
@@ -3100,10 +3106,19 @@ Resposta CORRETA deve incluir:
             filial = "FILIAIS"
             logger.info(f"[LONGSHORT] Nenhuma filial específica detectada, usando totalizador FILIAIS")
 
-        # Monta filtros com o parâmetro FILIAL
-        filters = {"FILIAL": filial}
+        # Monta parâmetros para a stored procedure
+        params = {"FILIAL": filial}
 
-        return self._validate_and_execute("usp_LS_FILIAIS", filters)
+        # Executa stored procedure (usa EXEC ao invés de SELECT)
+        try:
+            logger.info(f"Executando usp_LS_FILIAIS com parâmetros: {params}")
+            results = sql_client.execute_procedure("usp_LS_FILIAIS", params)
+            return self._format_results(results, "usp_LS_FILIAIS", None)
+        except Exception as e:
+            import traceback
+            logger.error(f"Erro ao executar usp_LS_FILIAIS: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """

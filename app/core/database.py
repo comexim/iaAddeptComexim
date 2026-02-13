@@ -57,8 +57,8 @@ class SQLServerClient:
             "IA_ContasAReceber": [],  # Contas a Receber NÃO aceita parâmetros, vencimentoReal vai no WHERE
             "IA_Orcamento": [],  # Orçamento NÃO aceita parâmetros, ano/mes vão no WHERE
             "IA_Cotacao": [],  # Cotação NÃO aceita parâmetros
-            "IA_DespesaVenda": [],  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
-            "usp_LS_FILIAIS": ["FILIAL"]  # LongShort aceita parâmetro @FILIAL (opcional)
+            "IA_DespesaVenda": []  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
+            # Nota: usp_LS_FILIAIS é uma STORED PROCEDURE (não function), usa execute_procedure()
         }
 
         # Campos que devem usar >= ao invés de =
@@ -173,6 +173,93 @@ class SQLServerClient:
 
         finally:
             # CRÍTICO: Fechar cursor e conexão para evitar "Connection is busy"
+            if cursor:
+                try:
+                    cursor.close()
+                except:
+                    pass
+            if conn:
+                try:
+                    conn.close()
+                    logger.debug("Conexão fechada")
+                except:
+                    pass
+
+    def execute_procedure(
+        self,
+        procedure_name: str,
+        params: Optional[Dict[str, Any]] = None,
+        timeout: int = 30
+    ) -> List[Dict[str, Any]]:
+        """
+        Executa stored procedure usando EXEC (não SELECT)
+
+        Args:
+            procedure_name: Nome da procedure (ex: usp_LS_FILIAIS)
+            params: Parâmetros nomeados da procedure (ex: {'FILIAL': 'COBRA'})
+            timeout: Timeout em segundos
+
+        Returns:
+            Lista de dicionários com resultados
+        """
+        # Monta comando EXEC com parâmetros nomeados
+        if params:
+            param_strings = []
+            for key, value in params.items():
+                if value is None:
+                    continue
+
+                # Remove @ do início se existir (vamos adicionar sempre)
+                param_name = key.lstrip('@')
+
+                if isinstance(value, str):
+                    escaped_value = value.replace("'", "''")
+                    param_strings.append(f"@{param_name}='{escaped_value}'")
+                elif isinstance(value, (int, float)):
+                    param_strings.append(f"@{param_name}={value}")
+                else:
+                    param_strings.append(f"@{param_name}='{value}'")
+
+            query = f"EXEC {procedure_name} {', '.join(param_strings)}"
+        else:
+            query = f"EXEC {procedure_name}"
+
+        logger.info(f"Executando procedure: {query}")
+
+        conn = None
+        cursor = None
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query)
+
+            # Obtém nomes das colunas
+            columns = [column[0] for column in cursor.description]
+
+            # Converte resultados para lista de dicionários
+            results = []
+            for row in cursor.fetchall():
+                row_dict = {}
+                for i, column in enumerate(columns):
+                    value = row[i]
+                    # Converte tipos específicos para JSON-serializáveis
+                    if hasattr(value, 'isoformat'):  # datetime/date
+                        value = value.isoformat()
+                    elif isinstance(value, bytes):
+                        value = value.decode('utf-8', errors='ignore')
+                    row_dict[column] = value
+                results.append(row_dict)
+
+            logger.info(f"Query executada: {len(results)} registros retornados")
+            return results
+
+        except Exception as e:
+            logger.error(f"Erro ao executar procedure: {e}")
+            logger.error(f"Query: {query}")
+            raise Exception(f"Erro ao consultar banco de dados: {str(e)}")
+
+        finally:
+            # CRÍTICO: Fechar cursor e conexão
             if cursor:
                 try:
                     cursor.close()
