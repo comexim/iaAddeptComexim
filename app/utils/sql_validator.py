@@ -19,7 +19,8 @@ FUNCTION_PERMISSIONS: Dict[str, PermissionType] = {
     "IA_Estoque": "Estoque",
     "IA_Orcamento": "Orçamento",
     "IA_Cotacao": "Vendas",
-    "IA_DespesaVenda": "Vendas"
+    "IA_DespesaVenda": "Vendas",
+    "usp_LS_FILIAIS": "Estoque"
 }
 
 
@@ -52,7 +53,7 @@ FUNCTIONS_REQUIRING_WHERE = {
 
 
 # Funções que NÃO precisam de WHERE (snapshot/poucos dados)
-FUNCTIONS_WITHOUT_WHERE = ["IA_SaldoBancario", "IA_Estoque", "IA_Cotacao"]
+FUNCTIONS_WITHOUT_WHERE = ["IA_SaldoBancario", "IA_Estoque", "IA_Cotacao", "usp_LS_FILIAIS"]
 
 
 class SQLValidator:

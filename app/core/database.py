@@ -57,7 +57,8 @@ class SQLServerClient:
             "IA_ContasAReceber": [],  # Contas a Receber NÃO aceita parâmetros, vencimentoReal vai no WHERE
             "IA_Orcamento": [],  # Orçamento NÃO aceita parâmetros, ano/mes vão no WHERE
             "IA_Cotacao": [],  # Cotação NÃO aceita parâmetros
-            "IA_DespesaVenda": []  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
+            "IA_DespesaVenda": [],  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
+            "usp_LS_FILIAIS": ["FILIAL"]  # LongShort aceita parâmetro @FILIAL (opcional)
         }
 
         # Campos que devem usar >= ao invés de =

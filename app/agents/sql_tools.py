@@ -3060,6 +3060,51 @@ Resposta CORRETA deve incluir:
         """
         return self._validate_and_execute("IA_Cotacao")
 
+    def _pesquisa_longshort(self) -> str:
+        """
+        Consulta posição do Long/Short por filial.
+
+        Detecta automaticamente a filial mencionada na query:
+        - COBRA / comexim brasil → @FILIAL='COBRA'
+        - CUSA / comexim usa → @FILIAL='CUSA'
+        - CEU / comexim europa → @FILIAL='CEU'
+        - Sem especificação → @FILIAL='FILIAIS' (totalizador)
+
+        Colunas disponíveis:
+        - netPosition: Posição do LongShort
+        - totalEstoque: Total do estoque
+        - vendasExportacao: Vendas exportáveis
+        - comprasConsumo: Compras de mercado interno/consumo
+
+        Returns:
+            Dados de Long/Short formatados
+        """
+        logger.info(f"[LONGSHORT] Consultando Long/Short - query original: {self.user_query_original}")
+
+        # Detecta filial mencionada na query
+        filial = None
+        query_lower = self.user_query_original.lower() if self.user_query_original else ""
+
+        # Mapeamento de termos para códigos de filial
+        if any(term in query_lower for term in ["cobra", "comexim brasil", "brasil"]):
+            filial = "COBRA"
+            logger.info(f"[LONGSHORT] Filial detectada: COBRA")
+        elif any(term in query_lower for term in ["cusa", "comexim usa", "usa", "eua"]):
+            filial = "CUSA"
+            logger.info(f"[LONGSHORT] Filial detectada: CUSA")
+        elif any(term in query_lower for term in ["ceu", "comexim europa", "europa"]):
+            filial = "CEU"
+            logger.info(f"[LONGSHORT] Filial detectada: CEU")
+        else:
+            # Padrão: totalizador de todas as filiais
+            filial = "FILIAIS"
+            logger.info(f"[LONGSHORT] Nenhuma filial específica detectada, usando totalizador FILIAIS")
+
+        # Monta filtros com o parâmetro FILIAL
+        filters = {"FILIAL": filial}
+
+        return self._validate_and_execute("usp_LS_FILIAIS", filters)
+
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """
         Consulta contas a receber (recebimentos futuros/pendentes).
@@ -3734,6 +3779,32 @@ Exemplos de uso:
                 func=self._pesquisa_cotacao,
                 name="pesquisa_cotacao",
                 description="Consulta cotação da bolsa. NÃO requer argumentos."
+            ),
+            StructuredTool.from_function(
+                func=self._pesquisa_longshort,
+                name="pesquisa_longshort",
+                description="""Consulta posição do Long/Short (LS) por filial.
+
+🔍 DETECÇÃO AUTOMÁTICA DE FILIAL:
+Esta ferramenta detecta automaticamente qual filial o usuário quer consultar:
+- COBRA / "comexim brasil" / "brasil" → Filial COBRA
+- CUSA / "comexim usa" / "usa" / "eua" → Filial CUSA
+- CEU / "comexim europa" / "europa" → Filial CEU
+- Sem especificação → FILIAIS (totalizador de todas as filiais)
+
+📊 COLUNAS DISPONÍVEIS:
+- netPosition: Posição líquida do LongShort
+- totalEstoque: Total do estoque
+- vendasExportacao: Total de vendas para exportação
+- comprasConsumo: Total de compras de mercado interno/consumo
+
+📝 EXEMPLOS DE USO:
+- "Qual a posição do LongShort?" → Retorna netPosition (FILIAIS)
+- "Qual o total do estoque do longshort da CUSA?" → Retorna totalEstoque (CUSA)
+- "Qual o total de vendas exportáveis da comexim europa?" → Retorna vendasExportacao (CEU)
+- "Qual o total de compras de mercado interno?" → Retorna comprasConsumo (FILIAIS)
+
+⚠️ NÃO requer argumentos - a filial é detectada automaticamente da pergunta do usuário."""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_despesa_venda,
