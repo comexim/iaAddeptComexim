@@ -23,6 +23,7 @@ class SQLTools:
         self.user = user
         self.user_query = ""  # Armazena última pergunta do usuário (CONTEXTUALIZADA para IA)
         self.user_query_original = ""  # Armazena pergunta ORIGINAL (sem contexto) para filtros
+        self.ultimo_contrato_consultado = None  # Armazena último contrato consultado (para contexto)
 
     def _remove_accents(self, text: str) -> str:
         """Remove acentos de uma string usando normalização Unicode"""
@@ -2191,6 +2192,36 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             Dados de vendas formatados
         """
         logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}")
+
+        # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
+        contrato_na_query = None
+        if self.user_query_original:
+            # Tenta extrair contrato da pergunta atual
+            match_contrato = re.search(r'(\d{2,4}/\d{2}(?!\d)[A-Z]?)', self.user_query_original, re.IGNORECASE)
+            if match_contrato:
+                contrato_na_query = match_contrato.group(1).upper()
+                logger.info(f"[CONTEXTO CONTRATO] Contrato mencionado explicitamente: {contrato_na_query}")
+                self.ultimo_contrato_consultado = contrato_na_query
+            else:
+                # NÃO mencionou contrato, mas pode ser pergunta de seguimento
+                # Palavras que indicam pergunta de seguimento sobre contrato
+                palavras_seguimento = [
+                    r'\btotal\b', r'\bquantidade\b', r'\bsacas?\b', r'\bvendedor\b',
+                    r'\bcliente\b', r'\bvalor\b', r'\bpreço\b', r'\bpreco\b',
+                    r'\bdiferencial\b', r'\bembarque\b', r'\bqual(is)?\b',
+                    r'\bmostre\b', r'\binforme\b', r'\bme\s+d[eê]\b'
+                ]
+
+                query_lower = self.user_query_original.lower()
+                eh_pergunta_seguimento = any(re.search(padrao, query_lower) for padrao in palavras_seguimento)
+
+                if eh_pergunta_seguimento and self.ultimo_contrato_consultado:
+                    logger.info(f"[CONTEXTO CONTRATO] Pergunta de seguimento detectada! Usando contrato anterior: {self.ultimo_contrato_consultado}")
+                    # Injeta contrato na query para que o filtro funcione
+                    self.user_query_original = f"{self.user_query_original} (contrato {self.ultimo_contrato_consultado})"
+                    logger.info(f"[CONTEXTO CONTRATO] Query modificada: {self.user_query_original}")
+                elif eh_pergunta_seguimento and not self.ultimo_contrato_consultado:
+                    logger.warning(f"[CONTEXTO CONTRATO] Pergunta de seguimento detectada mas SEM contrato anterior armazenado")
 
         # PROTEÇÃO: Detecta queries sobre "baixados EM [data]" e força periodo=None
         if periodo and self.user_query:
