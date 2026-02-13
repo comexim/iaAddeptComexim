@@ -53,7 +53,7 @@ class AgentOrchestrator:
             )
 
         # Cria tools SQL específicas para este usuário
-        sql_tools = SQLTools(user)
+        sql_tools = SQLTools(user, session_id)
         self.tools = sql_tools.get_all_tools()
 
         # Configura memória com Redis
@@ -138,7 +138,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         """
         try:
             # Armazena mensagem do usuário nas tools SQL para extração de cliente
-            sql_tools = SQLTools(self.user)
+            sql_tools = SQLTools(self.user, self.session_id)
 
             # CONTEXTO INTELIGENTE: Se mensagem curta, concatena com última pergunta do usuário
             contextualized_query = message

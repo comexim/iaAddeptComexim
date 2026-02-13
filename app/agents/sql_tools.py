@@ -12,6 +12,7 @@ from app.core.database import sql_client
 from app.utils.sql_validator import sql_validator
 from app.utils.date_parser import date_parser
 from app.models.user import UserPermissions
+from app.core.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +20,31 @@ logger = logging.getLogger(__name__)
 class SQLTools:
     """Ferramentas de consulta SQL para o agente"""
 
-    def __init__(self, user: UserPermissions):
+    def __init__(self, user: UserPermissions, session_id: Optional[str] = None):
         self.user = user
+        self.session_id = session_id
         self.user_query = ""  # Armazena última pergunta do usuário (CONTEXTUALIZADA para IA)
         self.user_query_original = ""  # Armazena pergunta ORIGINAL (sem contexto) para filtros
         self.ultimo_contrato_consultado = None  # Armazena último contrato consultado (para contexto)
+
+        # Carrega último contrato do Redis (se disponível)
+        if self.session_id:
+            import asyncio
+            try:
+                # Cria event loop se não existir (para chamadas síncronas)
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                # Carrega contrato do Redis
+                contrato_redis = loop.run_until_complete(self._carregar_contrato_redis())
+                if contrato_redis:
+                    self.ultimo_contrato_consultado = contrato_redis
+                    logger.info(f"[CONTEXTO REDIS] Contrato carregado: {contrato_redis}")
+            except Exception as e:
+                logger.warning(f"[CONTEXTO REDIS] Erro ao carregar contrato: {e}")
 
     def _remove_accents(self, text: str) -> str:
         """Remove acentos de uma string usando normalização Unicode"""
@@ -31,6 +52,43 @@ class SQLTools:
         nfd = unicodedata.normalize('NFD', text)
         # Remove combining marks (acentos)
         return ''.join(char for char in nfd if unicodedata.category(char) != 'Mn')
+
+    async def _salvar_contrato_redis(self, contrato: str):
+        """
+        Salva último contrato consultado no Redis
+
+        Args:
+            contrato: Número do contrato (ex: "228/25")
+        """
+        if not self.session_id:
+            return
+
+        try:
+            key = f"contrato_ctx:{self.session_id}"
+            await redis_client.set(key, contrato, ttl=7200)  # TTL: 2 horas
+            logger.info(f"[CONTEXTO REDIS] Contrato salvo: {contrato} (sessão: {self.session_id})")
+        except Exception as e:
+            logger.error(f"[CONTEXTO REDIS] Erro ao salvar contrato: {e}")
+
+    async def _carregar_contrato_redis(self) -> Optional[str]:
+        """
+        Carrega último contrato consultado do Redis
+
+        Returns:
+            Número do contrato ou None
+        """
+        if not self.session_id:
+            return None
+
+        try:
+            key = f"contrato_ctx:{self.session_id}"
+            contrato = await redis_client.get(key)
+            if contrato:
+                logger.info(f"[CONTEXTO REDIS] Contrato carregado: {contrato} (sessão: {self.session_id})")
+            return contrato
+        except Exception as e:
+            logger.error(f"[CONTEXTO REDIS] Erro ao carregar contrato: {e}")
+            return None
 
     def _normalizar_contrato(self, contrato: str) -> str:
         """
@@ -2202,6 +2260,20 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 contrato_na_query = match_contrato.group(1).upper()
                 logger.info(f"[CONTEXTO CONTRATO] Contrato mencionado explicitamente: {contrato_na_query}")
                 self.ultimo_contrato_consultado = contrato_na_query
+
+                # Salva no Redis para persistir entre chamadas
+                if self.session_id:
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    try:
+                        loop.run_until_complete(self._salvar_contrato_redis(contrato_na_query))
+                    except Exception as e:
+                        logger.warning(f"[CONTEXTO REDIS] Erro ao salvar contrato: {e}")
             else:
                 # NÃO mencionou contrato, mas pode ser pergunta de seguimento
                 # Palavras que indicam pergunta de seguimento sobre contrato
