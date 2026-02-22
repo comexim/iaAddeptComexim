@@ -51,11 +51,17 @@ class SQLServerClient:
         # Parâmetros que devem ser passados PARA a função (não como WHERE)
         FUNCTION_PARAMETERS = {
             "IA_Vendas": [],  # Vendas NÃO aceita parâmetros, mesEmbarque vai no WHERE
+            "IA_VendasPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_Compras": [],  # Compras NÃO aceita parâmetros, emissao vai no WHERE
+            "IA_ComprasPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_ContasPagas": [],  # Contas Pagas NÃO aceita parâmetros, emissao vai no WHERE
+            "IA_ContasPagasPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_ContasAPagar": [],  # Contas a Pagar NÃO aceita parâmetros, vencimento vai no WHERE
+            "IA_ContasAPagarPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_ContasAReceber": [],  # Contas a Receber NÃO aceita parâmetros, vencimentoReal vai no WHERE
+            "IA_ContasAReceberPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_Orcamento": [],  # Orçamento NÃO aceita parâmetros, ano/mes vão no WHERE
+            "IA_OrcamentoPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros (formato YYYYMM)
             "IA_Cotacao": [],  # Cotação NÃO aceita parâmetros
             "IA_DespesaVenda": []  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
             # Nota: usp_LS_FILIAIS é uma STORED PROCEDURE (não function), usa execute_procedure()

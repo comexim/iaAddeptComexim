@@ -11,13 +11,19 @@ logger = logging.getLogger(__name__)
 # Mapeamento: Função SQL → Permissão necessária
 FUNCTION_PERMISSIONS: Dict[str, PermissionType] = {
     "IA_Vendas": "Vendas",
+    "IA_VendasPar": "Vendas",
     "IA_Compras": "Compras",
+    "IA_ComprasPar": "Compras",
     "IA_ContasPagas": "Financeiro",
+    "IA_ContasPagasPar": "Financeiro",
     "IA_ContasAPagar": "Financeiro",
+    "IA_ContasAPagarPar": "Financeiro",
     "IA_ContasAReceber": "Financeiro",
+    "IA_ContasAReceberPar": "Financeiro",
     "IA_SaldoBancario": "Financeiro",
     "IA_Estoque": "Estoque",
     "IA_Orcamento": "Orçamento",
+    "IA_OrcamentoPar": "Orçamento",
     "IA_Cotacao": "Vendas",
     "IA_DespesaVenda": "Vendas",
     "usp_LS_FILIAIS": "Estoque"

@@ -2312,46 +2312,59 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             if client_filter:
                 logger.info(f"[FILTRO CLIENTE] Detectado '{client_filter}' na pergunta: {self.user_query}")
 
+        # NOVA LÓGICA: Detecta se deve usar IA_VendasPar ou IA_Vendas
+        function_name = "IA_Vendas"
         filters = None
+
         if periodo:
             parsed = date_parser.parse_natural_date(periodo)
             logger.info(f"[DEBUG] date_parser retornou: {parsed}")
 
             if parsed:
+                # Extrai datas do parsed
+                data_inicio = None
+                data_fim = None
+
                 # Detecta se a pergunta menciona EXPLICITAMENTE embarque/embarcado
                 menciona_embarque = self.user_query and ("embarcad" in self.user_query.lower() or "embarque" in self.user_query.lower())
 
-                # PRIORIDADE 1: Se a pergunta menciona EXPLICITAMENTE "embarque" E tem mes_embarque → SEMPRE usar mesEmbarque
-                # Isso corrige o bug onde "mês de embarque 2026/02" usava emissao em vez de mesEmbarque
+                # PRIORIDADE 1: Se a pergunta menciona EXPLICITAMENTE "embarque" E tem mes_embarque → usar mesEmbarque como data
                 if menciona_embarque and "mes_embarque" in parsed:
-                    filters = {"mesEmbarque": parsed["mes_embarque"]}
-                    logger.info(f"[DEBUG] Palavra-chave 'embarcado/embarque' detectada - Usando filtro mesEmbarque: {filters}")
+                    data_inicio = parsed["mes_embarque"]
+                    data_fim = parsed["mes_embarque"]
+                    logger.info(f"[DEBUG] Palavra-chave 'embarcado/embarque' detectada - Usando mes_embarque: {data_inicio}")
                 # PRIORIDADE 2: Se tem mes_embarque (mês completo como "janeiro 2026") → usar mesEmbarque
-                # Queries de mês sempre devem filtrar por mesEmbarque (não por emissao)
-                # Ex: "contratos de janeiro 2026 com preço a fixar" → mesEmbarque='2026/01'
                 elif "mes_embarque" in parsed:
-                    filters = {"mesEmbarque": parsed["mes_embarque"]}
-                    logger.info(f"[DEBUG] Mês específico detectado - Usando filtro mesEmbarque: {filters}")
-                # PRIORIDADE 3: Se tem data_inicio E data_fim E são DIFERENTES mas NÃO tem mes_embarque
-                # (período específico de dias, ex: "últimos 7 dias") → Usa emissao com intervalo
-                elif "data_inicio" in parsed and "data_fim" in parsed and parsed["data_inicio"] != parsed["data_fim"]:
-                    filters = {"emissao": parsed["data_inicio"]}
-                    filters["emissao_fim"] = parsed["data_fim"]
-                    logger.info(f"[DEBUG] Período de dias específico detectado ({parsed['data_inicio']} até {parsed['data_fim']}) - Usando filtro emissao com intervalo: {filters}")
-                # PRIORIDADE 4: Se tem data específica (dia único), usa campo 'emissao'
+                    data_inicio = parsed["mes_embarque"]
+                    data_fim = parsed["mes_embarque"]
+                    logger.info(f"[DEBUG] Mês específico detectado - Usando mes_embarque: {data_inicio}")
+                # PRIORIDADE 3: Se tem data_inicio E data_fim
+                elif "data_inicio" in parsed and "data_fim" in parsed:
+                    data_inicio = parsed["data_inicio"]
+                    data_fim = parsed["data_fim"]
+                    logger.info(f"[DEBUG] Período detectado ({data_inicio} até {data_fim})")
+                # PRIORIDADE 4: Se tem apenas data_inicio
                 elif "data_inicio" in parsed:
-                    filters = {"emissao": parsed["data_inicio"]}
-                    # Se tem data_fim, adiciona
-                    if "data_fim" in parsed:
-                        filters["emissao_fim"] = parsed["data_fim"]
-                    logger.info(f"[DEBUG] Usando filtro emissao: {filters}")
+                    data_inicio = parsed["data_inicio"]
+                    data_fim = parsed.get("data_fim", data_inicio)  # Se não tem fim, usa inicio
+                    logger.info(f"[DEBUG] Data única detectada: {data_inicio}")
+
+                # Se temos datas, usa IA_VendasPar com parâmetros
+                if data_inicio and data_fim:
+                    function_name = "IA_VendasPar"
+                    filters = {
+                        "data_inicio": data_inicio,
+                        "data_fim": data_fim
+                    }
+                    logger.info(f"[VENDAS] Usando IA_VendasPar('{data_inicio}', '{data_fim}')")
         else:
             # PERMITIDO: periodo=None para queries que filtram por outros campos
             # Exemplo: "contratos baixados EM janeiro 2026" usa campos contratos_baixados_jan2026
-            logger.info("[DEBUG] periodo=None - buscando TODOS os contratos (agregação irá filtrar)")
-            filters = None  # Sem filtro de data
+            logger.info("[DEBUG] periodo=None - usando IA_Vendas() sem parâmetros")
+            function_name = "IA_Vendas"
+            filters = None
 
-        return self._validate_and_execute("IA_Vendas", filters, client_filter)
+        return self._validate_and_execute(function_name, filters, client_filter)
 
     def _pesquisa_compras(self, data_inicio: Optional[str] = None) -> str:
         """
@@ -2363,13 +2376,47 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         Returns:
             Dados de compras formatados
         """
+        # NOVA LÓGICA: Detecta se deve usar IA_ComprasPar ou IA_Compras
+        function_name = "IA_Compras"
         filters = None
+
         if data_inicio:
             parsed = date_parser.parse_natural_date(data_inicio)
-            if parsed and "data_inicio" in parsed:
-                filters = {"emissao": parsed["data_inicio"]}
+            logger.info(f"[COMPRAS] date_parser retornou: {parsed}")
 
-        return self._validate_and_execute("IA_Compras", filters)
+            if parsed:
+                # Extrai datas do parsed
+                inicio = None
+                fim = None
+
+                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
+                if "mes_embarque" in parsed:
+                    inicio = parsed["mes_embarque"]
+                    fim = parsed["mes_embarque"]
+                    logger.info(f"[COMPRAS] Mês detectado: {inicio}")
+                # Prioridade 2: Se tem data_inicio e data_fim
+                elif "data_inicio" in parsed and "data_fim" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed["data_fim"]
+                    logger.info(f"[COMPRAS] Período detectado ({inicio} até {fim})")
+                # Prioridade 3: Se tem apenas data_inicio
+                elif "data_inicio" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed.get("data_fim", inicio)
+                    logger.info(f"[COMPRAS] Data única detectada: {inicio}")
+
+                # Se temos datas, usa IA_ComprasPar com parâmetros
+                if inicio and fim:
+                    function_name = "IA_ComprasPar"
+                    filters = {
+                        "data_inicio": inicio,
+                        "data_fim": fim
+                    }
+                    logger.info(f"[COMPRAS] Usando IA_ComprasPar('{inicio}', '{fim}')")
+        else:
+            logger.info("[COMPRAS] Sem data - usando IA_Compras() sem parâmetros")
+
+        return self._validate_and_execute(function_name, filters)
 
     def _pesquisa_contas_pagas(self, data_inicio: Optional[str] = None) -> str:
         """
@@ -2383,22 +2430,55 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         logger.info(f"[CONTAS PAGAS] Consultando contas pagas - data_inicio: {data_inicio}")
 
-        # Valida permissão
-        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasPagas")
-        if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasPagas")
-            return error_msg
-
-        # Parse data se fornecida
+        # NOVA LÓGICA: Detecta se deve usar IA_ContasPagasPar ou IA_ContasPagas
+        function_name = "IA_ContasPagas"
         filters = None
+
         if data_inicio:
             parsed = date_parser.parse_natural_date(data_inicio)
-            if parsed and "data_inicio" in parsed:
-                filters = {"emissao": parsed["data_inicio"]}
+            logger.info(f"[CONTAS PAGAS] date_parser retornou: {parsed}")
+
+            if parsed:
+                # Extrai datas do parsed
+                inicio = None
+                fim = None
+
+                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
+                if "mes_embarque" in parsed:
+                    inicio = parsed["mes_embarque"]
+                    fim = parsed["mes_embarque"]
+                    logger.info(f"[CONTAS PAGAS] Mês detectado: {inicio}")
+                # Prioridade 2: Se tem data_inicio e data_fim
+                elif "data_inicio" in parsed and "data_fim" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed["data_fim"]
+                    logger.info(f"[CONTAS PAGAS] Período detectado ({inicio} até {fim})")
+                # Prioridade 3: Se tem apenas data_inicio
+                elif "data_inicio" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed.get("data_fim", inicio)
+                    logger.info(f"[CONTAS PAGAS] Data única detectada: {inicio}")
+
+                # Se temos datas, usa IA_ContasPagasPar com parâmetros
+                if inicio and fim:
+                    function_name = "IA_ContasPagasPar"
+                    filters = {
+                        "data_inicio": inicio,
+                        "data_fim": fim
+                    }
+                    logger.info(f"[CONTAS PAGAS] Usando IA_ContasPagasPar('{inicio}', '{fim}')")
+        else:
+            logger.info("[CONTAS PAGAS] Sem data - usando IA_ContasPagas() sem parâmetros")
+
+        # Valida permissão (usa function_name detectado)
+        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {function_name}")
+            return error_msg
 
         # Executa query
         try:
-            result_list = sql_client.execute_function("dbo.IA_ContasPagas", filters)
+            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
 
             if not result_list:
                 return "Nenhuma conta paga encontrada para o período especificado."
@@ -2549,39 +2629,60 @@ IMPORTANTE:
         """
         logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}, data_emissao: {data_emissao}, natureza: {natureza}")
 
-        # Valida permissão
-        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAPagar")
-        if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasAPagar")
-            return error_msg
-
-        # Parse data se fornecida
+        # NOVA LÓGICA: Detecta se deve usar IA_ContasAPagarPar ou IA_ContasAPagar
+        function_name = "IA_ContasAPagar"
         filters = None
         data_fim_filter = None
         emissao_fim_filter = None
 
-        # PRIORIDADE 1: Se data_emissao foi fornecida, usa emissão
-        if data_emissao:
-            parsed = date_parser.parse_natural_date(data_emissao)
-            if parsed and "data_inicio" in parsed:
-                filters = {"emissao": parsed["data_inicio"]}
-                # Se tem data_fim, guarda para filtro manual posterior
-                if "data_fim" in parsed:
-                    emissao_fim_filter = parsed["data_fim"]
-                    logger.info(f"[CONTAS A PAGAR] Filtro de emissão detectado: {parsed['data_inicio']} até {emissao_fim_filter}")
-        # PRIORIDADE 2: Se não tem emissão mas tem vencimento, usa vencimento
-        elif data_vencimento:
-            parsed = date_parser.parse_natural_date(data_vencimento)
-            if parsed and "data_inicio" in parsed:
-                filters = {"vencimento": parsed["data_inicio"]}
-                # Se tem data_fim, guarda para filtro manual posterior
-                if "data_fim" in parsed:
-                    data_fim_filter = parsed["data_fim"]
-                    logger.info(f"[CONTAS A PAGAR] Filtro de vencimento detectado: {parsed['data_inicio']} até {data_fim_filter}")
+        # Decide qual data usar e se usar versão _Par
+        if data_emissao or data_vencimento:
+            # Prioriza data_vencimento sobre data_emissao (mais comum)
+            data_para_parse = data_vencimento if data_vencimento else data_emissao
+            parsed = date_parser.parse_natural_date(data_para_parse)
+            logger.info(f"[CONTAS A PAGAR] date_parser retornou: {parsed}")
+
+            if parsed:
+                # Extrai datas do parsed
+                inicio = None
+                fim = None
+
+                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
+                if "mes_embarque" in parsed:
+                    inicio = parsed["mes_embarque"]
+                    fim = parsed["mes_embarque"]
+                    logger.info(f"[CONTAS A PAGAR] Mês detectado: {inicio}")
+                # Prioridade 2: Se tem data_inicio e data_fim
+                elif "data_inicio" in parsed and "data_fim" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed["data_fim"]
+                    logger.info(f"[CONTAS A PAGAR] Período detectado ({inicio} até {fim})")
+                # Prioridade 3: Se tem apenas data_inicio
+                elif "data_inicio" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed.get("data_fim", inicio)
+                    logger.info(f"[CONTAS A PAGAR] Data única detectada: {inicio}")
+
+                # Se temos datas, usa IA_ContasAPagarPar com parâmetros
+                if inicio and fim:
+                    function_name = "IA_ContasAPagarPar"
+                    filters = {
+                        "data_inicio": inicio,
+                        "data_fim": fim
+                    }
+                    logger.info(f"[CONTAS A PAGAR] Usando IA_ContasAPagarPar('{inicio}', '{fim}')")
+        else:
+            logger.info("[CONTAS A PAGAR] Sem data - usando IA_ContasAPagar() sem parâmetros")
+
+        # Valida permissão (usa function_name detectado)
+        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {function_name}")
+            return error_msg
 
         # Executa query
         try:
-            result_list = sql_client.execute_function("dbo.IA_ContasAPagar", filters)
+            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
 
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
@@ -3029,26 +3130,54 @@ Resposta CORRETA deve incluir:
         Returns:
             Dados de orçamento
         """
+        # NOVA LÓGICA: Detecta se deve usar IA_OrcamentoPar ou IA_Orcamento
+        function_name = "IA_Orcamento"
         filters = None
+
         if periodo:
             parsed = date_parser.parse_natural_date(periodo)
+            logger.info(f"[ORÇAMENTO] date_parser retornou: {parsed}")
+
             if parsed:
                 # PRIORIDADE 1: Se tem lista de meses (trimestre/semestre)
                 if "meses" in parsed and "ano" in parsed:
+                    # Para múltiplos meses, usa primeira e última data
+                    ano = parsed["ano"]
+                    meses = parsed["meses"]
+                    mes_inicio = meses[0]  # Primeiro mês
+                    mes_fim = meses[-1]    # Último mês
+
+                    function_name = "IA_OrcamentoPar"
                     filters = {
-                        "ano": int(parsed["ano"]),
-                        "mes": parsed["meses"]  # Lista de meses ['04','05','06']
+                        "data_inicio": f"{ano}{mes_inicio}",  # Ex: "202604"
+                        "data_fim": f"{ano}{mes_fim}"         # Ex: "202606"
                     }
-                    logger.info(f"[ORÇAMENTO] Trimestre/Semestre detectado: ano={parsed['ano']}, meses={parsed['meses']}")
+                    logger.info(f"[ORÇAMENTO] Trimestre/Semestre detectado - Usando IA_OrcamentoPar('{ano}{mes_inicio}', '{ano}{mes_fim}')")
                 # PRIORIDADE 2: Mês único
                 elif "ano" in parsed and "mes" in parsed:
-                    filters = {
-                        "ano": int(parsed["ano"]),
-                        "mes": parsed["mes"]
-                    }
-                    logger.info(f"[ORÇAMENTO] Mês único: ano={parsed['ano']}, mes={parsed['mes']}")
+                    ano = parsed["ano"]
+                    mes = parsed["mes"]
 
-        return self._validate_and_execute("IA_Orcamento", filters)
+                    function_name = "IA_OrcamentoPar"
+                    filters = {
+                        "data_inicio": f"{ano}{mes}",  # Ex: "202601"
+                        "data_fim": f"{ano}{mes}"      # Ex: "202601"
+                    }
+                    logger.info(f"[ORÇAMENTO] Mês único - Usando IA_OrcamentoPar('{ano}{mes}', '{ano}{mes}')")
+                # PRIORIDADE 3: Se tem mes_embarque (formato YYYY/MM)
+                elif "mes_embarque" in parsed:
+                    mes_embarque = parsed["mes_embarque"].replace("/", "")  # "2026/01" → "202601"
+
+                    function_name = "IA_OrcamentoPar"
+                    filters = {
+                        "data_inicio": mes_embarque,
+                        "data_fim": mes_embarque
+                    }
+                    logger.info(f"[ORÇAMENTO] Mês detectado - Usando IA_OrcamentoPar('{mes_embarque}', '{mes_embarque}')")
+        else:
+            logger.info("[ORÇAMENTO] Sem período - usando IA_Orcamento() sem parâmetros")
+
+        return self._validate_and_execute(function_name, filters)
 
     def _pesquisa_cotacao(self) -> str:
         """
@@ -3134,27 +3263,61 @@ Resposta CORRETA deve incluir:
         """
         logger.info(f"[CONTAS A RECEBER] Consultando contas a receber - data_vencimento: {data_vencimento}, cliente: {cliente}, contrato: {contrato}")
 
-        # Valida permissão
-        has_permission, error_msg = sql_validator.validate_permission(self.user, "IA_ContasAReceber")
-        if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: IA_ContasAReceber")
-            return error_msg
-
-        # Parse data se fornecida
+        # NOVA LÓGICA: Detecta se deve usar IA_ContasAReceberPar ou IA_ContasAReceber
+        function_name = "IA_ContasAReceber"
         filters = None
         data_fim_filter = None
+
         if data_vencimento:
             parsed = date_parser.parse_natural_date(data_vencimento)
-            if parsed and "data_inicio" in parsed:
-                filters = {"vencimentoReal": parsed["data_inicio"]}
-                # Se tem data_fim, guarda para filtro manual posterior
-                if "data_fim" in parsed:
-                    data_fim_filter = parsed["data_fim"]
-                    logger.info(f"[CONTAS A RECEBER] Filtro de intervalo detectado: {parsed['data_inicio']} até {data_fim_filter}")
+            logger.info(f"[CONTAS A RECEBER] date_parser retornou: {parsed}")
+
+            if parsed:
+                # Extrai datas do parsed
+                inicio = None
+                fim = None
+
+                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
+                if "mes_embarque" in parsed:
+                    inicio = parsed["mes_embarque"]
+                    fim = parsed["mes_embarque"]
+                    logger.info(f"[CONTAS A RECEBER] Mês detectado: {inicio}")
+                # Prioridade 2: Se tem data_inicio e data_fim
+                elif "data_inicio" in parsed and "data_fim" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed["data_fim"]
+                    logger.info(f"[CONTAS A RECEBER] Período detectado ({inicio} até {fim})")
+                # Prioridade 3: Se tem apenas data_inicio
+                elif "data_inicio" in parsed:
+                    inicio = parsed["data_inicio"]
+                    fim = parsed.get("data_fim", inicio)
+                    logger.info(f"[CONTAS A RECEBER] Data única detectada: {inicio}")
+
+                # Se temos datas, usa IA_ContasAReceberPar com parâmetros
+                if inicio and fim:
+                    function_name = "IA_ContasAReceberPar"
+                    filters = {
+                        "data_inicio": inicio,
+                        "data_fim": fim
+                    }
+                    logger.info(f"[CONTAS A RECEBER] Usando IA_ContasAReceberPar('{inicio}', '{fim}')")
+                else:
+                    # Mantém lógica antiga de filtro manual para compatibilidade
+                    filters = {"vencimentoReal": parsed["data_inicio"]}
+                    if "data_fim" in parsed:
+                        data_fim_filter = parsed["data_fim"]
+        else:
+            logger.info("[CONTAS A RECEBER] Sem data - usando IA_ContasAReceber() sem parâmetros")
+
+        # Valida permissão (usa function_name detectado)
+        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {function_name}")
+            return error_msg
 
         # Executa query
         try:
-            result_list = sql_client.execute_function("dbo.IA_ContasAReceber", filters)
+            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
 
             # Aplica filtro manual de data_fim se necessário
             # IMPORTANTE: Se data_inicio == data_fim (mesmo dia), filtra para retornar APENAS aquele dia
