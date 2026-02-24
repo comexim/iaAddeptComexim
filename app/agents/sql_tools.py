@@ -2791,8 +2791,9 @@ CAMPOS DISPONÍVEIS:
 
 Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
 
-            # Se muitos registros (> 50), agrega por fornecedor
+            # Agrega por dia de vencimento E por fornecedor
             from collections import defaultdict
+            por_dia = defaultdict(lambda: {"valor_total": 0, "quantidade": 0})
             por_fornecedor = defaultdict(lambda: {
                 "valor_total": 0,
                 "quantidade": 0,
@@ -2804,6 +2805,7 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
 
             for r in result_list:
                 fornecedor = r.get("fornecedor", "").strip() or "SEM FORNECEDOR"
+                vencimento = str(r.get("vencimento", "")).strip() or "SEM DATA"
                 valor = r.get("valor", 0)
 
                 # Converte valor para float
@@ -2823,6 +2825,11 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                 elif not isinstance(valor, (int, float)):
                     valor = 0
 
+                # Agrega por dia de vencimento
+                por_dia[vencimento]["valor_total"] += valor
+                por_dia[vencimento]["quantidade"] += 1
+
+                # Agrega por fornecedor
                 por_fornecedor[fornecedor]["valor_total"] += valor
                 por_fornecedor[fornecedor]["quantidade"] += 1
 
@@ -2830,22 +2837,27 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                 if natureza:
                     por_fornecedor[fornecedor]["naturezas"].add(natureza)
 
-                vencimento = r.get("vencimento", "").strip()
-                if vencimento:
+                if vencimento != "SEM DATA":
                     por_fornecedor[fornecedor]["vencimentos"].append(vencimento)
 
                 total_geral += valor
 
-            # Converte sets para listas para JSON
-            # Ordena por VALOR ABSOLUTO (maiores débitos primeiro) e limita aos top 50
+            # Monta lista de totais por dia (ordenada por data)
+            dias_list = [
+                {
+                    "vencimento": v,
+                    "valor_total": round(d["valor_total"], 2),
+                    "quantidade_titulos": d["quantidade"]
+                }
+                for v, d in sorted(por_dia.items())
+            ]
+
+            # Monta lista por fornecedor (top 50 por valor)
             fornecedores_list = []
             fornecedores_ordenados = sorted(por_fornecedor.items(), key=lambda x: abs(x[1]["valor_total"]), reverse=True)
 
-            # Limita aos top 50 fornecedores para evitar respostas muito grandes
             for fornecedor, dados in fornecedores_ordenados[:50]:
-                # Pega os próximos 3 vencimentos
                 vencimentos_unicos = sorted(set(dados["vencimentos"]))[:3]
-
                 fornecedores_list.append({
                     "fornecedor": fornecedor,
                     "valor_total": round(dados["valor_total"], 2),
@@ -2859,29 +2871,26 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                     return float(obj)
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-            formatted = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
+            formatted_por_dia = json.dumps(dias_list, ensure_ascii=False, indent=2, default=convert_decimals)
+            formatted_por_fornecedor = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta IA_ContasAPagar (AGREGADOS POR FORNECEDOR):
+            return f"""Resultados da consulta IA_ContasAPagar:
 
-Total de registros SQL: {len(result_list)}
+Total de registros: {len(result_list)}
 Total de fornecedores únicos: {len(por_fornecedor)}
 Valor total a pagar: R$ {total_geral:,.2f}
 
-Top {len(fornecedores_list)} maiores fornecedores (por valor):
-{formatted}
+TOTAIS POR DIA DE VENCIMENTO:
+{formatted_por_dia}
 
-CAMPOS DISPONÍVEIS POR FORNECEDOR:
-- fornecedor: Nome do fornecedor/credor
-- valor_total: Total a pagar para este fornecedor (R$)
-- quantidade_titulos: Número de títulos/contas pendentes
-- naturezas: Lista de naturezas/tipos de despesa
-- proximos_vencimentos: Próximos 3 vencimentos (YYYYMMDD)
+Top {len(fornecedores_list)} maiores fornecedores (por valor):
+{formatted_por_fornecedor}
 
 IMPORTANTE:
 1. Estas são contas PENDENTES (a pagar no futuro)
-2. O valor_total já está calculado e somado por fornecedor
-3. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}
-4. O valor_total mostrado representa a soma de TODOS os fornecedores, não apenas os {len(fornecedores_list)} listados"""
+2. Os totais por dia e por fornecedor já estão calculados acima
+3. Para responder "total por dia", use a seção TOTAIS POR DIA DE VENCIMENTO
+4. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}"""
 
         except Exception as e:
             import traceback
