@@ -124,6 +124,30 @@ class DateParser:
                     logger.debug(f"Parseado '{dia_nome} passada': {result['data_inicio']} (voltou {days_back} dias)")
                     return result
 
+        # Esta semana / essa semana (segunda a domingo da semana atual)
+        if "esta semana" in text or "essa semana" in text or "desta semana" in text or "nessa semana" in text:
+            current_weekday = now.weekday()  # 0=segunda, 6=domingo
+            # Segunda-feira desta semana
+            this_monday = now - timedelta(days=current_weekday)
+            # Domingo desta semana
+            this_sunday = this_monday + timedelta(days=6)
+            result["data_inicio"] = DateParser.format_yyyymmdd(this_monday)
+            result["data_fim"] = DateParser.format_yyyymmdd(this_sunday)
+            logger.debug(f"Parseado 'esta semana': {result['data_inicio']} - {result['data_fim']}")
+            return result
+
+        # Próxima semana (segunda a domingo da próxima semana)
+        if "próxima semana" in text or "proxima semana" in text:
+            current_weekday = now.weekday()
+            # Segunda-feira da próxima semana
+            next_monday = now + timedelta(days=(7 - current_weekday))
+            # Domingo da próxima semana
+            next_sunday = next_monday + timedelta(days=6)
+            result["data_inicio"] = DateParser.format_yyyymmdd(next_monday)
+            result["data_fim"] = DateParser.format_yyyymmdd(next_sunday)
+            logger.debug(f"Parseado 'próxima semana': {result['data_inicio']} - {result['data_fim']}")
+            return result
+
         # Semana passada (toda a semana, de segunda a domingo)
         if "semana passada" in text:
             # Hoje é que dia da semana? (0=segunda, 6=domingo)
