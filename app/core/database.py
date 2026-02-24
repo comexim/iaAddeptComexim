@@ -74,7 +74,9 @@ class SQLServerClient:
         where_filters = {}
 
         if filters:
-            known_params = FUNCTION_PARAMETERS.get(function_name, [])
+            # Remove prefixo de schema (ex: "dbo.IA_VendasPar" → "IA_VendasPar")
+            function_name_clean = function_name.split('.')[-1] if '.' in function_name else function_name
+            known_params = FUNCTION_PARAMETERS.get(function_name_clean, [])
 
             for key, value in filters.items():
                 if value is None:
