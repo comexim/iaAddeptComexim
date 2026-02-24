@@ -1270,7 +1270,7 @@ class SQLTools:
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'não embarcados': {results_antes} → {len(results)}")
 
             # FILTROS PARA ORÇAMENTO
-            elif function_name == "IA_Orcamento":
+            elif function_name in ("IA_Orcamento", "IA_OrcamentoPar"):
                 # Filtro: categoria específica mencionada
                 # Categorias comuns: combustível, fumigação, manutenção, etc.
                 categorias_conhecidas = [
@@ -1455,7 +1455,7 @@ class SQLTools:
                     break
 
             # Categorias de orçamento (NÃO agrega se mencionar categoria específica)
-            if function_name == "IA_Orcamento":
+            if function_name in ("IA_Orcamento", "IA_OrcamentoPar"):
                 categorias_termos = ["combustivel", "combustível", "fumigacao", "fumigação", "manutenção", "manutencao", "depreciação", "depreciacao", "viagem"]
                 for termo in categorias_termos:
                     if termo in query_lower:
@@ -1497,7 +1497,7 @@ class SQLTools:
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
             # ORÇAMENTO: Agrega por categoria/grupo
-            if function_name == "IA_Orcamento":
+            if function_name in ("IA_Orcamento", "IA_OrcamentoPar"):
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros de orçamento, agregando por categoria...")
                 aggregated = self._aggregate_orcamento(results)
 
@@ -1969,6 +1969,20 @@ Exemplos corretos de uso:
         # Instruções específicas por tipo de função SQL
         FUNCTION_INSTRUCTIONS = {
             "IA_Orcamento": """
+COLUNAS DISPONÍVEIS EM ORÇAMENTO:
+- ano: ano do orçamento
+- mes: mês do orçamento (01-12)
+- grupo: código do grupo orçamentário
+- descricao: descrição da categoria/grupo
+- periodo: tipo de período (Mensal, Anual, etc)
+- orcado: valor orçado (R$)
+- realizado: valor realizado (R$)
+- saldo: diferença entre orçado e realizado (R$)
+
+IMPORTANTE: Orçamento NÃO tem contratos, sacas, clientes ou vendas. É uma previsão financeira (budget).
+Para calcular totais, some os campos orcado/realizado/saldo de todos os registros.""",
+
+            "IA_OrcamentoPar": """
 COLUNAS DISPONÍVEIS EM ORÇAMENTO:
 - ano: ano do orçamento
 - mes: mês do orçamento (01-12)
@@ -3129,12 +3143,14 @@ Resposta CORRETA deve incluir:
         """
         return self._validate_and_execute("IA_Estoque")
 
-    def _pesquisa_orcamento(self, periodo: Optional[str] = None) -> str:
+    def _pesquisa_orcamento(self, periodo: Optional[str] = None, filial: Optional[str] = None, cc: Optional[str] = None) -> str:
         """
         Consulta orçamento vs realizado.
 
         Args:
             periodo: Período desejado (ex: "dezembro 2025", "2025/12", "2TRIM 2025")
+            filial: Código da filial para filtrar (ex: "61", "Santos")
+            cc: Código do centro de custo para filtrar (ex: "TI", "0010")
 
         Returns:
             Dados de orçamento
@@ -3185,6 +3201,16 @@ Resposta CORRETA deve incluir:
                     logger.info(f"[ORÇAMENTO] Mês detectado - Usando IA_OrcamentoPar('{mes_embarque}', '{mes_embarque}')")
         else:
             logger.info("[ORÇAMENTO] Sem período - usando IA_Orcamento() sem parâmetros")
+
+        # Adiciona filtros de filial e cc se fornecidos (como WHERE filters)
+        if filial:
+            filters = filters or {}
+            filters["filial"] = filial
+            logger.info(f"[ORÇAMENTO] Filtro filial: {filial}")
+        if cc:
+            filters = filters or {}
+            filters["cc"] = cc
+            logger.info(f"[ORÇAMENTO] Filtro centro de custo: {cc}")
 
         return self._validate_and_execute(function_name, filters)
 
@@ -3957,10 +3983,22 @@ Exemplos de uso:
                 name="pesquisa_estoque",
                 description="Consulta estoque de produtos. NÃO requer argumentos."
             ),
-            Tool(
+            StructuredTool.from_function(
+                func=self._pesquisa_orcamento,
                 name="pesquisa_orcamento",
-                func=lambda periodo=None: self._pesquisa_orcamento(periodo),
-                description="Consulta orçamento vs realizado. Argumentos: periodo (opcional, ex: 'dezembro 2025')"
+                description="""Consulta orçamento vs realizado.
+
+Argumentos:
+- periodo (opcional): período desejado (ex: 'dezembro 2025', 'fevereiro 2026', '1TRIM 2026')
+- filial (opcional): código ou nome da filial para filtrar (ex: 'Santos', '61')
+- cc (opcional): código do centro de custo para filtrar (ex: 'TI', '0010', 'TECNOLOGIA')
+
+Exemplos:
+- "Qual o orçamento de fevereiro?" → pesquisa_orcamento(periodo="fevereiro 2026")
+- "Orçamento da filial Santos em fevereiro?" → pesquisa_orcamento(periodo="fevereiro 2026", filial="Santos")
+- "Orçamento do CC de TI?" → pesquisa_orcamento(cc="TI")
+- "Orçamento de TI em fevereiro na filial Santos?" → pesquisa_orcamento(periodo="fevereiro 2026", filial="Santos", cc="TI")
+"""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_cotacao,
