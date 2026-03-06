@@ -1665,6 +1665,32 @@ Exemplos corretos:
                 lista_completa_contratos_str = ", ".join(todos_contratos_unicos)
                 logger.info(f"[LISTA COMPLETA] Campo='{identificador_campo}', {len(todos_contratos_unicos)} registros únicos mapeados")
 
+                # Monta tabela compacta por contrato com dados individuais (evita erro de valor por cliente)
+                # Formato: contrato | cliente | sacas | valorTotal | mesEmbarque
+                tabela_por_contrato = []
+                vistos = set()
+                for row in results:
+                    c = str(row.get("contrato", "")).strip()
+                    if not c or c in vistos:
+                        continue
+                    vistos.add(c)
+                    def _fmt_decimal(v):
+                        if v is None:
+                            return "0"
+                        if isinstance(v, Decimal):
+                            return f"{float(v):,.2f}"
+                        if isinstance(v, (int, float)):
+                            return f"{v:,.2f}"
+                        return str(v)
+                    tabela_por_contrato.append(
+                        f"{c} | {str(row.get('cliente','') or '').strip()} | "
+                        f"{_fmt_decimal(row.get('sacas'))} sacas | "
+                        f"R$ {_fmt_decimal(row.get('valorTotal'))} | "
+                        f"{str(row.get('mesEmbarque','') or '').strip()}"
+                    )
+                tabela_por_contrato_str = "\n".join(tabela_por_contrato)
+                logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos na tabela individual")
+
                 aggregated = self._aggregate_by_client(results)
 
                 # Se _aggregate_by_client retornou uma STRING (otimização especial), retorna direto
@@ -1774,12 +1800,14 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
 
-⚠️ LISTA COMPLETA DE REGISTROS ({len(todos_contratos_unicos)} únicos - campo: {identificador_campo}):
-{lista_completa_contratos_str}
+⚠️ TABELA INDIVIDUAL POR CONTRATO (contrato | cliente | sacas | valorTotal | mesEmbarque):
+{tabela_por_contrato_str}
 
 ⚠️ CRÍTICO - REGRA ANTI-ALUCINAÇÃO:
-Ao listar registros, use SOMENTE os identificadores da LISTA COMPLETA acima.
-NUNCA invente registros que não estejam listados. Se um número não está na lista acima, ele NÃO EXISTE.
+- Use SOMENTE os contratos da tabela acima. NUNCA invente contratos inexistentes.
+- Para valor de cada contrato, use a coluna "valorTotal" da tabela acima.
+- NUNCA use o total do cliente para representar o valor de um contrato individual.
+- Se um cliente tem 4 contratos com valores diferentes, cada contrato tem seu próprio valor.
 
 CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):{contratos_pais_str}
 
