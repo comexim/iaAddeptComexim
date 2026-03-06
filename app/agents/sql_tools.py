@@ -1648,12 +1648,22 @@ Exemplos corretos:
             else:
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
 
-                # Monta lista completa de todos os contratos ANTES da agregação
-                # Isso evita que o LLM invente contratos ao listar (hallucination)
-                todos_contratos_raw = [str(row.get("contrato", "")).strip() for row in results if row.get("contrato")]
+                # Monta lista completa de todos os identificadores ANTES da agregação
+                # Isso evita que o LLM invente registros ao listar (hallucination)
+                # Tenta vários campos identificadores: contrato (vendas), numero/solicitacao (compras)
+                identificador_campo = None
+                for campo_id in ["contrato", "numero", "solicitacao"]:
+                    if any(row.get(campo_id) for row in results[:5]):
+                        identificador_campo = campo_id
+                        break
+
+                todos_contratos_raw = []
+                if identificador_campo:
+                    todos_contratos_raw = [str(row.get(identificador_campo, "")).strip() for row in results if row.get(identificador_campo)]
+
                 todos_contratos_unicos = sorted(set(c for c in todos_contratos_raw if c))
                 lista_completa_contratos_str = ", ".join(todos_contratos_unicos)
-                logger.info(f"[LISTA CONTRATOS] {len(todos_contratos_unicos)} contratos únicos mapeados")
+                logger.info(f"[LISTA COMPLETA] Campo='{identificador_campo}', {len(todos_contratos_unicos)} registros únicos mapeados")
 
                 aggregated = self._aggregate_by_client(results)
 
@@ -1764,12 +1774,12 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
 
-⚠️ LISTA COMPLETA DE CONTRATOS ({len(todos_contratos_unicos)} contratos únicos):
+⚠️ LISTA COMPLETA DE REGISTROS ({len(todos_contratos_unicos)} únicos - campo: {identificador_campo}):
 {lista_completa_contratos_str}
 
 ⚠️ CRÍTICO - REGRA ANTI-ALUCINAÇÃO:
-Ao listar contratos, use SOMENTE os contratos da LISTA COMPLETA acima.
-NUNCA invente contratos que não estejam listados. Se um número de contrato não está na lista acima, ele NÃO EXISTE.
+Ao listar registros, use SOMENTE os identificadores da LISTA COMPLETA acima.
+NUNCA invente registros que não estejam listados. Se um número não está na lista acima, ele NÃO EXISTE.
 
 CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):{contratos_pais_str}
 
@@ -2083,6 +2093,13 @@ Você pode responder sobre QUALQUER um desses 34 campos.""",
             "IA_Compras": """
 COLUNAS DISPONÍVEIS EM COMPRAS:
 Verifique os campos retornados nos registros acima.
+Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, etc.
+Analise cada campo e responda com base nos dados reais.""",
+
+            "IA_ComprasPar": """
+COLUNAS DISPONÍVEIS EM COMPRAS:
+Verifique os campos retornados nos registros acima.
+Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, etc.
 Analise cada campo e responda com base nos dados reais.""",
 
             "IA_ContasPagas": """
@@ -2151,7 +2168,13 @@ Campos comuns: banco, agencia, conta, saldo, moeda, etc.""",
             "IA_Cotacao": """
 COLUNAS DISPONÍVEIS EM COTAÇÃO:
 Verifique os campos retornados nos registros acima.
-Campos comuns: data, produto, bolsa, preco, variacao, etc.""",
+Campos comuns: ativo, codigo, cotacao, variacao, situacao, etc.
+
+⚠️ IMPORTANTE - COTAÇÕES:
+- SEMPRE liste TODAS as cotações retornadas, sem omitir nenhuma
+- Inclua TODOS os ativos: Café (todas as datas futuras), Dólar (todos os futuros), Switch, Euro, etc.
+- NÃO mostre apenas "os principais" - mostre TODOS
+- O usuário quer ver a lista completa para tomar decisões de negócio""",
 
             "IA_DespesaVenda": """
 COLUNAS DISPONÍVEIS EM DESPESA DE VENDA:
@@ -2177,11 +2200,11 @@ Não conte manualmente - este é o número correto após aplicar os filtros.
 """
             logger.info(f"[SUMÁRIO ESPECIAL] Calculado: {total_contratos} contratos não embarcados sem BL")
 
-        # Instrução especial para listar todos os contratos quando <= 50
+        # Instrução especial para listar todos os registros quando <= 50
+        # Aplica para TODAS as funções (vendas, compras, cotações, etc.)
         listar_todos_instrucao = ""
-        if function_name == "IA_Vendas" and len(results) <= 50:
-            # Detecta palavras-chave que indicam que usuário quer lista completa
-            palavras_lista_completa = ["todas", "todos", "liste", "informe", "mostre", "traga", "quais"]
+        if len(results) <= 50 and self.user_query_original:
+            palavras_lista_completa = ["todas", "todos", "liste", "listar", "informe", "mostre", "traga", "quais"]
             quer_lista_completa = any(palavra in self.user_query_original.lower() for palavra in palavras_lista_completa)
 
             if quer_lista_completa:
@@ -2189,27 +2212,18 @@ Não conte manualmente - este é o número correto após aplicar os filtros.
 
 ⚠️⚠️⚠️ INSTRUÇÃO OBRIGATÓRIA - O USUÁRIO PEDIU LISTA COMPLETA ⚠️⚠️⚠️
 
-O usuário usou palavras como "todas", "todos", "liste", "informe" ou "mostre" na pergunta.
-Isso significa que ele quer a LISTA COMPLETA, NÃO apenas exemplos!
+O usuário quer ver TODOS os registros, não apenas alguns exemplos.
 
-✅ VOCÊ **DEVE** LISTAR **TODOS** OS {len(results)} CONTRATOS ABAIXO!
-❌ **NÃO** mostre apenas "alguns exemplos" ou "5 contratos"!
+✅ VOCÊ **DEVE** LISTAR **TODOS** OS {len(results)} REGISTROS ACIMA!
+❌ **NÃO** mostre apenas alguns itens ou diga "existem outros"!
+❌ **NÃO** agrupe nem resuma — liste cada registro individualmente!
+❌ **NÃO** omita nenhum registro mesmo que o saldo/valor seja pequeno!
 
-Formato OBRIGATÓRIO da resposta:
-"Aqui está a lista completa dos {len(results)} contratos:
-
-1. [Contrato] - [Cliente] - [País]
-2. [Contrato] - [Cliente] - [País]
-3. [Contrato] - [Cliente] - [País]
-...
-{len(results)}. [Contrato] - [Cliente] - [País]"
-
-**IMPORTANTE**: Liste TODOS os {len(results)} contratos, numerados de 1 a {len(results)}!
-NÃO resuma, NÃO mostre só exemplos, liste TODOS!"""
+**IMPORTANTE**: Liste TODOS os {len(results)} registros, numerados de 1 a {len(results)}!"""
             else:
                 listar_todos_instrucao = f"""
 
-Esta consulta retornou {len(results)} contratos.
+Esta consulta retornou {len(results)} registros.
 Você pode resumir com totais e mostrar alguns exemplos, a menos que o usuário peça explicitamente para listar todos."""
 
         return f"""Resultados da consulta {function_name}:{sumario_nao_embarcados_sem_bl}
