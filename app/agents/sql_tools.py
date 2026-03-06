@@ -4029,17 +4029,38 @@ IMPORTANTE:
 - Saldo NEGATIVO = saldo devedor (empréstimo do banco)
 - Dados agregados por banco e moeda
 
-Exemplos de uso:
+⚠️ ATENÇÃO - USE para perguntas sobre CONTAS BANCÁRIAS e SALDOS FINANCEIROS:
 - "Qual o saldo bancário?" → pesquisa_saldo_bancario()
 - "Quanto tenho no banco?" → pesquisa_saldo_bancario()
+- "Ativos em dólar / quanto temos em dólar?" → pesquisa_saldo_bancario()
+- "Posição em moeda estrangeira (dólar, euro, libra)?" → pesquisa_saldo_bancario()
 - "Saldo no Itaú Santos?" → pesquisa_saldo_bancario(banco="ITAU SANTOS")
 - "Quanto tenho no BB?" → pesquisa_saldo_bancario(banco="BB")
+- "Quanto temos disponível em dólar nos bancos?" → pesquisa_saldo_bancario()
+
+❌ NÃO confundir com:
+- Preço do café na bolsa → use pesquisa_cotacao
+- Estoque físico de sacas → use pesquisa_estoque
 """
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_estoque,
                 name="pesquisa_estoque",
-                description="Consulta estoque de produtos. NÃO requer argumentos."
+                description="""Consulta ESTOQUE FÍSICO de café (sacas armazenadas em armazéns/warehouses).
+
+⚠️ ATENÇÃO - USE APENAS para perguntas sobre SACAS FÍSICAS DE CAFÉ em estoque:
+- "Quanto café temos em estoque?"
+- "Quantas sacas temos armazenadas?"
+- "Qual o estoque de café?"
+- "Temos café disponível no armazém?"
+- "Posição de estoque físico"
+
+❌ NÃO USE para:
+- Cotações de preço (bolsa, NY, London) → use pesquisa_cotacao
+- Saldo bancário ou ativos financeiros → use pesquisa_saldo_bancario
+- Contratos de venda ou compra → use pesquisa_vendas ou pesquisa_compras
+
+NÃO requer argumentos."""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_orcamento,
@@ -4061,7 +4082,21 @@ Exemplos:
             StructuredTool.from_function(
                 func=self._pesquisa_cotacao,
                 name="pesquisa_cotacao",
-                description="Consulta cotação da bolsa. NÃO requer argumentos."
+                description="""Consulta COTAÇÕES DE PREÇO do café na bolsa (BM&F, ICE, NY, London).
+
+⚠️ ATENÇÃO - USE para perguntas sobre PREÇOS E COTAÇÕES de mercado:
+- "Qual a cotação do café?"
+- "Quanto está o café em NY/London?"
+- "Quantas cotações estão disponíveis/cadastradas?"
+- "Qual o preço do café na bolsa?"
+- "Cotação atual do café arábica/robusta"
+- "Preço futuro do café"
+
+❌ NÃO confundir com:
+- Estoque físico de sacas → use pesquisa_estoque
+- Saldo em dólar ou euro nos bancos → use pesquisa_saldo_bancario
+
+NÃO requer argumentos."""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_longshort,
