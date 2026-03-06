@@ -3011,17 +3011,17 @@ IMPORTANTE:
                 if not result_list:
                     return f"Nenhuma conta bancária encontrada para '{banco}'."
 
-            # Agrega por banco e moeda
+            # Mostra cada conta individualmente (sem agregar por banco+moeda)
+            # Isso garante que múltiplas contas do mesmo banco sejam mostradas separadamente
+            # Ex: ABC BRASIL com 2 contas em Reais → aparecem como 2 entradas distintas
             from collections import defaultdict
-            por_banco_moeda = defaultdict(lambda: {
-                "saldo": 0,
-                "contas": []
-            })
 
             total_por_moeda = defaultdict(float)
+            entradas_list = []
+            ordem_moedas = {"Reais": 0, "Dolares": 1, "Dolar": 1, "Euros": 2, "Euro": 2, "Libras": 3, "Libra": 3}
 
             for r in result_list:
-                banco = r.get("banco", "").strip() or "SEM BANCO"
+                banco_nome = r.get("banco", "").strip() or "SEM BANCO"
                 moeda = r.get("moeda", "").strip() or "Reais"
                 saldo = r.get("saldo", 0)
 
@@ -3038,38 +3038,28 @@ IMPORTANTE:
                 elif not isinstance(saldo, (int, float)):
                     saldo = 0
 
-                chave = f"{banco}|{moeda}"
-                por_banco_moeda[chave]["saldo"] += saldo
-                por_banco_moeda[chave]["banco"] = banco
-                por_banco_moeda[chave]["moeda"] = moeda
+                # Ignora contas com saldo zero
+                if saldo == 0:
+                    continue
 
-                # Adiciona info da conta
                 agencia = r.get("agencia", "").strip()
-                conta = r.get("conta", "").strip()
-                if agencia and conta:
-                    por_banco_moeda[chave]["contas"].append({
-                        "agencia": agencia,
-                        "conta": conta,
-                        "saldo": round(saldo, 2)
-                    })
+                conta_num = r.get("conta", "").strip()
+                filial_num = str(r.get("filial", "")).strip()
+
+                entradas_list.append({
+                    "banco": banco_nome,
+                    "moeda": moeda,
+                    "saldo": round(saldo, 2),
+                    "agencia": agencia,
+                    "conta": conta_num,
+                    "filial": filial_num
+                })
 
                 total_por_moeda[moeda] += saldo
 
-            # Ordena por moeda e depois por saldo (do maior para o menor)
-            bancos_list = []
-            for chave, dados in por_banco_moeda.items():
-                bancos_list.append({
-                    "banco": dados["banco"],
-                    "moeda": dados["moeda"],
-                    "saldo": round(dados["saldo"], 2),
-                    "numero_contas": len(dados["contas"]),
-                    "contas": dados["contas"]
-                })
-
             # Ordena: primeiro por moeda (Reais, depois outras), depois por saldo absoluto
-            ordem_moedas = {"Reais": 0, "Dolar": 1, "Euro": 2, "Libra": 3}
-            bancos_ordenados = sorted(
-                bancos_list,
+            entradas_ordenadas = sorted(
+                entradas_list,
                 key=lambda x: (ordem_moedas.get(x["moeda"], 99), -abs(x["saldo"]))
             )
 
@@ -3078,12 +3068,11 @@ IMPORTANTE:
                     return float(obj)
                 raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-            formatted = json.dumps(bancos_ordenados, ensure_ascii=False, indent=2, default=convert_decimals)
+            formatted = json.dumps(entradas_ordenadas, ensure_ascii=False, indent=2, default=convert_decimals)
 
             # Monta resumo por moeda (todas as moedas encontradas)
             resumo_moedas = []
-            ordem_moedas_resumo = {"Reais": 0, "Dolares": 1, "Dolar": 1, "Euros": 2, "Euro": 2, "Libras": 3, "Libra": 3}
-            moedas_ordenadas = sorted(total_por_moeda.items(), key=lambda x: ordem_moedas_resumo.get(x[0], 99))
+            moedas_ordenadas = sorted(total_por_moeda.items(), key=lambda x: ordem_moedas.get(x[0], 99))
 
             for moeda, total in moedas_ordenadas:
                 resumo_moedas.append(f"  {moeda}: R$ {total:,.2f}")
@@ -3095,37 +3084,36 @@ IMPORTANTE:
             if bancos_mencionados:
                 filtro_msg = f"\n⚠️ FILTRADO AUTOMATICAMENTE: Mostrando apenas bancos mencionados na pergunta ({', '.join(set(bancos_mencionados))})\n"
 
-            return f"""Resultados da consulta IA_SaldoBancario (AGREGADOS POR BANCO E MOEDA):
+            return f"""Resultados da consulta IA_SaldoBancario:
 
-Total de contas: {len(result_list)}
-Total de bancos únicos: {len(por_banco_moeda)}
+Total de contas com saldo: {len(entradas_list)} (de {len(result_list)} contas no total)
 {filtro_msg}
-SALDO TOTAL POR MOEDA (considerando todos os bancos listados abaixo):
+SALDO TOTAL POR MOEDA:
 {resumo_str}
 
-Detalhamento por banco:
+⚠️ CRÍTICO: INCLUA TODAS AS {len(entradas_list)} CONTAS LISTADAS ABAIXO NA SUA RESPOSTA.
+NÃO omita nenhuma conta, mesmo que o saldo seja pequeno.
+Cada linha abaixo é uma conta DIFERENTE que deve aparecer na resposta.
+
+Detalhamento por conta:
 {formatted}
 
 IMPORTANTE:
 1. Saldos POSITIVOS = dinheiro disponível
 2. Saldos NEGATIVOS = saldo devedor (banco emprestou para empresa)
-3. Valores já agregados por banco e moeda
-4. numero_contas = quantidade de contas daquele banco naquela moeda
+3. Cada entrada é uma conta bancária individual
+4. Um mesmo banco pode ter múltiplas contas (ex: ABC BRASIL com conta A e conta B)
+5. Apresente TODAS as contas agrupadas por banco na resposta final
 
-⚠️ ATENÇÃO CRÍTICA - QUANDO A PERGUNTA MENCIONA MÚLTIPLOS BANCOS:
-- Se a pergunta menciona "Banco A e Banco B" ou "entre Banco A e Banco B"
-- Você DEVE incluir TODOS os bancos mencionados na resposta
-- Procure por TODOS os bancos na lista acima
+⚠️ ATENÇÃO - MÚLTIPLAS CONTAS DO MESMO BANCO:
+- Se o mesmo banco aparecer mais de uma vez, liste TODAS as contas separadamente
+- Exemplo: ABC BRASIL conta 0066011568 E conta 0002231517 são contas DIFERENTES
+- NÃO some contas diferentes do mesmo banco a menos que o usuário peça o total do banco
+
+⚠️ ATENÇÃO - MÚLTIPLOS BANCOS NA PERGUNTA:
+- Se a pergunta menciona "Banco A e Banco B", inclua AMBOS na resposta
 - SOME os saldos de TODOS os bancos mencionados
-- NÃO omita nenhum banco que foi explicitamente mencionado na pergunta
-- Mesmo que um banco tenha saldo NEGATIVO, ele DEVE ser mencionado
-
-EXEMPLO:
-Pergunta: "Quanto tenho no Banco A e Banco B?"
-Resposta CORRETA deve incluir:
-  - Banco A: [todos os saldos do Banco A]
-  - Banco B: [todos os saldos do Banco B]
-  - TOTAL: [soma de A + B]"""
+- NÃO omita nenhum banco que foi explicitamente mencionado"""
 
         except Exception as e:
             import traceback
