@@ -1647,6 +1647,14 @@ Exemplos corretos:
             # VENDAS: Agrega por cliente
             else:
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
+
+                # Monta lista completa de todos os contratos ANTES da agregação
+                # Isso evita que o LLM invente contratos ao listar (hallucination)
+                todos_contratos_raw = [str(row.get("contrato", "")).strip() for row in results if row.get("contrato")]
+                todos_contratos_unicos = sorted(set(c for c in todos_contratos_raw if c))
+                lista_completa_contratos_str = ", ".join(todos_contratos_unicos)
+                logger.info(f"[LISTA CONTRATOS] {len(todos_contratos_unicos)} contratos únicos mapeados")
+
                 aggregated = self._aggregate_by_client(results)
 
                 # Se _aggregate_by_client retornou uma STRING (otimização especial), retorna direto
@@ -1755,6 +1763,13 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Contratos: {total_contratos}
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
+
+⚠️ LISTA COMPLETA DE CONTRATOS ({len(todos_contratos_unicos)} contratos únicos):
+{lista_completa_contratos_str}
+
+⚠️ CRÍTICO - REGRA ANTI-ALUCINAÇÃO:
+Ao listar contratos, use SOMENTE os contratos da LISTA COMPLETA acima.
+NUNCA invente contratos que não estejam listados. Se um número de contrato não está na lista acima, ele NÃO EXISTE.
 
 CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):{contratos_pais_str}
 
