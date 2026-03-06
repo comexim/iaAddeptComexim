@@ -1945,7 +1945,20 @@ Exemplos corretos de uso:
 - "Quais contratos aprovaram amostra?" → Use contratos_amostra_aprovada e total_contratos_amostra_aprovada
 - "Quais contratos enviaram mas não aprovaram amostra?" → Use contratos_amostra_pendente e total_contratos_amostra_pendente
 - "Quais vendedores?" → Use o campo vendedores
-- "Quantos contratos foram baixados?" → Use total_contratos_baixados"""
+- "Quantos contratos foram baixados?" → Use total_contratos_baixados
+
+{"" if not (self.user_query_original and any(p in self.user_query_original.lower() for p in ["todas", "todos", "liste", "listar", "informe", "mostre", "traga", "quais"])) else f"""
+⚠️⚠️⚠️ INSTRUÇÃO OBRIGATÓRIA - O USUÁRIO PEDIU LISTA COMPLETA ⚠️⚠️⚠️
+
+O usuário quer ver TODOS os {len(tabela_por_contrato)} contratos listados na TABELA INDIVIDUAL acima.
+
+✅ VOCÊ DEVE listar TODOS os {len(tabela_por_contrato)} contratos numerados de 1 a {len(tabela_por_contrato)}!
+✅ Para cada contrato, use os dados da TABELA INDIVIDUAL (contrato | cliente | sacas | valorTotal | mesEmbarque)
+❌ NÃO mostre apenas alguns exemplos e diga "existem mais"!
+❌ NÃO agrupe por cliente - liste cada contrato individualmente!
+❌ NÃO invente valores - use SOMENTE o valorTotal da TABELA INDIVIDUAL!
+
+Formato: "N. [contrato] ([cliente]) - R$ [valorTotal]" para cada um dos {len(tabela_por_contrato)} contratos."""}"""
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
