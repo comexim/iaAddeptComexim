@@ -1667,27 +1667,37 @@ Exemplos corretos:
                 logger.info(f"[LISTA COMPLETA] Campo='{identificador_campo}', {len(todos_contratos_unicos)} registros únicos mapeados")
 
                 # Monta tabela compacta por contrato com dados individuais (evita erro de valor por cliente)
-                # Formato: contrato | cliente | sacas | valorTotal | mesEmbarque
+                # Usa identificador_campo detectado (contrato para vendas, numero para compras, etc.)
                 tabela_por_contrato = []
                 vistos = set()
+
+                def _fmt_decimal(v):
+                    if v is None:
+                        return "0"
+                    if isinstance(v, Decimal):
+                        return f"{float(v):,.2f}"
+                    if isinstance(v, (int, float)):
+                        return f"{v:,.2f}"
+                    return str(v)
+
                 for row in results:
-                    c = str(row.get("contrato", "")).strip()
+                    c = str(row.get(identificador_campo or "contrato", "")).strip()
                     if not c or c in vistos:
                         continue
                     vistos.add(c)
-                    def _fmt_decimal(v):
-                        if v is None:
-                            return "0"
-                        if isinstance(v, Decimal):
-                            return f"{float(v):,.2f}"
-                        if isinstance(v, (int, float)):
-                            return f"{v:,.2f}"
-                        return str(v)
+                    # Tenta campos de parte/contraparte em ordem (vendas=cliente, compras=fornecedor)
+                    contraparte = str(row.get('cliente') or row.get('fornecedor') or row.get('produtor') or '').strip()
+                    # Tenta campos de quantidade (vendas=sacas, compras=quantidade)
+                    qtd = row.get('sacas') or row.get('quantidade') or row.get('qtd')
+                    # Tenta campos de valor
+                    valor = row.get('valorTotal') or row.get('valor') or row.get('valorContrato')
+                    # Tenta campo de data/mês
+                    data = str(row.get('mesEmbarque') or row.get('dataEmissao') or row.get('data') or '').strip()
                     tabela_por_contrato.append(
-                        f"{c} | {str(row.get('cliente','') or '').strip()} | "
-                        f"{_fmt_decimal(row.get('sacas'))} sacas | "
-                        f"R$ {_fmt_decimal(row.get('valorTotal'))} | "
-                        f"{str(row.get('mesEmbarque','') or '').strip()}"
+                        f"{c} | {contraparte} | "
+                        f"{_fmt_decimal(qtd)} sacas | "
+                        f"R$ {_fmt_decimal(valor)} | "
+                        f"{data}"
                     )
                 tabela_por_contrato_str = "\n".join(tabela_por_contrato)
                 logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos na tabela individual")
@@ -1701,6 +1711,11 @@ Exemplos corretos:
 
                 # CALCULA TOTAIS GERAIS (não deixa a IA somar manualmente para evitar erros)
                 total_contratos = sum(item.get("total_contratos", 0) for item in aggregated)
+                # Fallback: se agregação retornou 0 contratos (ex: compras usa "numero" não "contrato"),
+                # usa a lista completa de identificadores únicos que foi corretamente mapeada
+                if total_contratos == 0 and todos_contratos_unicos:
+                    total_contratos = len(todos_contratos_unicos)
+                    logger.info(f"[TOTAL CONTRATOS] Fallback: usando {total_contratos} de todos_contratos_unicos")
                 total_sacas = sum(item.get("total_sacas", 0) for item in aggregated)
                 total_valor = sum(item.get("total_valor", 0) for item in aggregated)
 
