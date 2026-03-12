@@ -188,13 +188,17 @@ class SQLTools:
                 return None
 
         # Padrões comuns para identificar nome de cliente
+        # Terminadores: palavras que encerram o nome do cliente
+        _T = r'(?:\s+temos|\s+tem|\s+para|\s+no|\s+em|\s+na|\s+do|\s+da|\s+de\b|\?|$)'
+        _NOME = r'([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)'
+
         patterns = [
-            # Cliente explícito: "para o cliente NOME"
-            r'(?:para|do|da)\s+(?:o\s+|a\s+)?cliente\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em|\s+na|\s+do|\s+da|\?)',
+            # Cliente explícito: "para o cliente NOME" / "do cliente NOME de 2025"
+            rf'(?:para|do|da)\s+(?:o\s+|a\s+)?cliente\s+{_NOME}{_T}',
             # Cliente implícito: "para a starbucks"
-            r'para\s+(?:a\s+|o\s+)([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+temos|\s+tem|\s+para|\s+no|\s+em)',
-            r'da\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+em|\s+no|\s+para)',
-            r'do\s+([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)(?:\s+em|\s+no|\s+para)',
+            rf'para\s+(?:a\s+|o\s+){_NOME}{_T}',
+            rf'da\s+{_NOME}(?:\s+em|\s+no|\s+para|\s+de\b|$)',
+            rf'do\s+{_NOME}(?:\s+em|\s+no|\s+para|\s+de\b|$)',
         ]
 
         for pattern in patterns:
