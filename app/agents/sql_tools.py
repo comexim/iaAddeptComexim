@@ -1699,8 +1699,14 @@ Exemplos corretos:
                         f"R$ {_fmt_decimal(valor)} | "
                         f"{data}"
                     )
-                tabela_por_contrato_str = "\n".join(tabela_por_contrato)
-                logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos na tabela individual")
+                # Limita a 150 linhas para não estourar tokens (30k limit do OpenAI)
+                MAX_TABELA = 150
+                tabela_truncada = len(tabela_por_contrato) > MAX_TABELA
+                tabela_exibida = tabela_por_contrato[:MAX_TABELA]
+                tabela_por_contrato_str = "\n".join(tabela_exibida)
+                if tabela_truncada:
+                    tabela_por_contrato_str += f"\n... (tabela limitada a {MAX_TABELA} de {len(tabela_por_contrato)} — use a lista completa acima para todos os números)"
+                logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos na tabela individual (exibindo {len(tabela_exibida)})")
 
                 aggregated = self._aggregate_by_client(results)
 
