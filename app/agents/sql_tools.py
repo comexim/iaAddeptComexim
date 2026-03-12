@@ -2022,10 +2022,6 @@ Formato: "N. [contrato] ([cliente]) - R$ [valorTotal]" para cada um dos {len(tab
                 results = results_dedup
                 total_records = len(results_dedup)
 
-        if len(results) > 50:
-            results = results[:50]
-            warning = f"\n\nAtenção: Foram encontrados {total_records} registros. Exibindo apenas os primeiros 50."
-
         def convert_decimals(obj):
             if isinstance(obj, Decimal):
                 return float(obj)
