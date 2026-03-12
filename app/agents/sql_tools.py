@@ -153,8 +153,8 @@ class SQLTools:
             r'\borçamento',  # "orçamento"
             r'\bcotação',  # "cotação"
             r'\bdespesa\s+de\s+venda',  # "despesa de venda"
-            r'\bcompras',  # "compras"
-            r'\bvendas',  # "vendas"
+            # REMOVIDO: r'\bcompras' e r'\bvendas' — bloqueavam extração de cliente em
+            # queries como "vendas do cliente NESTRADE" e "compras do fornecedor X"
             r'\bestoque',  # "estoque"
             r'\bmês\s+de\s+(embarque|emissão|emissao|fixação|fixacao)',  # "mês de embarque", "mês de emissão"
         ]
@@ -2466,7 +2466,15 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             function_name = "IA_Vendas"
             filters = None
 
-        return self._validate_and_execute(function_name, filters, client_filter)
+        result = self._validate_and_execute(function_name, filters, client_filter)
+
+        # FALLBACK: Se retornou vazio com filtro de data E tem client_filter,
+        # tenta novamente sem data (IA_Vendas sem Par) — cliente pode ter embarques em outro período
+        if client_filter and filters and ("Nenhum" in result or "nenhum" in result):
+            logger.info(f"[FALLBACK CLIENTE] IA_VendasPar retornou vazio para '{client_filter}' — tentando IA_Vendas sem filtro de data")
+            result = self._validate_and_execute("IA_Vendas", None, client_filter)
+
+        return result
 
     def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None) -> str:
         """
