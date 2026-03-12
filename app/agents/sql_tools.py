@@ -1436,7 +1436,8 @@ class SQLTools:
             query_lower = self.user_query_original.lower()
 
             # Padrão: número/ano (ex: 488/25, 453/25A, 513/25)
-            if re.search(r'\d{2,4}/\d{2}[A-Z]?', self.user_query_original):
+            # IMPORTANTE: (?!\d) evita casar datas como "02/2026" (após "02/20" vem "2", não letra/fim)
+            if re.search(r'\d{2,4}/\d{2}(?!\d)[A-Z]?', self.user_query_original):
                 menciona_contrato = True
                 logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
 
