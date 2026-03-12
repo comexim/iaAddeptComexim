@@ -2447,12 +2447,13 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return self._validate_and_execute(function_name, filters, client_filter)
 
-    def _pesquisa_compras(self, data_inicio: Optional[str] = None) -> str:
+    def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None) -> str:
         """
         Consulta dados de compras e aquisições.
 
         Args:
-            data_inicio: Data inicial (ex: "últimos 7 dias", "05/12/2025")
+            data_inicio: Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025")
+            data_fim: Data/período final para range (ex: "outubro 2025", "dezembro 2025")
 
         Returns:
             Dados de compras formatados
@@ -2461,38 +2462,59 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         function_name = "IA_Compras"
         filters = None
 
-        if data_inicio:
+        # Se data_fim fornecido separadamente, parseia os dois e monta range
+        if data_inicio and data_fim:
+            parsed_inicio = date_parser.parse_natural_date(data_inicio)
+            parsed_fim = date_parser.parse_natural_date(data_fim)
+            logger.info(f"[COMPRAS] Range: data_inicio={parsed_inicio}, data_fim={parsed_fim}")
+
+            inicio = None
+            fim = None
+
+            if parsed_inicio:
+                inicio = parsed_inicio.get("data_inicio") or parsed_inicio.get("mes_embarque")
+                # Para mês, pega o primeiro dia
+                if inicio and len(inicio) == 7:  # formato YYYY/MM
+                    inicio = inicio.replace("/", "") + "01"
+
+            if parsed_fim:
+                fim = parsed_fim.get("data_fim") or parsed_fim.get("mes_embarque")
+                # Para mês, pega o último dia
+                if fim and len(fim) == 7:  # formato YYYY/MM
+                    from calendar import monthrange
+                    y, m = int(fim[:4]), int(fim[5:7])
+                    last_day = monthrange(y, m)[1]
+                    fim = f"{fim[:4]}{fim[5:7]}{last_day:02d}"
+
+            if inicio and fim:
+                function_name = "IA_ComprasPar"
+                filters = {"data_inicio": inicio, "data_fim": fim}
+                logger.info(f"[COMPRAS] Usando IA_ComprasPar('{inicio}', '{fim}') [range explícito]")
+
+        elif data_inicio:
             parsed = date_parser.parse_natural_date(data_inicio)
             logger.info(f"[COMPRAS] date_parser retornou: {parsed}")
 
             if parsed:
-                # Extrai datas do parsed
                 inicio = None
                 fim = None
 
-                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
                 if "mes_embarque" in parsed:
                     inicio = parsed["mes_embarque"]
                     fim = parsed["mes_embarque"]
                     logger.info(f"[COMPRAS] Mês detectado: {inicio}")
-                # Prioridade 2: Se tem data_inicio e data_fim
                 elif "data_inicio" in parsed and "data_fim" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed["data_fim"]
                     logger.info(f"[COMPRAS] Período detectado ({inicio} até {fim})")
-                # Prioridade 3: Se tem apenas data_inicio
                 elif "data_inicio" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed.get("data_fim", inicio)
                     logger.info(f"[COMPRAS] Data única detectada: {inicio}")
 
-                # Se temos datas, usa IA_ComprasPar com parâmetros
                 if inicio and fim:
                     function_name = "IA_ComprasPar"
-                    filters = {
-                        "data_inicio": inicio,
-                        "data_fim": fim
-                    }
+                    filters = {"data_inicio": inicio, "data_fim": fim}
                     logger.info(f"[COMPRAS] Usando IA_ComprasPar('{inicio}', '{fim}')")
         else:
             logger.info("[COMPRAS] Sem data - usando IA_Compras() sem parâmetros")
@@ -3799,14 +3821,22 @@ Esta ferramenta retorna informações sobre pedidos e contratos de compra, inclu
 - Sacas entregues vs a entregar
 
 Argumentos:
-- data_inicio (opcional): Data inicial para filtro (ex: "últimos 7 dias", "este mês", "05/12/2025", "dezembro 2025")
-  - Se NÃO INFORMADO: retorna todas as compras
-  - Se INFORMADO: filtra por data de emissão >= data_inicio
+- data_inicio (opcional): Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025", "últimos 7 dias")
+- data_fim (opcional): Data/período final para range (ex: "outubro 2025", "dezembro 2025")
+  - Se NENHUM informado: retorna TODAS as compras
+  - Se apenas data_inicio: filtra a partir daquela data
+  - Se ambos: filtra o intervalo completo
+
+⚠️ IMPORTANTE: NUNCA peça clarificação ao usuário — sempre chame esta ferramenta diretamente.
+- "compras de 2025" → pesquisa_compras(data_inicio="2025") [retorna o ano inteiro]
+- "todas as compras" → pesquisa_compras() [sem parâmetros]
 
 Exemplos de uso:
-- "Quais foram as compras dos últimos 7 dias?" → pesquisa_compras(data_inicio="últimos 7 dias")
+- "Compras de 2025" → pesquisa_compras(data_inicio="2025")
+- "Compras de janeiro a outubro de 2025" → pesquisa_compras(data_inicio="janeiro 2025", data_fim="outubro 2025")
 - "Compras de dezembro de 2025" → pesquisa_compras(data_inicio="dezembro 2025")
-- "Compras desde 05/12/2025" → pesquisa_compras(data_inicio="05/12/2025")
+- "Compras dos últimos 7 dias" → pesquisa_compras(data_inicio="últimos 7 dias")
+- "Todas as compras" → pesquisa_compras()
 """
             ),
             StructuredTool.from_function(
