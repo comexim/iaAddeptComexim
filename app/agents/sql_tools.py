@@ -1686,9 +1686,11 @@ Exemplos corretos:
 
                 for row in results:
                     c = str(row.get(identificador_campo or "contrato", "")).strip()
-                    if not c or c in vistos:
+                    filial_row = str(row.get('filial') or '').strip()
+                    chave_dedup = f"{c}_{filial_row}" if filial_row else c
+                    if not c or chave_dedup in vistos:
                         continue
-                    vistos.add(c)
+                    vistos.add(chave_dedup)
                     # Tenta campos de parte/contraparte em ordem (vendas=cliente, compras=fornecedor)
                     contraparte = str(row.get('cliente') or row.get('fornecedor') or row.get('produtor') or '').strip()
                     # Tenta campos de quantidade (vendas=sacas, compras=quantidade)
@@ -1697,8 +1699,9 @@ Exemplos corretos:
                     valor = row.get('valorTotal') or row.get('valor') or row.get('valorContrato')
                     # Tenta campo de data/mês
                     data = str(row.get('mesEmbarque') or row.get('dataEmissao') or row.get('data') or '').strip()
+                    filial_label = f" [fil.{filial_row}]" if filial_row else ""
                     tabela_por_contrato.append(
-                        f"{c} | {contraparte} | "
+                        f"{c}{filial_label} | {contraparte} | "
                         f"{_fmt_decimal(qtd)} sacas | "
                         f"R$ {_fmt_decimal(valor)} | "
                         f"{data}"
