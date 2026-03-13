@@ -1664,7 +1664,14 @@ Exemplos corretos:
 
                 todos_contratos_raw = []
                 if identificador_campo:
-                    todos_contratos_raw = [str(row.get(identificador_campo, "")).strip() for row in results if row.get(identificador_campo)]
+                    # Inclui filial na chave para não perder contratos com mesmo número em filiais diferentes
+                    for row in results:
+                        c = str(row.get(identificador_campo, "")).strip()
+                        if not c:
+                            continue
+                        filial_r = str(row.get('filial') or '').strip()
+                        chave = f"{c} [fil.{filial_r}]" if filial_r else c
+                        todos_contratos_raw.append(chave)
 
                 todos_contratos_unicos = sorted(set(c for c in todos_contratos_raw if c))
                 lista_completa_contratos_str = ", ".join(todos_contratos_unicos)
