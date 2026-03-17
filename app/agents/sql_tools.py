@@ -2882,10 +2882,10 @@ IMPORTANTE:
                 logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
                 result_list = result_dedup
 
-            # Se poucos registros (<= 50), retorna todos
+            # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
             if len(result_list) <= 50:
-                # Calcula total geral
                 total_geral = 0
+                linhas = []
                 for r in result_list:
                     valor = r.get("valor", 0)
                     if isinstance(valor, Decimal):
@@ -2902,40 +2902,24 @@ IMPORTANTE:
                     elif not isinstance(valor, (int, float)):
                         valor = 0
                     total_geral += valor
+                    num = str(r.get('numero', '')).strip()
+                    parc = str(r.get('parcela', '')).strip()
+                    forn = str(r.get('fornecedor', '')).strip()
+                    nat = str(r.get('natureza', '')).strip()
+                    venc = str(r.get('vencimento', '')).strip()
+                    fil = str(r.get('filial', '')).strip()
+                    linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}")
 
-                def convert_decimals(obj):
-                    if isinstance(obj, Decimal):
-                        return float(obj)
-                    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
-
-                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
-
+                tabela_str = "\n".join(linhas)
                 return f"""Resultados da consulta IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
 Valor total a pagar: R$ {total_geral:,.2f}
 
-Dados completos:
-{formatted}
+TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
+{tabela_str}
 
-CAMPOS DISPONÍVEIS:
-- tipo: Tipo do título (Realizado, etc.)
-- filial: Código da filial
-- prefixo: Prefixo do título
-- numero: Número do título
-- parcela: Parcela do título
-- fornecedor: Nome do fornecedor/credor
-- loja: Código da loja do fornecedor
-- centroCusto: Centro de custo associado
-- natureza: Natureza/tipo da despesa
-- valor: Valor a pagar
-- rateio: Valor do rateio
-- percrat: Percentual do rateio
-- emissao: Data de emissão (YYYYMMDD)
-- vencimento: Data de vencimento (YYYYMMDD)
-- pedido: Número do pedido relacionado
-
-Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
+Analise TODOS os {len(result_list)} registros acima e responda com base nos dados fornecidos."""
 
             # Agrega por dia de vencimento E por fornecedor
             from collections import defaultdict
