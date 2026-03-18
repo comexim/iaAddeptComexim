@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
 
     # AI Configuration
-    ai_model: str = "gpt-4o"
+    ai_model: str = "gpt-4o-mini"
     ai_temperature: float = 0.3
     ai_max_tokens: int = 4000
     formatter_model: str = "gpt-4o-mini"
