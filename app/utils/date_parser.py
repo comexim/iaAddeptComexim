@@ -83,6 +83,14 @@ class DateParser:
             logger.debug(f"Parseado 'ontem': {result['data_inicio']}")
             return result
 
+        # Amanhã
+        if "amanh" in text:  # cobre "amanhã" e "amanha"
+            tomorrow = now + timedelta(days=1)
+            result["data_inicio"] = DateParser.format_yyyymmdd(tomorrow)
+            result["data_fim"] = DateParser.format_yyyymmdd(tomorrow)
+            logger.debug(f"Parseado 'amanhã': {result['data_inicio']}")
+            return result
+
         # Vencidas / Vencidos (todas as contas com vencimento até ontem)
         if "vencid" in text:
             yesterday = now - timedelta(days=1)
