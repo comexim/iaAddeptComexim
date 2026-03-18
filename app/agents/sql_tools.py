@@ -1195,7 +1195,7 @@ class SQLTools:
         logger.info(f"Filtrados {len(filtered)} registros de {len(results)} para cliente '{client_name}' (normalizado: '{client_name_normalized}')")
         return filtered
 
-    def _format_results(self, results: list[Dict[str, Any]], function_name: str, client_filter: Optional[str] = None) -> str:
+    def _format_results(self, results: list[Dict[str, Any]], function_name: str, client_filter: Optional[str] = None, pagina: int = 1) -> str:
         """
         Formata resultados SQL para apresentação ao usuário
 
@@ -1713,14 +1713,13 @@ Exemplos corretos:
                         f"R$ {_fmt_decimal(valor)} | "
                         f"{data}"
                     )
-                # Limita a 150 linhas para não estourar tokens (30k limit do OpenAI)
-                MAX_TABELA = 150
-                tabela_truncada = len(tabela_por_contrato) > MAX_TABELA
-                tabela_exibida = tabela_por_contrato[:MAX_TABELA]
+                # Paginação: 50 contratos por página
+                PAGE_SIZE = 50
+                idx_inicio = (pagina - 1) * PAGE_SIZE
+                idx_fim = idx_inicio + PAGE_SIZE
+                tabela_exibida = tabela_por_contrato[idx_inicio:idx_fim]
                 tabela_por_contrato_str = "\n".join(tabela_exibida)
-                if tabela_truncada:
-                    tabela_por_contrato_str += f"\n... (tabela limitada a {MAX_TABELA} de {len(tabela_por_contrato)} — use a lista completa acima para todos os números)"
-                logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos na tabela individual (exibindo {len(tabela_exibida)})")
+                logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos total, exibindo página {pagina} ({idx_inicio+1}-{min(idx_fim, len(tabela_por_contrato))})")
 
                 aggregated = self._aggregate_by_client(results)
 
@@ -1826,17 +1825,27 @@ Distribuição por cliente (top 5):"""
                     sumario_embarcados_nao_baixados += f"\n\n⚠️ IMPORTANTE: Use este número ({total_embarcados_nao_baixados} contratos) para responder ao usuário!\n"
                     logger.info(f"[SUMÁRIO ESPECIAL] Calculado: {total_embarcados_nao_baixados} contratos embarcados não baixados")
 
-                return f"""Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):{sumario_embarcados_nao_baixados}
+                total_paginas = max(1, (len(tabela_por_contrato) + PAGE_SIZE - 1) // PAGE_SIZE)
+                ha_mais_paginas = pagina < total_paginas
+                aviso_paginacao = ""
+                if ha_mais_paginas:
+                    aviso_paginacao = f"\n⚠️ HÁ MAIS CONTRATOS: Esta é a página {pagina} de {total_paginas}. Chame pesquisa_vendas(periodo=..., pagina={pagina+1}) para ver os próximos contratos."
+
+                return f"""⚠️ TOTAL_EXATO: {total_contratos} contratos | {total_sacas:,.2f} sacas | R$ {total_valor:,.2f}
+REGRA OBRIGATÓRIA: Use SEMPRE o número {total_contratos} ao responder sobre quantidade total de contratos.{aviso_paginacao}
+
+Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):{sumario_embarcados_nao_baixados}
 
 Total de registros SQL: {original_count}
 Total de clientes: {len(aggregated)}
+Página: {pagina}/{total_paginas} (contratos {(pagina-1)*PAGE_SIZE+1}–{min(pagina*PAGE_SIZE, len(tabela_por_contrato))} de {len(tabela_por_contrato)})
 
 TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Contratos: {total_contratos}
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
 
-⚠️ TABELA INDIVIDUAL POR CONTRATO (contrato | cliente | sacas | valorTotal | mesEmbarque):
+⚠️ TABELA INDIVIDUAL POR CONTRATO - página {pagina}/{total_paginas} (contrato | cliente | sacas | valorTotal | mesEmbarque):
 {tabela_por_contrato_str}
 
 ⚠️ CRÍTICO - REGRA ANTI-ALUCINAÇÃO:
@@ -2315,7 +2324,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         self,
         function_name: str,
         filters: Optional[Dict[str, Any]] = None,
-        client_filter: Optional[str] = None
+        client_filter: Optional[str] = None,
+        pagina: int = 1
     ) -> str:
         """
         Valida permissões e filtros antes de executar query
@@ -2347,25 +2357,27 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         try:
             logger.info(f"Executando {function_name} com filtros: {filters}, client_filter: {client_filter}")
             results = sql_client.execute_function(function_name, filters)
-            return self._format_results(results, function_name, client_filter)
+            return self._format_results(results, function_name, client_filter, pagina=pagina)
         except Exception as e:
             import traceback
             logger.error(f"Erro ao executar {function_name}: {e}")
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_vendas(self, periodo: Optional[str] = None) -> str:
+    def _pesquisa_vendas(self, periodo: Optional[str] = None, pagina: int = 1) -> str:
         """
         Consulta dados de vendas e embarques da empresa.
 
         Args:
             periodo: Período desejado (ex: "dezembro 2025", "hoje", "sexta-feira passada")
                     Aceita mês/ano ou datas específicas
+            pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
+                   Se a resposta indicar "HÁ MAIS CONTRATOS", chame com pagina=2, pagina=3, etc.
 
         Returns:
             Dados de vendas formatados
         """
-        logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}")
+        logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, pagina={pagina}")
 
         # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
         contrato_na_query = None
@@ -2480,23 +2492,24 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             function_name = "IA_Vendas"
             filters = None
 
-        result = self._validate_and_execute(function_name, filters, client_filter)
+        result = self._validate_and_execute(function_name, filters, client_filter, pagina=pagina)
 
         # FALLBACK: Se retornou vazio com filtro de data E tem client_filter,
         # tenta novamente sem data (IA_Vendas sem Par) — cliente pode ter embarques em outro período
         if client_filter and filters and ("Nenhum" in result or "nenhum" in result):
             logger.info(f"[FALLBACK CLIENTE] IA_VendasPar retornou vazio para '{client_filter}' — tentando IA_Vendas sem filtro de data")
-            result = self._validate_and_execute("IA_Vendas", None, client_filter)
+            result = self._validate_and_execute("IA_Vendas", None, client_filter, pagina=pagina)
 
         return result
 
-    def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None) -> str:
+    def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None, pagina: int = 1) -> str:
         """
         Consulta dados de compras e aquisições.
 
         Args:
             data_inicio: Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025")
             data_fim: Data/período final para range (ex: "outubro 2025", "dezembro 2025")
+            pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
 
         Returns:
             Dados de compras formatados
@@ -2562,7 +2575,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         else:
             logger.info("[COMPRAS] Sem data - usando IA_Compras() sem parâmetros")
 
-        return self._validate_and_execute(function_name, filters)
+        return self._validate_and_execute(function_name, filters, pagina=pagina)
 
     def _pesquisa_contas_pagas(self, data_inicio: Optional[str] = None) -> str:
         """
