@@ -2806,13 +2806,8 @@ IMPORTANTE:
                 inicio = None
                 fim = None
 
-                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
-                if "mes_embarque" in parsed:
-                    inicio = parsed["mes_embarque"]
-                    fim = parsed["mes_embarque"]
-                    logger.info(f"[CONTAS A PAGAR] Mês detectado: {inicio}")
-                # Prioridade 2: Se tem data_inicio e data_fim
-                elif "data_inicio" in parsed and "data_fim" in parsed:
+                # Prioridade 1: Se tem data_inicio e data_fim em YYYYMMDD (sempre preferir)
+                if "data_inicio" in parsed and "data_fim" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed["data_fim"]
                     logger.info(f"[CONTAS A PAGAR] Período detectado ({inicio} até {fim})")
