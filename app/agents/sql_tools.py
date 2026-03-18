@@ -246,9 +246,9 @@ class SQLTools:
             "fixadores": set(),
             "linhas": set(),
             "mesEmbarque": set(),
-            # Campos logísticos e administrativos
-            "contratos_com_bl": [],
-            "contratos_embarcados": [],
+            # Campos logísticos e administrativos (sets para evitar duplicatas por contrato)
+            "contratos_com_bl": set(),
+            "contratos_embarcados": set(),
             "contratos_com_corretor": [],  # contratos com refCorretor preenchido
             "contratos_amostra_enviada": [],
             "contratos_amostra_aprovada": [],
@@ -307,13 +307,13 @@ class SQLTools:
             # Campos logísticos e administrativos
             contrato = row.get("contrato", "")
 
-            # Contratos com BL
+            # Contratos com BL (usa set para evitar duplicatas de contrato)
             if row.get("numeroBL") and str(row["numeroBL"]).strip():
-                data["contratos_com_bl"].append(contrato)
+                data["contratos_com_bl"].add(contrato)
 
             # Contratos embarcados (com data de saída do navio)
             if row.get("saidaNavio") and str(row["saidaNavio"]).strip():
-                data["contratos_embarcados"].append(contrato)
+                data["contratos_embarcados"].add(contrato)
 
             # Contratos com referência de corretor
             if row.get("refCorretor") and str(row["refCorretor"]).strip():
@@ -383,9 +383,9 @@ class SQLTools:
                 "meses_embarque": sorted(list(data["mesEmbarque"])) if data["mesEmbarque"] else [],
                 "contratos": ", ".join(data["contratos"][:10]),  # Primeiros 10 contratos
                 # Campos logísticos e administrativos
-                "contratos_com_bl": ", ".join(data["contratos_com_bl"][:20]) if data["contratos_com_bl"] else "",
+                "contratos_com_bl": ", ".join(sorted(data["contratos_com_bl"])[:20]) if data["contratos_com_bl"] else "",
                 "total_contratos_com_bl": len(data["contratos_com_bl"]),
-                "contratos_embarcados": ", ".join(data["contratos_embarcados"][:20]) if data["contratos_embarcados"] else "",
+                "contratos_embarcados": ", ".join(sorted(data["contratos_embarcados"])[:20]) if data["contratos_embarcados"] else "",
                 "total_contratos_embarcados": len(data["contratos_embarcados"]),
                 "contratos_com_corretor": ", ".join(data["contratos_com_corretor"][:20]) if data["contratos_com_corretor"] else "",
                 "total_contratos_com_corretor": len(data["contratos_com_corretor"]),
@@ -1738,6 +1738,24 @@ Exemplos corretos:
                 total_sacas = sum(item.get("total_sacas", 0) for item in aggregated)
                 total_valor = sum(item.get("total_valor", 0) for item in aggregated)
 
+                # CALCULA DIFERENCIAL MÉDIO GLOBAL (dedup por contrato+filial)
+                dif_values_global = []
+                dif_vistos_global = set()
+                for row in results:
+                    c_dif = str(row.get(identificador_campo or "contrato", "")).strip()
+                    f_dif = str(row.get('filial') or '').strip()
+                    chave_dif = f"{c_dif}_{f_dif}" if f_dif else c_dif
+                    if not c_dif or chave_dif in dif_vistos_global:
+                        continue
+                    dif_vistos_global.add(chave_dif)
+                    d = row.get("diferencial")
+                    if d is not None:
+                        try:
+                            dif_values_global.append(float(d))
+                        except (TypeError, ValueError):
+                            pass
+                diferencial_global = round(sum(dif_values_global) / len(dif_values_global), 4) if dif_values_global else None
+
                 # AGREGA CONTRATOS POR PAÍS (usando dados originais para não perder relação)
                 from collections import defaultdict
                 contratos_por_pais = defaultdict(lambda: {"contratos": [], "sacas": 0, "clientes": set()})
@@ -1844,6 +1862,7 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Contratos: {total_contratos}
 - Total de Sacas: {total_sacas:,.2f}
 - Valor Total: R$ {total_valor:,.2f}
+- Diferencial Médio: {f'{diferencial_global:,.4f}' if diferencial_global is not None else 'N/A'}
 
 ⚠️ TABELA INDIVIDUAL POR CONTRATO - página {pagina}/{total_paginas} (contrato | cliente | sacas | valorTotal | mesEmbarque):
 {tabela_por_contrato_str}
