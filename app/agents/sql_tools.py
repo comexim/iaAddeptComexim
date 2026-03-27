@@ -3434,6 +3434,22 @@ IMPORTANTE:
         filters = None
         data_fim_filter = None
 
+        # DETECÇÃO DE "VENCIDO": se query menciona "vencido/vencidas" sem data explícita,
+        # usa range de 1 ano atrás até hoje (contas já vencidas)
+        if not data_vencimento and self.user_query_original:
+            query_lower = self.user_query_original.lower()
+            if re.search(r'\bvencid[oa]s?\b', query_lower):
+                import pytz
+                TZ_SP = pytz.timezone("America/Sao_Paulo")
+                hoje_sp = datetime.now(TZ_SP)
+                um_ano_atras = hoje_sp - timedelta(days=365)
+                function_name = "IA_ContasAReceberPar"
+                filters = {
+                    "data_inicio": um_ano_atras.strftime('%Y%m%d'),
+                    "data_fim": hoje_sp.strftime('%Y%m%d')
+                }
+                logger.info(f"[CONTAS A RECEBER] 'vencido' detectado sem data - usando IA_ContasAReceberPar({filters['data_inicio']}, {filters['data_fim']})")
+
         if data_vencimento:
             parsed = date_parser.parse_natural_date(data_vencimento)
             logger.info(f"[CONTAS A RECEBER] date_parser retornou: {parsed}")
@@ -4057,34 +4073,36 @@ Esta ferramenta retorna informações sobre contas pendentes de recebimento, inc
 - mesFixacao: Mês de fixação (MM/YYYY)
 - diferencial: Diferencial de preço
 
-⚠️ IMPORTANTE: Esta ferramenta é para RECEBIMENTOS PENDENTES (contas a receber no futuro).
-Para vendas/contratos, use pesquisa_vendas.
+⚠️ IMPORTANTE - QUANDO USAR ESTA FERRAMENTA:
+- "Contas a receber vencidas" → USE ESTA FERRAMENTA (sem passar data_vencimento)
+- "Há algum contas a receber vencido?" → USE ESTA FERRAMENTA
+- "Quanto temos a receber?" → USE ESTA FERRAMENTA
+- "Quanto a NESTLE me deve?" → USE ESTA FERRAMENTA
+⛔ NÃO USE para contratos de vendas ou embarques → use pesquisa_vendas
 
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
   - Formato flexível: "hoje", "próximos 7 dias", "este mês", "20250112"
-  - Se NÃO INFORMADO: retorna todas as contas a receber (sem filtro de data)
-  - Se INFORMADO: filtra contas com vencimentoReal >= data_vencimento
+  - Se NÃO INFORMADO e query menciona "vencido/vencidas": busca automaticamente últimos 12 meses
+  - Se NÃO INFORMADO sem "vencido": retorna todas as contas a receber
 
 - cliente (opcional): Filtro por cliente
   - Exemplos: "NESTLE", "STARBUCKS", "UCC"
   - O filtro é flexível: "NESTLE" encontra "NESTLE ARARAS"
-  - Se NÃO INFORMADO: retorna todos os clientes
-  - Se INFORMADO: filtra apenas contas do cliente especificado
 
 - contrato (opcional): Filtro por contrato específico
   - Exemplos: "256/25R", "031/25", "086/25B"
   - Quando INFORMADO: retorna DETALHES COMPLETOS dos títulos (sem agregar)
-  - Útil para consultas como "dados do contrato X no contas a receber"
 
 Exemplos de uso:
+- "Há contas a receber vencidas?" → pesquisa_contas_a_receber()
+- "Algum contas a receber vencido?" → pesquisa_contas_a_receber()
+- "Contas a receber vencidas da NESTLE?" → pesquisa_contas_a_receber(cliente="NESTLE")
 - "Quanto tenho a receber hoje?" → pesquisa_contas_a_receber(data_vencimento="hoje")
 - "Contas a receber nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias")
 - "Recebimentos deste mês" → pesquisa_contas_a_receber(data_vencimento="este mês")
 - "Quanto a NESTLE me deve?" → pesquisa_contas_a_receber(cliente="NESTLE")
-- "Recebimentos da NESTLE nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias", cliente="NESTLE")
 - "Dados do contrato 256/25R no contas a receber" → pesquisa_contas_a_receber(contrato="256/25R")
-- "Quero saber o contrato 256/25R no contas a receber para o dia 9 de fevereiro de 2026" → pesquisa_contas_a_receber(data_vencimento="9 de fevereiro de 2026", contrato="256/25R")
 """
             ),
             StructuredTool.from_function(
