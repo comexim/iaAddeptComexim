@@ -3683,7 +3683,13 @@ IMPORTANTE:
 
             formatted = json.dumps(clientes_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):
+            # Detecta se é query sobre vencidas para contextualizar corretamente
+            _q = (self.user_query_original or "").lower()
+            _eh_vencidas = bool(re.search(r'\bvencid[oa]s?\b', _q))
+            _tipo_label = "VENCIDAS (vencimentoReal já passou)" if _eh_vencidas else "PENDENTES (a receber)"
+            _aviso_vencidas = "\n⚠️ ATENÇÃO: Estes títulos estão VENCIDOS — o vencimentoReal já passou. Informe ao usuário quais clientes têm contas em atraso." if _eh_vencidas else ""
+
+            return f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
 
 Total de registros SQL: {len(result_list)}
 Total de clientes únicos: {len(por_cliente)}
@@ -3694,7 +3700,7 @@ Clientes (ordenados por valor):
 {formatted}
 
 IMPORTANTE:
-1. Estas são contas PENDENTES (a receber no futuro)
+1. Estas são contas {_tipo_label}
 2. Os valores já estão AGREGADOS por cliente (se cliente tem múltiplos títulos, valores foram somados)
 3. valor_total = soma de todos os títulos daquele cliente
 4. Total geral: R$ {total_valor:,.2f}"""
