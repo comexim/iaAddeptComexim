@@ -3440,9 +3440,10 @@ IMPORTANTE:
             query_lower = self.user_query_original.lower()
             if re.search(r'\bvencid[oa]s?\b', query_lower):
                 import pytz
+                from datetime import datetime as _dt, timedelta as _td
                 TZ_SP = pytz.timezone("America/Sao_Paulo")
-                hoje_sp = datetime.now(TZ_SP)
-                um_ano_atras = hoje_sp - timedelta(days=365)
+                hoje_sp = _dt.now(TZ_SP)
+                um_ano_atras = hoje_sp - _td(days=365)
                 function_name = "IA_ContasAReceberPar"
                 filters = {
                     "data_inicio": um_ano_atras.strftime('%Y%m%d'),
