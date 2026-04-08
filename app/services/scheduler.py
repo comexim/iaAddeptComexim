@@ -91,7 +91,7 @@ async def _executar_relatorio(relatorio: dict) -> None:
     from app.services.auth import AuthService
     from app.agents.orchestrator import AgentOrchestrator
     from app.services.whatsapp import WhatsAppService
-    from app.utils.message_formatter import MessageFormatter
+    from app.services.formatter import response_formatter
 
     telefone = relatorio["telefone"]
     descricao = relatorio["descricao"]
