@@ -112,7 +112,8 @@ async def _executar_relatorio(relatorio: dict) -> None:
             return
 
         # Monta a mensagem que a IA vai receber
-        mensagem = f"[RELATÓRIO AUTOMÁTICO AGENDADO] {descricao}"
+        # IMPORTANTE: não usar palavras como "agendar" ou "programar" para não confundir a IA
+        mensagem = f"Gere e mostre agora o seguinte relatório completo: {descricao}. Não agende nada, apenas execute e retorne os dados."
 
         # Invoca o agente
         orchestrator = AgentOrchestrator(user=user, session_id=telefone)
