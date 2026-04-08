@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import sql_client
 from app.core.redis_client import redis_client
 from app.api.webhook import router as webhook_router
+from app.services.scheduler import criar_scheduler
 
 # Configuração de logging
 logging.basicConfig(
@@ -42,12 +43,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.error("❌ Falha ao conectar SQL Server")
 
+    # Inicia scheduler de relatórios agendados
+    scheduler = criar_scheduler()
+    scheduler.start()
+    logger.info("✅ Scheduler de relatórios iniciado (verifica a cada hora)")
+
     logger.info("✅ Agente Comexim IA iniciado com sucesso!")
 
     yield
 
     # Shutdown
     logger.info("🔄 Encerrando Agente Comexim IA...")
+    scheduler.shutdown(wait=False)
     sql_client.close()
     await redis_client.close()
     logger.info("✅ Agente Comexim IA encerrado")

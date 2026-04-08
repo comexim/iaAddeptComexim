@@ -3810,6 +3810,197 @@ IMPORTANTE:
         logger.info(f"[DESPESA VENDA] Retornando {len(despesas_list)} tipos de despesa agregados")
         return despesas_list
 
+    def _criar_relatorio_agendado(
+        self,
+        descricao: str,
+        frequencia: str,
+        horario: str = "08:00",
+        dia_semana: Optional[str] = None,
+        dia_mes: Optional[int] = None,
+    ) -> str:
+        """
+        Cria um relatório automático agendado no Supabase.
+
+        Args:
+            descricao: O que o relatório deve conter
+            frequencia: 'diario', 'semanal' ou 'mensal'
+            horario: Horário de envio HH:MM
+            dia_semana: Dia da semana em português (para semanal)
+            dia_mes: Número do dia do mês (para mensal)
+
+        Returns:
+            Mensagem de confirmação
+        """
+        import asyncio
+        from app.core.supabase_client import supabase_client
+        from app.services.scheduler import calcular_next_run, DIAS_SEMANA
+
+        try:
+            # Valida frequência
+            frequencia = frequencia.lower().strip()
+            if frequencia not in ("diario", "semanal", "mensal"):
+                return "Frequência inválida. Use: 'diario', 'semanal' ou 'mensal'."
+
+            # Valida horário
+            if ":" not in horario:
+                horario = f"{horario}:00"
+
+            # Converte dia_semana texto → número
+            dia_semana_num = None
+            if frequencia == "semanal":
+                if not dia_semana:
+                    return "Para relatórios semanais, informe o dia da semana (ex: 'segunda', 'sexta')."
+                dia_semana_lower = dia_semana.lower().strip()
+                dia_semana_num = DIAS_SEMANA.get(dia_semana_lower)
+                if dia_semana_num is None:
+                    return f"Dia da semana inválido: '{dia_semana}'. Use: segunda, terça, quarta, quinta, sexta, sábado, domingo."
+
+            if frequencia == "mensal" and not dia_mes:
+                return "Para relatórios mensais, informe o dia do mês (ex: 1, 15, 30)."
+
+            # Calcula next_run
+            next_run = calcular_next_run(
+                frequencia=frequencia,
+                horario=horario,
+                dia_semana=dia_semana_num,
+                dia_mes=dia_mes,
+            )
+
+            dados = {
+                "telefone": self.user.telefone,
+                "descricao": descricao,
+                "frequencia": frequencia,
+                "horario": horario,
+                "dia_semana": dia_semana_num,
+                "dia_mes": dia_mes,
+                "next_run": next_run.isoformat(),
+                "status": "ativo",
+            }
+
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            resultado = loop.run_until_complete(supabase_client.criar_relatorio_agendado(dados))
+
+            if resultado:
+                freq_texto = {
+                    "diario": "todos os dias",
+                    "semanal": f"toda {dia_semana}",
+                    "mensal": f"todo dia {dia_mes} do mês",
+                }.get(frequencia, frequencia)
+
+                return (
+                    f"✅ Relatório agendado com sucesso!\n"
+                    f"📋 *{descricao}*\n"
+                    f"🗓️ Frequência: {freq_texto} às {horario}\n"
+                    f"📅 Primeira entrega: {next_run.strftime('%d/%m/%Y às %H:%M')}\n\n"
+                    f"Para cancelar, diga: 'cancela meus relatórios agendados'."
+                )
+            return "Não foi possível criar o agendamento. Tente novamente."
+
+        except Exception as e:
+            logger.error(f"[AGENDAMENTO] Erro ao criar relatório agendado: {e}")
+            return f"Erro ao criar agendamento: {e}"
+
+    def _listar_relatorios_agendados(self) -> str:
+        """
+        Lista os relatórios agendados ativos do usuário.
+
+        Returns:
+            Lista formatada dos relatórios agendados
+        """
+        import asyncio
+        from app.core.supabase_client import supabase_client
+
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            relatorios = loop.run_until_complete(
+                supabase_client.listar_relatorios_agendados(self.user.telefone)
+            )
+
+            if not relatorios:
+                return "Você não tem relatórios automáticos agendados no momento."
+
+            DIAS = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
+
+            linhas = ["📋 *Seus relatórios automáticos agendados:*\n"]
+            for i, r in enumerate(relatorios, 1):
+                freq = r.get("frequencia", "")
+                horario = r.get("horario", "")
+                dia_semana = r.get("dia_semana")
+                dia_mes = r.get("dia_mes")
+                next_run = r.get("next_run", "")
+
+                if freq == "diario":
+                    freq_texto = f"Diário às {horario}"
+                elif freq == "semanal" and dia_semana is not None:
+                    freq_texto = f"Toda {DIAS[dia_semana]} às {horario}"
+                elif freq == "mensal" and dia_mes:
+                    freq_texto = f"Todo dia {dia_mes} às {horario}"
+                else:
+                    freq_texto = freq
+
+                try:
+                    from datetime import datetime
+                    import pytz
+                    dt = datetime.fromisoformat(next_run).astimezone(pytz.timezone("America/Sao_Paulo"))
+                    proxima = dt.strftime("%d/%m/%Y às %H:%M")
+                except Exception:
+                    proxima = next_run
+
+                linhas.append(
+                    f"{i}. *{r.get('descricao', '')}*\n"
+                    f"   🗓️ {freq_texto}\n"
+                    f"   📅 Próximo envio: {proxima}\n"
+                    f"   🔑 ID: `{r.get('id', '')}`"
+                )
+
+            return "\n\n".join(linhas)
+
+        except Exception as e:
+            logger.error(f"[AGENDAMENTO] Erro ao listar relatórios: {e}")
+            return f"Erro ao listar agendamentos: {e}"
+
+    def _cancelar_relatorio_agendado(self, relatorio_id: str) -> str:
+        """
+        Cancela um relatório agendado pelo ID.
+
+        Args:
+            relatorio_id: ID do relatório a cancelar
+
+        Returns:
+            Mensagem de confirmação
+        """
+        import asyncio
+        from app.core.supabase_client import supabase_client
+
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            sucesso = loop.run_until_complete(
+                supabase_client.cancelar_relatorio_agendado(relatorio_id, self.user.telefone)
+            )
+
+            if sucesso:
+                return "✅ Relatório automático cancelado com sucesso. Você não receberá mais esse envio."
+            return "Não encontrei esse relatório agendado. Use 'listar relatórios agendados' para ver os IDs corretos."
+
+        except Exception as e:
+            logger.error(f"[AGENDAMENTO] Erro ao cancelar relatório {relatorio_id}: {e}")
+            return f"Erro ao cancelar agendamento: {e}"
+
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
         return [
@@ -4274,6 +4465,68 @@ Exemplos de uso:
 - "Quanto gastei com desembaraço em todos os contratos?" → pesquisa_despesa_venda()
 - "Quanto gastei com fumigação?" → pesquisa_despesa_venda()
 - "Quais os tipos de despesa?" → pesquisa_despesa_venda()
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._criar_relatorio_agendado,
+                name="criar_relatorio_agendado",
+                description="""Cria um relatório automático agendado que será enviado periodicamente via WhatsApp.
+
+Use esta ferramenta quando o usuário pedir para receber um relatório de forma recorrente.
+Exemplos de intenção:
+- "Gere um relatório financeiro para mim toda segunda"
+- "Quero receber o saldo bancário toda sexta às 9h"
+- "Me manda o estoque todo dia às 8h"
+- "Relatório de vendas todo dia 1 do mês"
+- "Quero receber contas a pagar toda segunda-feira de manhã"
+
+Argumentos:
+- descricao (obrigatório): Descrição clara do que o relatório deve conter.
+  Exemplos: "relatório financeiro completo", "saldo bancário", "estoque atual", "contas a pagar da semana"
+  ⚠️ A descrição será usada como instrução para gerar o relatório. Seja preciso.
+
+- frequencia (obrigatório): 'diario', 'semanal' ou 'mensal'
+
+- horario (obrigatório): Horário de envio no formato HH:MM (24h).
+  Se o usuário não informar, use '08:00' como padrão.
+
+- dia_semana (opcional, apenas para frequencia='semanal'): Dia da semana em português.
+  Valores aceitos: 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'
+
+- dia_mes (opcional, apenas para frequencia='mensal'): Número do dia do mês (1-31).
+
+Exemplos de chamada:
+- "Relatório financeiro toda segunda às 8h" → criar_relatorio_agendado(descricao="relatório financeiro completo", frequencia="semanal", dia_semana="segunda", horario="08:00")
+- "Saldo bancário todo dia às 7h30" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30")
+- "Estoque todo dia 1 às 9h" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00")
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._listar_relatorios_agendados,
+                name="listar_relatorios_agendados",
+                description="""Lista os relatórios automáticos agendados do usuário.
+
+Use quando o usuário perguntar sobre seus agendamentos ativos.
+Exemplos:
+- "Quais relatórios tenho agendados?"
+- "Quais os meus relatórios automáticos?"
+- "O que está agendado para mim?"
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._cancelar_relatorio_agendado,
+                name="cancelar_relatorio_agendado",
+                description="""Cancela um relatório automático agendado.
+
+Use quando o usuário quiser parar de receber um relatório automático.
+Exemplos:
+- "Cancela o relatório financeiro"
+- "Não quero mais receber o relatório de estoque"
+- "Para de me mandar relatórios automáticos"
+
+Argumentos:
+- relatorio_id (obrigatório): ID do relatório a cancelar.
+  ⚠️ Sempre liste os relatórios primeiro (listar_relatorios_agendados) para obter o ID correto.
 """
             ),
         ]

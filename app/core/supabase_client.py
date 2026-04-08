@@ -263,5 +263,134 @@ class SupabaseClient:
             return []
 
 
+    # ==========================================
+    # Relatorios Agendados Operations
+    # ==========================================
+
+    async def criar_relatorio_agendado(self, dados: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Cria um novo relatório agendado
+
+        Args:
+            dados: Dicionário com os campos do relatório agendado
+
+        Returns:
+            Registro criado ou None
+        """
+        try:
+            client = self.get_client()
+            response = client.table("relatorios_agendados").insert(dados).execute()
+            if response.data:
+                logger.info(f"Relatório agendado criado para {dados.get('telefone')}")
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao criar relatório agendado: {e}")
+            return None
+
+    async def listar_relatorios_agendados(self, telefone: str) -> List[Dict[str, Any]]:
+        """
+        Lista relatórios agendados de um usuário
+
+        Args:
+            telefone: Telefone do usuário
+
+        Returns:
+            Lista de relatórios agendados
+        """
+        try:
+            client = self.get_client()
+            response = (
+                client.table("relatorios_agendados")
+                .select("*")
+                .eq("telefone", telefone)
+                .eq("status", "ativo")
+                .order("created_at", desc=True)
+                .execute()
+            )
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error(f"Erro ao listar relatórios agendados para {telefone}: {e}")
+            return []
+
+    async def cancelar_relatorio_agendado(self, relatorio_id: str, telefone: str) -> bool:
+        """
+        Cancela (desativa) um relatório agendado
+
+        Args:
+            relatorio_id: ID do relatório
+            telefone: Telefone do usuário (segurança)
+
+        Returns:
+            True se cancelado com sucesso
+        """
+        try:
+            client = self.get_client()
+            response = (
+                client.table("relatorios_agendados")
+                .update({"status": "cancelado"})
+                .eq("id", relatorio_id)
+                .eq("telefone", telefone)
+                .execute()
+            )
+            if response.data:
+                logger.info(f"Relatório {relatorio_id} cancelado para {telefone}")
+                return True
+            logger.warning(f"Relatório {relatorio_id} não encontrado para {telefone}")
+            return False
+        except Exception as e:
+            logger.error(f"Erro ao cancelar relatório {relatorio_id}: {e}")
+            return False
+
+    async def buscar_relatorios_pendentes(self) -> List[Dict[str, Any]]:
+        """
+        Busca todos os relatórios com next_run <= agora (prontos para executar)
+
+        Returns:
+            Lista de relatórios a executar
+        """
+        try:
+            from datetime import datetime
+            import pytz
+            agora = datetime.now(pytz.utc).isoformat()
+            client = self.get_client()
+            response = (
+                client.table("relatorios_agendados")
+                .select("*")
+                .eq("status", "ativo")
+                .lte("next_run", agora)
+                .execute()
+            )
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error(f"Erro ao buscar relatórios pendentes: {e}")
+            return []
+
+    async def atualizar_next_run(self, relatorio_id: str, next_run: str, last_run: str) -> bool:
+        """
+        Atualiza next_run e last_run após executar um relatório
+
+        Args:
+            relatorio_id: ID do relatório
+            next_run: Próxima execução (ISO format)
+            last_run: Última execução (ISO format)
+
+        Returns:
+            True se atualizado com sucesso
+        """
+        try:
+            client = self.get_client()
+            response = (
+                client.table("relatorios_agendados")
+                .update({"next_run": next_run, "last_run": last_run})
+                .eq("id", relatorio_id)
+                .execute()
+            )
+            return bool(response.data)
+        except Exception as e:
+            logger.error(f"Erro ao atualizar next_run do relatório {relatorio_id}: {e}")
+            return False
+
+
 # Instância global
 supabase_client = SupabaseClient()
