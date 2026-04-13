@@ -3810,6 +3810,42 @@ IMPORTANTE:
         logger.info(f"[DESPESA VENDA] Retornando {len(despesas_list)} tipos de despesa agregados")
         return despesas_list
 
+    def _pesquisa_cotacao(self, moeda: Optional[str] = None) -> str:
+        """
+        Consulta cotação atual das moedas (dólar, euro, etc.)
+
+        Args:
+            moeda: Filtro por moeda (ex: "dolar", "euro"). Se não informado, retorna todas.
+
+        Returns:
+            Cotações atuais das moedas
+        """
+        logger.info(f"[COTACAO] Consultando cotação - moeda: {moeda}")
+
+        try:
+            result_list = sql_client.execute_function("dbo.IA_Cotacao", filters=None)
+
+            if not result_list:
+                return "Nenhuma cotação encontrada."
+
+            # Filtra por moeda se solicitado
+            if moeda:
+                moeda_lower = moeda.lower()
+                result_list = [
+                    r for r in result_list
+                    if moeda_lower in str(r.get("moeda", "")).lower()
+                    or moeda_lower in str(r.get("descricao", "")).lower()
+                ]
+                if not result_list:
+                    return f"Nenhuma cotação encontrada para '{moeda}'."
+
+            logger.info(f"[COTACAO] Retornando {len(result_list)} cotação(ões)")
+            return result_list
+
+        except Exception as e:
+            logger.error(f"[COTACAO] Erro ao consultar cotação: {e}")
+            return f"Erro ao consultar cotação: {e}"
+
     def _criar_relatorio_agendado(
         self,
         descricao: str,
@@ -4465,6 +4501,24 @@ Exemplos de uso:
 - "Quanto gastei com desembaraço em todos os contratos?" → pesquisa_despesa_venda()
 - "Quanto gastei com fumigação?" → pesquisa_despesa_venda()
 - "Quais os tipos de despesa?" → pesquisa_despesa_venda()
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._pesquisa_cotacao,
+                name="pesquisa_cotacao",
+                description="""Consulta a cotação atual das moedas (dólar, euro, etc.).
+
+Use esta ferramenta quando o usuário perguntar sobre cotação, câmbio ou taxa de moedas.
+Exemplos:
+- "Qual a cotação do dólar hoje?"
+- "Como está o euro?"
+- "Qual o câmbio do dólar?"
+- "Me avise sobre a cotação do dólar" (para relatórios agendados)
+- "Cotação das moedas"
+
+Argumentos:
+- moeda (opcional): Filtro por moeda específica (ex: "dolar", "euro").
+  Se não informado, retorna todas as cotações disponíveis.
 """
             ),
             StructuredTool.from_function(
