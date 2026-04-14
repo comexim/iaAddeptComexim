@@ -3853,6 +3853,7 @@ IMPORTANTE:
         horario: str = "08:00",
         dia_semana: Optional[str] = None,
         dia_mes: Optional[int] = None,
+        canal: str = "whatsapp",
     ) -> str:
         """
         Cria um relatório automático agendado no Supabase.
@@ -3863,6 +3864,7 @@ IMPORTANTE:
             horario: Horário de envio HH:MM
             dia_semana: Dia da semana em português (para semanal)
             dia_mes: Número do dia do mês (para mensal)
+            canal: Canal de envio — 'whatsapp', 'email' ou 'ambos'
 
         Returns:
             Mensagem de confirmação
@@ -3876,6 +3878,15 @@ IMPORTANTE:
             frequencia = frequencia.lower().strip()
             if frequencia not in ("diario", "semanal", "mensal"):
                 return "Frequência inválida. Use: 'diario', 'semanal' ou 'mensal'."
+
+            # Valida canal
+            canal = canal.lower().strip()
+            if canal not in ("whatsapp", "email", "ambos"):
+                canal = "whatsapp"
+
+            # Valida que usuário tem email se canal for email/ambos
+            if canal in ("email", "ambos") and not self.user.email:
+                return "Não encontrei seu email cadastrado. Não é possível agendar envio por email."
 
             # Valida horário
             if ":" not in horario:
@@ -3909,6 +3920,7 @@ IMPORTANTE:
                 "horario": horario,
                 "dia_semana": dia_semana_num,
                 "dia_mes": dia_mes,
+                "canal": canal,
                 "next_run": next_run.isoformat(),
                 "status": "ativo",
             }
@@ -3928,10 +3940,17 @@ IMPORTANTE:
                     "mensal": f"todo dia {dia_mes} do mês",
                 }.get(frequencia, frequencia)
 
+                canal_texto = {
+                    "whatsapp": "WhatsApp",
+                    "email": f"email ({self.user.email})",
+                    "ambos": f"WhatsApp e email ({self.user.email})",
+                }.get(canal, canal)
+
                 return (
                     f"✅ Relatório agendado com sucesso!\n"
                     f"📋 *{descricao}*\n"
                     f"🗓️ Frequência: {freq_texto} às {horario}\n"
+                    f"📤 Canal: {canal_texto}\n"
                     f"📅 Primeira entrega: {next_run.strftime('%d/%m/%Y às %H:%M')}\n\n"
                     f"Para cancelar, diga: 'cancela meus relatórios agendados'."
                 )
@@ -4549,10 +4568,18 @@ Argumentos:
 
 - dia_mes (opcional, apenas para frequencia='mensal'): Número do dia do mês (1-31).
 
+- canal (opcional): Canal de envio. Valores aceitos: 'whatsapp', 'email', 'ambos'.
+  - Se o usuário não mencionar o canal, pergunte: "Você prefere receber por WhatsApp, email ou pelos dois?"
+  - Se mencionar apenas WhatsApp → 'whatsapp'
+  - Se mencionar apenas email → 'email'
+  - Se mencionar os dois → 'ambos'
+  - Default: 'whatsapp'
+
 Exemplos de chamada:
-- "Relatório financeiro toda segunda às 8h" → criar_relatorio_agendado(descricao="relatório financeiro completo", frequencia="semanal", dia_semana="segunda", horario="08:00")
-- "Saldo bancário todo dia às 7h30" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30")
-- "Estoque todo dia 1 às 9h" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00")
+- "Relatório financeiro toda segunda às 8h" → pergunte o canal antes de criar
+- "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(..., canal="whatsapp")
+- "Saldo bancário todo dia às 7h30 por email" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
+- "Estoque todo dia 1 às 9h nos dois" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00", canal="ambos")
 """
             ),
             StructuredTool.from_function(

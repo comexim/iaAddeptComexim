@@ -73,6 +73,13 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
+    # Email SMTP
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = "comeximdeveloper@gmail.com"
+    smtp_password: str = ""
+    smtp_from_name: str = "Comexim IA"
+
     # Features
     enable_audio_transcription: bool = True
     enable_response_formatter: bool = True

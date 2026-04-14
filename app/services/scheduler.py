@@ -87,11 +87,12 @@ def calcular_next_run(
 
 
 async def _executar_relatorio(relatorio: dict) -> None:
-    """Executa um único relatório e envia via WhatsApp."""
+    """Executa um único relatório e envia pelo canal configurado (whatsapp, email ou ambos)."""
     from app.services.auth import AuthService
     from app.agents.orchestrator import AgentOrchestrator
     from app.services.whatsapp import WhatsAppService
     from app.services.formatter import response_formatter
+    from app.services.email import email_service
 
     telefone = relatorio["telefone"]
     descricao = relatorio["descricao"]
@@ -100,8 +101,9 @@ async def _executar_relatorio(relatorio: dict) -> None:
     frequencia = relatorio["frequencia"]
     dia_semana = relatorio.get("dia_semana")
     dia_mes = relatorio.get("dia_mes")
+    canal = relatorio.get("canal", "whatsapp")
 
-    logger.info(f"[SCHEDULER] Executando relatório '{descricao}' para {telefone}")
+    logger.info(f"[SCHEDULER] Executando relatório '{descricao}' para {telefone} via {canal}")
 
     try:
         # Autentica usuário
@@ -119,13 +121,25 @@ async def _executar_relatorio(relatorio: dict) -> None:
         orchestrator = AgentOrchestrator(user=user, session_id=telefone)
         resposta = await orchestrator.process_message(mensagem)
 
-        # Formata e envia via WhatsApp
-        from app.services.formatter import response_formatter
-        whatsapp = WhatsAppService()
-        partes = await response_formatter.format_response(resposta)
-        await whatsapp.send_multiple_messages(telefone, partes)
+        # Envia pelo canal configurado
+        if canal in ("whatsapp", "ambos"):
+            whatsapp = WhatsAppService()
+            partes = await response_formatter.format_response(resposta)
+            await whatsapp.send_multiple_messages(telefone, partes)
+            logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via WhatsApp para {telefone}")
 
-        logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado com sucesso para {telefone}")
+        if canal in ("email", "ambos"):
+            if user.email:
+                await email_service.send_email(
+                    to=user.email,
+                    subject=f"Relatório automático: {descricao}",
+                    body=resposta,
+                )
+                logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via email para {user.email}")
+            else:
+                logger.warning(f"[SCHEDULER] Usuário {telefone} não tem email cadastrado, pulando envio por email")
+
+        logger.info(f"[SCHEDULER] Relatório '{descricao}' concluído para {telefone}")
 
     except Exception as e:
         logger.error(f"[SCHEDULER] Erro ao executar relatório '{descricao}' para {telefone}: {e}")
