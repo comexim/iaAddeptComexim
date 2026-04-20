@@ -129,31 +129,33 @@ async def _executar_relatorio(relatorio: dict) -> None:
             logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via WhatsApp para {telefone}")
 
         if canal in ("email", "ambos"):
-            if user.email:
+            # Usa email_destino salvo no agendamento; fallback para user.email
+            email_para = relatorio.get("email_destino") or user.email
+            if email_para:
                 await email_service.send_email(
-                    to=user.email,
+                    to=email_para,
                     subject=f"Relatório automático: {descricao}",
                     body=resposta,
                 )
-                logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via email para {user.email}")
+                logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via email para {email_para}")
             else:
-                logger.warning(f"[SCHEDULER] Usuário {telefone} não tem email cadastrado, pulando envio por email")
+                logger.warning(f"[SCHEDULER] Nenhum email configurado para {telefone}, pulando envio por email")
 
         logger.info(f"[SCHEDULER] Relatório '{descricao}' concluído para {telefone}")
 
     except Exception as e:
         logger.error(f"[SCHEDULER] Erro ao executar relatório '{descricao}' para {telefone}: {e}")
-        return
 
-    # Atualiza last_run e next_run no Supabase
-    agora = datetime.now(TZ)
-    next_run = calcular_next_run(frequencia, horario, dia_semana, dia_mes, a_partir_de=agora)
-    await supabase_client.atualizar_next_run(
-        relatorio_id=relatorio_id,
-        next_run=next_run.isoformat(),
-        last_run=agora.isoformat(),
-    )
-    logger.info(f"[SCHEDULER] Próxima execução de '{descricao}': {next_run.strftime('%d/%m/%Y %H:%M')}")
+    finally:
+        # Sempre avança next_run — mesmo em caso de erro — para não travar o agendamento
+        agora = datetime.now(TZ)
+        next_run = calcular_next_run(frequencia, horario, dia_semana, dia_mes, a_partir_de=agora)
+        await supabase_client.atualizar_next_run(
+            relatorio_id=relatorio_id,
+            next_run=next_run.isoformat(),
+            last_run=agora.isoformat(),
+        )
+        logger.info(f"[SCHEDULER] Próxima execução de '{descricao}': {next_run.strftime('%d/%m/%Y %H:%M')}")
 
 
 async def verificar_e_executar_relatorios() -> None:

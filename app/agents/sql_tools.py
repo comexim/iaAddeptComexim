@@ -3854,6 +3854,7 @@ IMPORTANTE:
         dia_semana: Optional[str] = None,
         dia_mes: Optional[int] = None,
         canal: str = "whatsapp",
+        email_destino: Optional[str] = None,
     ) -> str:
         """
         Cria um relatório automático agendado no Supabase.
@@ -3884,9 +3885,13 @@ IMPORTANTE:
             if canal not in ("whatsapp", "email", "ambos"):
                 canal = "whatsapp"
 
-            # Valida que usuário tem email se canal for email/ambos
-            if canal in ("email", "ambos") and not self.user.email:
-                return "Não encontrei seu email cadastrado. Não é possível agendar envio por email."
+            # Valida/preenche email de destino se canal for email/ambos
+            if canal in ("email", "ambos"):
+                if not email_destino:
+                    # Tenta usar o email do usuário autenticado como fallback
+                    email_destino = self.user.email or None
+                if not email_destino:
+                    return "Para agendar envio por email, informe o endereço de email. Qual email devo usar para enviar os relatórios?"
 
             # Valida horário
             if ":" not in horario:
@@ -3921,6 +3926,7 @@ IMPORTANTE:
                 "dia_semana": dia_semana_num,
                 "dia_mes": dia_mes,
                 "canal": canal,
+                "email_destino": email_destino,
                 "next_run": next_run.isoformat(),
                 "status": "ativo",
             }
@@ -3942,8 +3948,8 @@ IMPORTANTE:
 
                 canal_texto = {
                     "whatsapp": "WhatsApp",
-                    "email": f"email ({self.user.email})",
-                    "ambos": f"WhatsApp e email ({self.user.email})",
+                    "email": f"email ({email_destino})",
+                    "ambos": f"WhatsApp e email ({email_destino})",
                 }.get(canal, canal)
 
                 return (
@@ -4055,6 +4061,39 @@ IMPORTANTE:
         except Exception as e:
             logger.error(f"[AGENDAMENTO] Erro ao cancelar relatório {relatorio_id}: {e}")
             return f"Erro ao cancelar agendamento: {e}"
+
+    def _pesquisa_internet(self, query: str) -> str:
+        """Pesquisa informações na internet usando DuckDuckGo."""
+        try:
+            from duckduckgo_search import DDGS
+
+            logger.info(f"[INTERNET] Pesquisando: {query}")
+
+            with DDGS() as ddgs:
+                resultados = list(ddgs.text(query, max_results=5, region="br-pt"))
+
+            if not resultados:
+                return f"Nenhum resultado encontrado para: {query}"
+
+            linhas = [f"🌐 *Resultados da internet para:* {query}\n"]
+            for i, r in enumerate(resultados, 1):
+                titulo = r.get("title", "")
+                corpo = r.get("body", "")
+                href = r.get("href", "")
+                linhas.append(f"{i}. *{titulo}*")
+                if corpo:
+                    linhas.append(f"   {corpo[:300]}{'...' if len(corpo) > 300 else ''}")
+                if href:
+                    linhas.append(f"   Fonte: {href}")
+                linhas.append("")
+
+            return "\n".join(linhas)
+
+        except ImportError:
+            return "❌ Busca na internet não disponível. Pacote duckduckgo-search não instalado."
+        except Exception as e:
+            logger.error(f"[INTERNET] Erro na pesquisa: {e}")
+            return f"Erro ao pesquisar na internet: {e}"
 
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
@@ -4575,11 +4614,16 @@ Argumentos:
   - Se mencionar os dois → 'ambos'
   - Default: 'whatsapp'
 
+- email_destino (obrigatório se canal='email' ou canal='ambos'): Email para envio.
+  - Se o usuário já informou o email na conversa → use-o
+  - Se não informou → pergunte: "Qual email devo usar para enviar os relatórios?"
+  - Exemplos: "joao@empresa.com", "maria@gmail.com"
+
 Exemplos de chamada:
 - "Relatório financeiro toda segunda às 8h" → pergunte o canal antes de criar
 - "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(..., canal="whatsapp")
-- "Saldo bancário todo dia às 7h30 por email" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
-- "Estoque todo dia 1 às 9h nos dois" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00", canal="ambos")
+- "Saldo bancário todo dia às 7h30 por email para joao@empresa.com" → criar_relatorio_agendado(..., canal="email", email_destino="joao@empresa.com")
+- "Estoque todo dia 1 às 9h no WhatsApp e email maria@gmail.com" → criar_relatorio_agendado(..., canal="ambos", email_destino="maria@gmail.com")
 """
             ),
             StructuredTool.from_function(
@@ -4608,6 +4652,31 @@ Exemplos:
 Argumentos:
 - relatorio_id (obrigatório): ID do relatório a cancelar.
   ⚠️ Sempre liste os relatórios primeiro (listar_relatorios_agendados) para obter o ID correto.
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._pesquisa_internet,
+                name="pesquisa_internet",
+                description="""Pesquisa informações na internet (notícias, preços, câmbio, cotações externas, clima, eventos).
+
+Use quando o usuário perguntar sobre informações externas que NÃO estão no banco de dados interno:
+- "Qual a cotação do dólar agora?" / "Como está o dólar hoje?"
+- "Como está o mercado de café hoje?" / "Notícias sobre café"
+- "Qual o preço do café na bolsa de NY agora?"
+- "Como está o clima em Santos?" / "Vai chover amanhã?"
+- "Quais são as notícias de hoje?"
+- "Como está a bolsa de valores?"
+- Qualquer pergunta sobre eventos ou informações atuais do mundo
+
+❌ NÃO USE para dados internos da empresa (vendas, estoque, financeiro) — use as ferramentas específicas.
+
+Argumentos:
+- query (obrigatório): O que pesquisar (em português ou inglês)
+
+Exemplos:
+- "Cotação dólar hoje" → pesquisa_internet(query="cotação dólar hoje BRL")
+- "Preço café bolsa NY" → pesquisa_internet(query="coffee price ICE futures today")
+- "Notícias café exportação Brasil" → pesquisa_internet(query="notícias café exportação Brasil")
 """
             ),
         ]
