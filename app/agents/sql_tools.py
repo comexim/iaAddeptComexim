@@ -3854,7 +3854,6 @@ IMPORTANTE:
         dia_semana: Optional[str] = None,
         dia_mes: Optional[int] = None,
         canal: str = "whatsapp",
-        email_destino: Optional[str] = None,
     ) -> str:
         """
         Cria um relatório automático agendado no Supabase.
@@ -3885,13 +3884,10 @@ IMPORTANTE:
             if canal not in ("whatsapp", "email", "ambos"):
                 canal = "whatsapp"
 
-            # Valida/preenche email de destino se canal for email/ambos
-            if canal in ("email", "ambos"):
-                if not email_destino:
-                    # Tenta usar o email do usuário autenticado como fallback
-                    email_destino = self.user.email or None
-                if not email_destino:
-                    return "Para agendar envio por email, informe o endereço de email. Qual email devo usar para enviar os relatórios?"
+            # Usa sempre o email do usuário autenticado
+            email_destino = self.user.email or None
+            if canal in ("email", "ambos") and not email_destino:
+                return "Não encontrei email cadastrado para o seu usuário. Entre em contato com o suporte."
 
             # Valida horário
             if ":" not in horario:
@@ -4613,17 +4609,13 @@ Argumentos:
   - Se mencionar apenas email → 'email'
   - Se mencionar os dois → 'ambos'
   - Default: 'whatsapp'
-
-- email_destino (obrigatório se canal='email' ou canal='ambos'): Email para envio.
-  - Se o usuário já informou o email na conversa → use-o
-  - Se não informou → pergunte: "Qual email devo usar para enviar os relatórios?"
-  - Exemplos: "joao@empresa.com", "maria@gmail.com"
+  - O email é obtido automaticamente do cadastro do usuário — não pergunte o email.
 
 Exemplos de chamada:
 - "Relatório financeiro toda segunda às 8h" → pergunte o canal antes de criar
 - "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(..., canal="whatsapp")
-- "Saldo bancário todo dia às 7h30 por email para joao@empresa.com" → criar_relatorio_agendado(..., canal="email", email_destino="joao@empresa.com")
-- "Estoque todo dia 1 às 9h no WhatsApp e email maria@gmail.com" → criar_relatorio_agendado(..., canal="ambos", email_destino="maria@gmail.com")
+- "Saldo bancário todo dia às 7h30 por email" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
+- "Estoque todo dia 1 às 9h nos dois" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00", canal="ambos")
 """
             ),
             StructuredTool.from_function(
