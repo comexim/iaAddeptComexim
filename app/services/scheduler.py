@@ -132,10 +132,27 @@ async def _executar_relatorio(relatorio: dict) -> None:
             # Usa email_destino salvo no agendamento; fallback para user.email
             email_para = relatorio.get("email_destino") or user.email
             if email_para:
+                # Tenta gerar planilha xlsx com os dados brutos da consulta
+                xlsx_bytes = None
+                xlsx_nome = "relatorio.xlsx"
+                try:
+                    from app.core.redis_client import redis_client as _redis
+                    import json
+                    raw_key = f"scheduler_result:{telefone}"
+                    raw_json = await (await _redis.get_client()).get(raw_key)
+                    if raw_json:
+                        raw_data = json.loads(raw_json)
+                        xlsx_bytes = email_service.gerar_xlsx(raw_data)
+                        xlsx_nome = f"{descricao[:40].replace(' ', '_')}.xlsx"
+                except Exception as e:
+                    logger.warning(f"[SCHEDULER] Não foi possível gerar xlsx: {e}")
+
                 await email_service.send_email(
                     to=email_para,
                     subject=f"Relatório automático: {descricao}",
                     body=resposta,
+                    xlsx_bytes=xlsx_bytes,
+                    xlsx_nome=xlsx_nome,
                 )
                 logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via email para {email_para}")
             else:

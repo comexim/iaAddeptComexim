@@ -32,6 +32,7 @@ APScheduler==3.10.4
 python-dateutil==2.9.0.post0
 pytz==2024.2
 duckduckgo-search==6.3.7
+openpyxl==3.1.5
 
 # Development
 pytest==8.3.4

@@ -46,6 +46,40 @@ class SQLTools:
             except Exception as e:
                 logger.warning(f"[CONTEXTO REDIS] Erro ao carregar contrato: {e}")
 
+    def _salvar_resultado_scheduler(self, results: list) -> None:
+        """Salva resultado bruto no Redis para uso como anexo xlsx no scheduler."""
+        if not self.session_id or not results:
+            return
+        try:
+            import asyncio
+            import json
+            from decimal import Decimal
+
+            def _serialize(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                if hasattr(obj, 'isoformat'):
+                    return obj.isoformat()
+                return str(obj)
+
+            key = f"scheduler_result:{self.session_id}"
+            payload = json.dumps(results, default=_serialize, ensure_ascii=False)
+
+            async def _salvar():
+                client = await redis_client.get_client()
+                await client.set(key, payload, ex=300)  # TTL 5 min
+
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    asyncio.ensure_future(_salvar())
+                else:
+                    loop.run_until_complete(_salvar())
+            except Exception:
+                pass
+        except Exception as e:
+            logger.debug(f"[SCHEDULER_RESULT] Erro ao salvar resultado: {e}")
+
     def _remove_accents(self, text: str) -> str:
         """Remove acentos de uma string usando normalização Unicode"""
         # Normaliza para NFD (decompõe caracteres com acentos)
@@ -2376,6 +2410,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         try:
             logger.info(f"Executando {function_name} com filtros: {filters}, client_filter: {client_filter}")
             results = sql_client.execute_function(function_name, filters)
+            self._salvar_resultado_scheduler(results)
             return self._format_results(results, function_name, client_filter, pagina=pagina)
         except Exception as e:
             import traceback
