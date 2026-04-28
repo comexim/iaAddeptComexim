@@ -40,8 +40,10 @@ class ResponseFormatter:
         Returns:
             Lista de mensagens formatadas
         """
+        # Limpa links markdown/URLs antes de qualquer processamento
+        text = self._limpar_markdown(text)
+
         if not settings.enable_response_formatter:
-            # Se formatador está desabilitado, apenas quebra por \n\n
             return self._simple_split(text)
 
         try:
@@ -67,7 +69,6 @@ class ResponseFormatter:
 
         except Exception as e:
             logger.error(f"Erro ao formatar resposta: {e}")
-            # Fallback: split simples
             return self._simple_split(text)
 
     def _limpar_markdown(self, text: str) -> str:
