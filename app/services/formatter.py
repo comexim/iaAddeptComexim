@@ -53,7 +53,7 @@ class ResponseFormatter:
             ]
 
             response = await self.llm.ainvoke(messages)
-            formatted_text = response.content
+            formatted_text = self._limpar_markdown(response.content)
 
             # Split por \n\n
             messages_list = [
@@ -69,6 +69,15 @@ class ResponseFormatter:
             logger.error(f"Erro ao formatar resposta: {e}")
             # Fallback: split simples
             return self._simple_split(text)
+
+    def _limpar_markdown(self, text: str) -> str:
+        """Remove elementos markdown que não renderizam bem no WhatsApp."""
+        import re
+        # [texto](url) → texto
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+        # URLs soltas (http://... ou https://...) → remove
+        text = re.sub(r'https?://\S+', '', text)
+        return text
 
     def _simple_split(self, text: str) -> List[str]:
         """Split simples por parágrafos"""
