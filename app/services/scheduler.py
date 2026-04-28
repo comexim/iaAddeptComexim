@@ -115,7 +115,14 @@ async def _executar_relatorio(relatorio: dict) -> None:
 
         # Monta a mensagem que a IA vai receber
         # IMPORTANTE: não usar palavras como "agendar" ou "programar" para não confundir a IA
-        mensagem = f"Gere e mostre agora o seguinte relatório completo: {descricao}. Não agende nada, apenas execute e retorne os dados."
+        agora_fmt = datetime.now(TZ).strftime("%d/%m/%Y")
+        mensagem = (
+            f"Hoje é {agora_fmt}. "
+            f"Gere e mostre agora o seguinte relatório completo: {descricao}. "
+            f"Execute diretamente sem fazer perguntas — use a data de hoje como referência "
+            f"para qualquer período relativo (hoje, esta semana, este mês, etc.). "
+            f"Não agende nada, apenas execute e retorne os dados."
+        )
 
         # Invoca o agente
         orchestrator = AgentOrchestrator(user=user, session_id=telefone)
