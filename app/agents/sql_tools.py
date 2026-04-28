@@ -4094,14 +4094,19 @@ IMPORTANTE:
             return f"Erro ao cancelar agendamento: {e}"
 
     def _pesquisa_internet(self, query: str) -> str:
-        """Pesquisa informações na internet usando DuckDuckGo."""
+        """Pesquisa informações na internet usando Tavily."""
         try:
-            from duckduckgo_search import DDGS
+            from tavily import TavilyClient
+            from app.core.config import settings
+
+            if not settings.tavily_api_key:
+                return "❌ Busca na internet não configurada. Chave Tavily ausente."
 
             logger.info(f"[INTERNET] Pesquisando: {query}")
 
-            with DDGS() as ddgs:
-                resultados = list(ddgs.text(query, max_results=5, region="br-pt"))
+            client = TavilyClient(api_key=settings.tavily_api_key)
+            resposta = client.search(query, max_results=5, search_depth="basic")
+            resultados = resposta.get("results", [])
 
             if not resultados:
                 return f"Nenhum resultado encontrado para: {query}"
@@ -4109,19 +4114,19 @@ IMPORTANTE:
             linhas = [f"🌐 *Resultados da internet para:* {query}\n"]
             for i, r in enumerate(resultados, 1):
                 titulo = r.get("title", "")
-                corpo = r.get("body", "")
-                href = r.get("href", "")
+                conteudo = r.get("content", "")
+                url = r.get("url", "")
                 linhas.append(f"{i}. *{titulo}*")
-                if corpo:
-                    linhas.append(f"   {corpo[:300]}{'...' if len(corpo) > 300 else ''}")
-                if href:
-                    linhas.append(f"   Fonte: {href}")
+                if conteudo:
+                    linhas.append(f"   {conteudo[:350]}{'...' if len(conteudo) > 350 else ''}")
+                if url:
+                    linhas.append(f"   Fonte: {url}")
                 linhas.append("")
 
             return "\n".join(linhas)
 
         except ImportError:
-            return "❌ Busca na internet não disponível. Pacote duckduckgo-search não instalado."
+            return "❌ Busca na internet não disponível. Pacote tavily-python não instalado."
         except Exception as e:
             logger.error(f"[INTERNET] Erro na pesquisa: {e}")
             return f"Erro ao pesquisar na internet: {e}"

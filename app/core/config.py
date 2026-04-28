@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
+    # Web Search
+    tavily_api_key: str = ""
+
     # Email SMTP
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
