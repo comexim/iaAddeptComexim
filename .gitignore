@@ -53,8 +53,39 @@ Thumbs.db
 temp/
 *.tmp
 
-# Scripts de teste/debug (não versionar)
+# Scripts de teste/debug pessoais (não versionar)
 verify_*.py
 debug_*.py
 test_critical_queries.py
 PERGUNTAS_TESTE_CLIENTE.txt
+diagnostico_rapido.py
+test_sql_connection.py
+test_redis_quick.py
+
+# Ferramentas de teste locais
+testar_mensagem.py
+exemplos_teste.py
+test_funcionalidades_completo.py
+esconder_mudancas.bat
+
+# Documentação local
+COMO_TESTAR.md
+COMO_TESTAR_DIRETO.md
+IGNORAR_MUDANCAS.md
+RELATORIO_TESTES.md
+
+# Endpoints de teste
+app/api/test_endpoint.py
+
+# Configurações locais (cada dev tem as suas)
+.env.local
+config_local.py
+
+# Scripts batch pessoais
+start.bat
+testar.bat
+
+# Resultados de testes
+*_result.txt
+*_output.txt
+*_response.txt
