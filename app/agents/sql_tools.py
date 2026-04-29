@@ -29,22 +29,22 @@ class SQLTools:
 
         # Carrega último contrato do Redis (se disponível)
         if self.session_id:
-            import asyncio
             try:
-                # Cria event loop se não existir (para chamadas síncronas)
+                # Tenta carregar do Redis de forma síncrona
+                import asyncio
                 try:
-                    loop = asyncio.get_event_loop()
+                    # Se já existe um loop rodando, não tenta criar outro
+                    loop = asyncio.get_running_loop()
+                    # Não podemos usar run_until_complete em loop já rodando
+                    logger.info(f"[CONTEXTO REDIS] Loop já rodando, pulando carregamento inicial")
                 except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-
-                # Carrega contrato do Redis
-                contrato_redis = loop.run_until_complete(self._carregar_contrato_redis())
-                if contrato_redis:
-                    self.ultimo_contrato_consultado = contrato_redis
-                    logger.info(f"[CONTEXTO REDIS] Contrato carregado: {contrato_redis}")
+                    # Não há loop rodando, podemos criar um
+                    contrato_redis = asyncio.run(self._carregar_contrato_redis())
+                    if contrato_redis:
+                        self.ultimo_contrato_consultado = contrato_redis
+                        logger.info(f"[CONTEXTO REDIS] Contrato carregado: {contrato_redis}")
             except Exception as e:
-                logger.warning(f"[CONTEXTO REDIS] Erro ao carregar contrato: {e}")
+                logger.debug(f"[CONTEXTO REDIS] Não foi possível carregar contrato: {e}")
 
     def _salvar_resultado_scheduler(self, results: list) -> None:
         """Salva resultado bruto no Redis para uso como anexo xlsx no scheduler."""
@@ -2157,6 +2157,9 @@ IMPORTANTE: Orçamento NÃO tem contratos, sacas, clientes ou vendas. É uma pre
 Para calcular totais, some os campos orcado/realizado/saldo de todos os registros.""",
 
             "IA_Vendas": """
+⚠️ ESTA TOOL É APENAS PARA CONSULTAR VENDAS EXISTENTES! ⚠️
+Para CRIAR novos contratos, use a tool: criar_contrato_venda_exportacao
+
 COLUNAS DISPONÍVEIS EM VENDAS (34 campos):
 
 IDENTIFICAÇÃO E CONTROLE:
@@ -4133,11 +4136,16 @@ IMPORTANTE:
 
     def get_all_tools(self) -> list:
         """Retorna lista de todas as tools"""
-        return [
+        tools_list = [
             StructuredTool.from_function(
                 func=self._pesquisa_vendas,
                 name="pesquisa_vendas",
-                description="""Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
+                description="""⚠️ APENAS PARA CONSULTAR VENDAS EXISTENTES - NÃO CRIA CONTRATOS! ⚠️
+
+Para CRIAR/REGISTRAR novos contratos, use: criar_contrato_venda_exportacao
+Para CONSULTAR dados de vendas existentes, use: pesquisa_vendas (esta ferramenta)
+
+Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 
 🔄 REGRA DE CONTEXTO DE CONTRATO (NOVA!) 🔄
 Se o usuário já mencionou um número de contrato anteriormente (ex: "228/25", "031/25") e agora faz perguntas de seguimento sem mencionar o contrato novamente (ex: "Qual o total de sacas?", "Qual o vendedor?", "Preciso dos dados completos"), você DEVE entender que ele está se referindo ao mesmo contrato.
@@ -4712,3 +4720,14 @@ Exemplos:
 """
             ),
         ]
+        
+        # Adiciona tool de criação de contratos ADA
+        tools_list.append(self.get_ada_tool())
+        
+        return tools_list
+    
+    def get_ada_tool(self):
+        """Retorna tool de criação de contratos ADA (session-aware)"""
+        from app.agents.ada_tools import create_ada_tools
+        ada = create_ada_tools(session_id=self.session_id or "default")
+        return ada.get_tool()
