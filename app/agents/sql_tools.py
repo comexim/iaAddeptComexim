@@ -4096,6 +4096,39 @@ IMPORTANTE:
             logger.error(f"[AGENDAMENTO] Erro ao cancelar relatório {relatorio_id}: {e}")
             return f"Erro ao cancelar agendamento: {e}"
 
+    def _cancelar_todos_relatorios_agendados(self) -> str:
+        """Cancela todos os relatórios agendados ativos do usuário."""
+        import asyncio
+        from app.core.supabase_client import supabase_client
+
+        try:
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            relatorios = loop.run_until_complete(
+                supabase_client.listar_relatorios_agendados(self.user.telefone)
+            )
+
+            if not relatorios:
+                return "Você não tem relatórios agendados ativos."
+
+            cancelados = 0
+            for r in relatorios:
+                sucesso = loop.run_until_complete(
+                    supabase_client.cancelar_relatorio_agendado(r["id"], self.user.telefone)
+                )
+                if sucesso:
+                    cancelados += 1
+
+            return f"✅ {cancelados} relatório(s) cancelado(s) com sucesso. Você não receberá mais envios automáticos."
+
+        except Exception as e:
+            logger.error(f"[AGENDAMENTO] Erro ao cancelar todos os relatórios: {e}")
+            return f"Erro ao cancelar agendamentos: {e}"
+
     def _pesquisa_internet(self, query: str) -> str:
         """Pesquisa informações na internet usando Tavily."""
         try:
@@ -4681,17 +4714,33 @@ Exemplos:
             StructuredTool.from_function(
                 func=self._cancelar_relatorio_agendado,
                 name="cancelar_relatorio_agendado",
-                description="""Cancela um relatório automático agendado.
+                description="""Cancela UM relatório automático agendado específico.
 
-Use quando o usuário quiser parar de receber um relatório automático.
+Use quando o usuário quiser cancelar um relatório específico (não todos).
+⚠️ Sempre liste os relatórios primeiro (listar_relatorios_agendados) para obter o ID UUID correto.
+⚠️ NÃO use os números 1, 2, 3 da listagem — use o ID UUID completo.
+
 Exemplos:
-- "Cancela o relatório financeiro"
-- "Não quero mais receber o relatório de estoque"
-- "Para de me mandar relatórios automáticos"
+- "Cancela o relatório financeiro" → liste primeiro, pegue o ID, cancele
+- "Quero cancelar o relatório de estoque" → liste primeiro, pegue o ID, cancele
 
 Argumentos:
-- relatorio_id (obrigatório): ID do relatório a cancelar.
-  ⚠️ Sempre liste os relatórios primeiro (listar_relatorios_agendados) para obter o ID correto.
+- relatorio_id (obrigatório): ID UUID do relatório (ex: "a1b2c3d4-...").
+"""
+            ),
+            StructuredTool.from_function(
+                func=self._cancelar_todos_relatorios_agendados,
+                name="cancelar_todos_relatorios_agendados",
+                description="""Cancela TODOS os relatórios automáticos agendados do usuário de uma vez.
+
+Use quando o usuário quiser cancelar todos os agendamentos.
+Exemplos:
+- "Cancela todos os relatórios"
+- "Remove todos os meus agendamentos"
+- "Não quero mais receber nenhum relatório automático"
+- "Para todos os envios automáticos"
+
+Não requer argumentos.
 """
             ),
             StructuredTool.from_function(
