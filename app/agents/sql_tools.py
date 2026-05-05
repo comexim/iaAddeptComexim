@@ -46,6 +46,21 @@ class SQLTools:
             except Exception as e:
                 logger.debug(f"[CONTEXTO REDIS] Não foi possível carregar contrato: {e}")
 
+    def _run_coroutine(self, coro):
+        """Executa coroutine de forma segura independente do estado do event loop."""
+        import asyncio
+        import concurrent.futures
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    future = pool.submit(asyncio.run, coro)
+                    return future.result(timeout=30)
+            else:
+                return loop.run_until_complete(coro)
+        except RuntimeError:
+            return asyncio.run(coro)
+
     def _salvar_resultado_scheduler(self, results: list) -> None:
         """Salva resultado bruto no Redis para uso como anexo xlsx no scheduler."""
         if not self.session_id or not results:
@@ -2448,15 +2463,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
                 # Salva no Redis para persistir entre chamadas
                 if self.session_id:
-                    import asyncio
                     try:
-                        loop = asyncio.get_event_loop()
-                    except RuntimeError:
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-
-                    try:
-                        loop.run_until_complete(self._salvar_contrato_redis(contrato_na_query))
+                        self._run_coroutine(self._salvar_contrato_redis(contrato_na_query))
                     except Exception as e:
                         logger.warning(f"[CONTEXTO REDIS] Erro ao salvar contrato: {e}")
             else:
@@ -3907,7 +3915,6 @@ IMPORTANTE:
         Returns:
             Mensagem de confirmação
         """
-        import asyncio
         from app.core.supabase_client import supabase_client
         from app.services.scheduler import calcular_next_run, DIAS_SEMANA
 
@@ -3965,13 +3972,7 @@ IMPORTANTE:
                 "status": "ativo",
             }
 
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            resultado = loop.run_until_complete(supabase_client.criar_relatorio_agendado(dados))
+            resultado = self._run_coroutine(supabase_client.criar_relatorio_agendado(dados))
 
             if resultado:
                 freq_texto = {
@@ -4007,17 +4008,10 @@ IMPORTANTE:
         Returns:
             Lista formatada dos relatórios agendados
         """
-        import asyncio
         from app.core.supabase_client import supabase_client
 
         try:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            relatorios = loop.run_until_complete(
+            relatorios = self._run_coroutine(
                 supabase_client.listar_relatorios_agendados(self.user.telefone)
             )
 
@@ -4074,17 +4068,10 @@ IMPORTANTE:
         Returns:
             Mensagem de confirmação
         """
-        import asyncio
         from app.core.supabase_client import supabase_client
 
         try:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            sucesso = loop.run_until_complete(
+            sucesso = self._run_coroutine(
                 supabase_client.cancelar_relatorio_agendado(relatorio_id, self.user.telefone)
             )
 
@@ -4098,17 +4085,10 @@ IMPORTANTE:
 
     def _cancelar_todos_relatorios_agendados(self) -> str:
         """Cancela todos os relatórios agendados ativos do usuário."""
-        import asyncio
         from app.core.supabase_client import supabase_client
 
         try:
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            relatorios = loop.run_until_complete(
+            relatorios = self._run_coroutine(
                 supabase_client.listar_relatorios_agendados(self.user.telefone)
             )
 
@@ -4117,7 +4097,7 @@ IMPORTANTE:
 
             cancelados = 0
             for r in relatorios:
-                sucesso = loop.run_until_complete(
+                sucesso = self._run_coroutine(
                     supabase_client.cancelar_relatorio_agendado(r["id"], self.user.telefone)
                 )
                 if sucesso:
