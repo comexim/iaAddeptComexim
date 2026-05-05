@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     # Web Search
     tavily_api_key: str = ""
 
+    # ADA API (criação de contratos - Lucas)
+    ada_api_url: str = ""
+    ada_username: str = ""
+    ada_password: str = ""
+
     # Email SMTP
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
