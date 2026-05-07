@@ -33,6 +33,7 @@ python-dateutil==2.9.0.post0
 pytz==2024.2
 tavily-python==0.5.0
 openpyxl==3.1.5
+rapidfuzz==3.10.1
 
 # Development
 pytest==8.3.4
