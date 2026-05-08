@@ -66,7 +66,6 @@ class SQLTools:
         if not self.session_id or not results:
             return
         try:
-            import asyncio
             import json
             from decimal import Decimal
 
@@ -85,11 +84,7 @@ class SQLTools:
                 await client.set(key, payload, ex=300)  # TTL 5 min
 
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    asyncio.ensure_future(_salvar())
-                else:
-                    loop.run_until_complete(_salvar())
+                self._run_coroutine(_salvar())
             except Exception:
                 pass
         except Exception as e:
