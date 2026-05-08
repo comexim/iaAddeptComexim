@@ -2898,7 +2898,6 @@ IMPORTANTE:
         # Executa query
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
-            self._salvar_resultado_scheduler(result_list)
 
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
@@ -2951,6 +2950,8 @@ IMPORTANTE:
             if len(result_dedup) < len(result_list):
                 logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
                 result_list = result_dedup
+
+            self._salvar_resultado_scheduler(result_list)
 
             # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
             if len(result_list) <= 50:
