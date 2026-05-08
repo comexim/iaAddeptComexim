@@ -45,7 +45,7 @@ class AuthService:
             return UserPermissions(
                 telefone="35920000589",
                 nome="Cliente Comexim",
-                email="cliente@comexim.com.br",
+                email="lucas.oliveira@comexim.com.br",
                 direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
             )
 
