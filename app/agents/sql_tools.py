@@ -2698,6 +2698,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         # Executa query
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
                 return "Nenhuma conta paga encontrada para o período especificado."
@@ -2897,6 +2898,7 @@ IMPORTANTE:
         # Executa query
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            self._salvar_resultado_scheduler(result_list)
 
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
@@ -3118,6 +3120,7 @@ IMPORTANTE:
         # Executa query
         try:
             result_list = sql_client.execute_function("dbo.IA_SaldoBancario", filters=None)
+            self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
                 return "Nenhum saldo bancário encontrado."
@@ -3542,6 +3545,7 @@ IMPORTANTE:
         # Executa query
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            self._salvar_resultado_scheduler(result_list)
 
             # Aplica filtro manual de data_fim se necessário
             # IMPORTANTE: Se data_inicio == data_fim (mesmo dia), filtra para retornar APENAS aquele dia
@@ -3778,6 +3782,7 @@ IMPORTANTE:
 
         # Busca todas as despesas (sem filtro de contrato)
         result_list = sql_client.execute_function("dbo.IA_DespesaVenda", filters=None)
+        self._salvar_resultado_scheduler(result_list)
 
         if not result_list:
             return "Nenhuma despesa de venda encontrada."
@@ -3865,6 +3870,7 @@ IMPORTANTE:
 
         try:
             result_list = sql_client.execute_function("dbo.IA_Cotacao", filters=None)
+            self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
                 return "Nenhuma cotação encontrada."
