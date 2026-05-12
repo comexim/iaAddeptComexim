@@ -51,7 +51,7 @@ def calcular_next_run(
     agora = a_partir_de or datetime.now(TZ)
     hora, minuto = map(int, horario.split(":"))
 
-    if frequencia == "diario":
+    if frequencia in ("diario", "unico"):
         candidato = agora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
         if candidato <= agora:
             candidato += timedelta(days=1)
@@ -171,15 +171,20 @@ async def _executar_relatorio(relatorio: dict) -> None:
         logger.error(f"[SCHEDULER] Erro ao executar relatório '{descricao}' para {telefone}: {e}")
 
     finally:
-        # Sempre avança next_run — mesmo em caso de erro — para não travar o agendamento
         agora = datetime.now(TZ)
-        next_run = calcular_next_run(frequencia, horario, dia_semana, dia_mes, a_partir_de=agora)
-        await supabase_client.atualizar_next_run(
-            relatorio_id=relatorio_id,
-            next_run=next_run.isoformat(),
-            last_run=agora.isoformat(),
-        )
-        logger.info(f"[SCHEDULER] Próxima execução de '{descricao}': {next_run.strftime('%d/%m/%Y %H:%M')}")
+        if frequencia == "unico":
+            # Envio único: cancela após executar
+            await supabase_client.cancelar_relatorio_agendado(relatorio_id, telefone)
+            logger.info(f"[SCHEDULER] Relatório único '{descricao}' cancelado após execução")
+        else:
+            # Sempre avança next_run — mesmo em caso de erro — para não travar o agendamento
+            next_run = calcular_next_run(frequencia, horario, dia_semana, dia_mes, a_partir_de=agora)
+            await supabase_client.atualizar_next_run(
+                relatorio_id=relatorio_id,
+                next_run=next_run.isoformat(),
+                last_run=agora.isoformat(),
+            )
+            logger.info(f"[SCHEDULER] Próxima execução de '{descricao}': {next_run.strftime('%d/%m/%Y %H:%M')}")
 
 
 async def verificar_e_executar_relatorios() -> None:

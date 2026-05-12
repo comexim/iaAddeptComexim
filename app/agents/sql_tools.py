@@ -3923,8 +3923,8 @@ IMPORTANTE:
         try:
             # Valida frequência
             frequencia = frequencia.lower().strip()
-            if frequencia not in ("diario", "semanal", "mensal"):
-                return "Frequência inválida. Use: 'diario', 'semanal' ou 'mensal'."
+            if frequencia not in ("diario", "semanal", "mensal", "unico"):
+                return "Frequência inválida. Use: 'diario', 'semanal', 'mensal' ou 'unico'."
 
             # Valida canal
             canal = canal.lower().strip()
@@ -3952,6 +3952,11 @@ IMPORTANTE:
 
             if frequencia == "mensal" and not dia_mes:
                 return "Para relatórios mensais, informe o dia do mês (ex: 1, 15, 30)."
+
+            # Para frequência única, não precisa de dia_semana nem dia_mes
+            if frequencia == "unico":
+                dia_semana_num = None
+                dia_mes = None
 
             # Calcula next_run
             next_run = calcular_next_run(
@@ -3981,6 +3986,7 @@ IMPORTANTE:
                     "diario": "todos os dias",
                     "semanal": f"toda {dia_semana}",
                     "mensal": f"todo dia {dia_mes} do mês",
+                    "unico": "uma única vez",
                 }.get(frequencia, frequencia)
 
                 canal_texto = {
@@ -4641,22 +4647,27 @@ Argumentos:
             StructuredTool.from_function(
                 func=self._criar_relatorio_agendado,
                 name="criar_relatorio_agendado",
-                description="""Cria um relatório automático agendado que será enviado periodicamente via WhatsApp.
+                description="""Cria um relatório agendado para ser enviado via WhatsApp ou email.
 
-Use esta ferramenta quando o usuário pedir para receber um relatório de forma recorrente.
+Use esta ferramenta quando o usuário pedir para receber um relatório — tanto uma única vez em horário específico quanto de forma recorrente.
+
 Exemplos de intenção:
-- "Gere um relatório financeiro para mim toda segunda"
-- "Quero receber o saldo bancário toda sexta às 9h"
-- "Me manda o estoque todo dia às 8h"
-- "Relatório de vendas todo dia 1 do mês"
-- "Quero receber contas a pagar toda segunda-feira de manhã"
+- "Me manda um email às 11:40 com as cotações" → unico, horario="11:40", canal="email"
+- "Me encaminha por email às 10:50 as informações do contrato" → unico, horario="10:50", canal="email"
+- "Quero receber o saldo bancário toda sexta às 9h" → semanal
+- "Me manda o estoque todo dia às 8h" → diario
+- "Relatório de vendas todo dia 1 do mês" → mensal
 
 Argumentos:
 - descricao (obrigatório): Descrição clara do que o relatório deve conter.
-  Exemplos: "relatório financeiro completo", "saldo bancário", "estoque atual", "contas a pagar da semana"
+  Exemplos: "cotações do dia", "informações do contrato 402/25R", "saldo bancário", "contas a pagar"
   ⚠️ A descrição será usada como instrução para gerar o relatório. Seja preciso.
 
-- frequencia (obrigatório): 'diario', 'semanal' ou 'mensal'
+- frequencia (obrigatório): 'unico', 'diario', 'semanal' ou 'mensal'
+  - 'unico': envia uma única vez no horário informado e cancela automaticamente
+  - 'diario': envia todos os dias no horário informado
+  - 'semanal': envia uma vez por semana (requer dia_semana)
+  - 'mensal': envia uma vez por mês (requer dia_mes)
 
 - horario (obrigatório): Horário de envio no formato HH:MM (24h).
   Se o usuário não informar, use '08:00' como padrão.
@@ -4667,17 +4678,17 @@ Argumentos:
 - dia_mes (opcional, apenas para frequencia='mensal'): Número do dia do mês (1-31).
 
 - canal (opcional): Canal de envio. Valores aceitos: 'whatsapp', 'email', 'ambos'.
-  - Se o usuário não mencionar o canal, pergunte: "Você prefere receber por WhatsApp, email ou pelos dois?"
-  - Se mencionar apenas WhatsApp → 'whatsapp'
-  - Se mencionar apenas email → 'email'
+  - Se o usuário mencionar email → 'email'
+  - Se o usuário mencionar WhatsApp → 'whatsapp'
   - Se mencionar os dois → 'ambos'
+  - Se não mencionar canal e for recorrente, pergunte antes de criar
   - Default: 'whatsapp'
   - O email é obtido automaticamente do cadastro do usuário — não pergunte o email.
 
 Exemplos de chamada:
-- "Relatório financeiro toda segunda às 8h" → pergunte o canal antes de criar
-- "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(..., canal="whatsapp")
+- "Me manda por email às 11:40 as cotações" → criar_relatorio_agendado(descricao="cotações do dia", frequencia="unico", horario="11:40", canal="email")
 - "Saldo bancário todo dia às 7h30 por email" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
+- "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(descricao="relatório financeiro completo", frequencia="semanal", dia_semana="segunda", horario="08:00", canal="whatsapp")
 - "Estoque todo dia 1 às 9h nos dois" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00", canal="ambos")
 """
             ),
