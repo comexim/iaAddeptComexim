@@ -3390,16 +3390,6 @@ IMPORTANTE:
 
         return self._validate_and_execute(function_name, filters)
 
-    def _pesquisa_cotacao(self) -> str:
-        """
-        Consulta cotação da bolsa.
-        NÃO requer filtros de data (retorna dados atuais).
-
-        Returns:
-            Dados de cotação da bolsa
-        """
-        return self._validate_and_execute("IA_Cotacao")
-
     def _pesquisa_longshort(self) -> str:
         """
         Consulta posição do Long/Short por filial.
@@ -3857,37 +3847,68 @@ IMPORTANTE:
         logger.info(f"[DESPESA VENDA] Retornando {len(despesas_list)} tipos de despesa agregados")
         return despesas_list
 
-    def _pesquisa_cotacao(self, moeda: Optional[str] = None) -> str:
+    def _pesquisa_cotacao(
+        self,
+        data: Optional[str] = None,
+        tipo: Optional[str] = None,
+        ativo: Optional[str] = None,
+    ) -> str:
         """
-        Consulta cotação atual das moedas (dólar, euro, etc.)
+        Consulta cotação via IA_Cotacao_Par.
 
         Args:
-            moeda: Filtro por moeda (ex: "dolar", "euro"). Se não informado, retorna todas.
+            data: Data no formato YYYYMMDD ou qualquer formato legível. Padrão: hoje.
+            tipo: Filtro pelo tipo (ex: "Dolar", "Euro", "Café"). Opcional.
+            ativo: Filtro pelo ativo/instrumento (ex: "DOLM26", "KCK6"). Opcional.
 
         Returns:
-            Cotações atuais das moedas
+            Lista de cotações ou mensagem de erro.
         """
-        logger.info(f"[COTACAO] Consultando cotação - moeda: {moeda}")
+        from datetime import date as _date
+
+        # Resolve data
+        if data:
+            # Tenta converter de formatos comuns (DD/MM/YYYY, YYYY-MM-DD, etc.)
+            data_fmt = None
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%Y%m%d", "%d-%m-%Y"):
+                try:
+                    from datetime import datetime as _dt
+                    data_fmt = _dt.strptime(data.strip(), fmt).strftime("%Y%m%d")
+                    break
+                except ValueError:
+                    continue
+            if not data_fmt:
+                data_fmt = data.strip()  # Passa como veio, assume YYYYMMDD
+        else:
+            data_fmt = _date.today().strftime("%Y%m%d")
+
+        logger.info(f"[COTACAO] Consultando IA_Cotacao_Par('{data_fmt}') tipo={tipo} ativo={ativo}")
 
         try:
-            result_list = sql_client.execute_function("dbo.IA_Cotacao", filters=None)
+            result_list = sql_client.execute_function(
+                "dbo.IA_Cotacao_Par",
+                filters={"data": data_fmt},
+            )
             self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
-                return "Nenhuma cotação encontrada."
+                return f"Nenhuma cotação encontrada para a data {data_fmt}. Deseja que eu busque na internet?"
 
-            # Filtra por moeda se solicitado
-            if moeda:
-                moeda_lower = moeda.lower()
-                result_list = [
-                    r for r in result_list
-                    if moeda_lower in str(r.get("moeda", "")).lower()
-                    or moeda_lower in str(r.get("descricao", "")).lower()
-                ]
-                if not result_list:
-                    return f"Nenhuma cotação encontrada para '{moeda}'."
+            # Filtra por tipo
+            if tipo:
+                tipo_lower = tipo.lower()
+                filtrado = [r for r in result_list if tipo_lower in str(r.get("tipo", "")).lower()]
+                if filtrado:
+                    result_list = filtrado
 
-            logger.info(f"[COTACAO] Retornando {len(result_list)} cotação(ões)")
+            # Filtra por ativo
+            if ativo:
+                ativo_upper = ativo.upper()
+                filtrado = [r for r in result_list if ativo_upper in str(r.get("ativo", "")).upper()]
+                if filtrado:
+                    result_list = filtrado
+
+            logger.info(f"[COTACAO] Retornando {len(result_list)} registro(s)")
             return result_list
 
         except Exception as e:
@@ -4536,25 +4557,6 @@ Exemplos:
 """
             ),
             StructuredTool.from_function(
-                func=self._pesquisa_cotacao,
-                name="pesquisa_cotacao",
-                description="""Consulta COTAÇÕES DE PREÇO do café na bolsa (BM&F, ICE, NY, London).
-
-⚠️ ATENÇÃO - USE para perguntas sobre PREÇOS E COTAÇÕES de mercado:
-- "Qual a cotação do café?"
-- "Quanto está o café em NY/London?"
-- "Quantas cotações estão disponíveis/cadastradas?"
-- "Qual o preço do café na bolsa?"
-- "Cotação atual do café arábica/robusta"
-- "Preço futuro do café"
-
-❌ NÃO confundir com:
-- Estoque físico de sacas → use pesquisa_estoque
-- Saldo em dólar ou euro nos bancos → use pesquisa_saldo_bancario
-
-NÃO requer argumentos."""
-            ),
-            StructuredTool.from_function(
                 func=self._pesquisa_longshort,
                 name="pesquisa_longshort",
                 description="""Consulta posição do Long/Short (LS) por filial.
@@ -4629,19 +4631,27 @@ Exemplos de uso:
             StructuredTool.from_function(
                 func=self._pesquisa_cotacao,
                 name="pesquisa_cotacao",
-                description="""Consulta a cotação atual das moedas (dólar, euro, etc.).
+                description="""Consulta cotações de moedas, câmbio, café, bolsa e outros ativos via banco de dados interno.
 
-Use esta ferramenta quando o usuário perguntar sobre cotação, câmbio ou taxa de moedas.
-Exemplos:
-- "Qual a cotação do dólar hoje?"
-- "Como está o euro?"
-- "Qual o câmbio do dólar?"
-- "Me avise sobre a cotação do dólar" (para relatórios agendados)
-- "Cotação das moedas"
+Use SEMPRE esta ferramenta PRIMEIRO quando o usuário perguntar sobre dólar, euro, café, bolsa, câmbio, ativo futuro ou qualquer cotação.
+Só use pesquisa_internet se esta ferramenta não retornar resultado.
+
+Exemplos de perguntas que devem usar esta ferramenta:
+- "Qual a cotação do dólar hoje?" → tipo="Dolar", retorne o campo COTACAO
+- "Ajuste dólar futuro DOLM26 em 15/05/2026" → tipo="Dolar", ativo="DOLM26", data="15/05/2026", retorne o campo AJUSTE
+- "Abertura café KCK6 em 15/05/2026" → tipo="Café", ativo="KCK6", data="15/05/2026", retorne o campo ABERTURA
+- "Qual o fechamento do EURO hoje?" → tipo="Euro", retorne o campo FECHAMENTO
+- "Situação do dólar comercial em 15/05/2026" → tipo="Dólar Comercial", data="15/05/2026", retorne o campo SITUACAO
+- "Como está o euro?" → tipo="Euro"
+- "Cotação das moedas" → sem filtros, retorna tudo
+
+Campos disponíveis no retorno: COTACAO, AJUSTE, ABERTURA, FECHAMENTO, SITUACAO, tipo, ativo.
+Mostre apenas o(s) campo(s) relevante(s) para a pergunta do usuário.
 
 Argumentos:
-- moeda (opcional): Filtro por moeda específica (ex: "dolar", "euro").
-  Se não informado, retorna todas as cotações disponíveis.
+- data (opcional): Data desejada em qualquer formato (ex: "hoje", "15/05/2026", "20260515"). Padrão: hoje.
+- tipo (opcional): Tipo do ativo (ex: "Dolar", "Euro", "Café", "Dólar Comercial").
+- ativo (opcional): Código do instrumento específico (ex: "DOLM26", "KCK6", "DOLN26").
 """
             ),
             StructuredTool.from_function(
@@ -4739,16 +4749,16 @@ Não requer argumentos.
             StructuredTool.from_function(
                 func=self._pesquisa_internet,
                 name="pesquisa_internet",
-                description="""Pesquisa informações na internet (notícias, preços, câmbio, cotações externas, clima, eventos).
+                description="""Pesquisa informações na internet (notícias, clima, eventos, informações gerais).
 
-Use quando o usuário perguntar sobre informações externas que NÃO estão no banco de dados interno:
-- "Qual a cotação do dólar agora?" / "Como está o dólar hoje?"
-- "Como está o mercado de café hoje?" / "Notícias sobre café"
-- "Qual o preço do café na bolsa de NY agora?"
+⚠️ Para cotações de dólar, euro, café, bolsa e ativos futuros: use PRIMEIRO pesquisa_cotacao.
+Só use esta ferramenta para cotações se pesquisa_cotacao não retornar resultado.
+
+Use para:
 - "Como está o clima em Santos?" / "Vai chover amanhã?"
-- "Quais são as notícias de hoje?"
-- "Como está a bolsa de valores?"
-- Qualquer pergunta sobre eventos ou informações atuais do mundo
+- "Quais são as notícias de hoje sobre café?"
+- "Notícias sobre exportação de café no Brasil"
+- Qualquer pergunta sobre eventos ou informações gerais do mundo
 
 ❌ NÃO USE para dados internos da empresa (vendas, estoque, financeiro) — use as ferramentas específicas.
 
@@ -4756,9 +4766,8 @@ Argumentos:
 - query (obrigatório): O que pesquisar (em português ou inglês)
 
 Exemplos:
-- "Cotação dólar hoje" → pesquisa_internet(query="cotação dólar hoje BRL")
-- "Preço café bolsa NY" → pesquisa_internet(query="coffee price ICE futures today")
 - "Notícias café exportação Brasil" → pesquisa_internet(query="notícias café exportação Brasil")
+- "Clima em Santos amanhã" → pesquisa_internet(query="previsão do tempo Santos SP amanhã")
 """
             ),
         ]

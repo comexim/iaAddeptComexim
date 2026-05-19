@@ -62,7 +62,8 @@ class SQLServerClient:
             "IA_ContasAReceberPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros
             "IA_Orcamento": [],  # Orçamento NÃO aceita parâmetros, ano/mes vão no WHERE
             "IA_OrcamentoPar": ["data_inicio", "data_fim"],  # Nova versão com datas como parâmetros (formato YYYYMM)
-            "IA_Cotacao": [],  # Cotação NÃO aceita parâmetros
+            "IA_Cotacao": [],  # Legado — sem parâmetros
+            "IA_Cotacao_Par": ["data"],  # Nova versão com data como parâmetro (YYYYMMDD)
             "IA_DespesaVenda": []  # Despesa Venda NÃO aceita parâmetros, contrato vai no WHERE
             # Nota: usp_LS_FILIAIS é uma STORED PROCEDURE (não function), usa execute_procedure()
         }
