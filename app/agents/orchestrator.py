@@ -664,6 +664,27 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             return output
 
         except Exception as e:
+            from openai import RateLimitError
+            if isinstance(e, RateLimitError):
+                logger.warning(f"Rate limit atingido, aguardando 10s antes de retentar...")
+                import asyncio
+                await asyncio.sleep(10)
+                try:
+                    response = await self.agent.ainvoke(
+                        {"messages": messages},
+                        config=config
+                    )
+                    output_messages = response.get("messages", [])
+                    if output_messages:
+                        last_message = output_messages[-1]
+                        output = last_message.content if hasattr(last_message, "content") else str(last_message)
+                        if isinstance(output, list):
+                            output = " ".join(p.get("text", "") for p in output if isinstance(p, dict) and p.get("type") == "text")
+                        self.message_history.add_user_message(message)
+                        self.message_history.add_ai_message(output)
+                        return output
+                except Exception as retry_e:
+                    logger.error(f"Erro após retry de rate limit: {retry_e}")
             logger.error(f"Erro ao processar mensagem: {e}", exc_info=True)
             logger.error(f"[DEBUG] Exception type: {type(e).__name__}")
             logger.error(f"[DEBUG] Exception args: {e.args}")
