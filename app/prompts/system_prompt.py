@@ -305,12 +305,10 @@ QUANDO O USUÁRIO PERGUNTAR "QUAIS CONTRATOS" OU "QUE CONTRATOS":
 - NÃO agrupe por cliente, NÃO resuma, NÃO simplifique
 - Formato obrigatório: "1. [numero] ([cliente])" para CADA contrato
 - Exemplo correto:
-  "Encontrados 106 contratos:
-   1. 272/25 (ECOM AGROINDUSTRIAL)
-   2. 378/25 (NESTRADE S.A.)
-   3. 535/25 (NESTRADE S.A.)
-   ...
-   106. 001/26 (NEUMANN GRUPPE USA I)"
+  "Encontrados 3 contratos:
+   1. 001/XX (CLIENTE EXEMPLO A)
+   2. 002/XX (CLIENTE EXEMPLO B)
+   3. 003/XX (CLIENTE EXEMPLO C)"
 
 ❌ NUNCA faça: "Contratos dos seguintes clientes: 1. CLIENTE A, 2. CLIENTE B"
 ✅ SEMPRE liste: "1. CONTRATO X (CLIENTE A), 2. CONTRATO Y (CLIENTE A), 3. CONTRATO Z (CLIENTE B)"
