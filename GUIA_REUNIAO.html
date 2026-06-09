@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Guia de Reunião — Agente Comexim IA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --primary: #1a3a5c;
+    --accent: #0ea5e9;
+    --green: #059669;
+    --yellow: #d97706;
+    --red: #dc2626;
+    --purple: #7c3aed;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-500: #64748b;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --border: #dde3ea;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--gray-900);
+    background: white;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* CAPA */
+  .cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1a3a5c 60%, #0ea5e9 100%);
+    color: white;
+    padding: 60px;
+    page-break-after: always;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .cover h1 { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 10px; }
+  .cover h1 span { color: #7dd3fc; }
+  .cover p { font-size: 14px; opacity: 0.8; margin-bottom: 32px; }
+
+  .cover-tip {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    opacity: 0.9;
+  }
+
+  .cover-tip strong { color: #7dd3fc; }
+
+  /* SEÇÕES */
+  .content { padding: 0 50px; }
+
+  .section {
+    padding: 40px 0 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section:last-child { border-bottom: none; }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .icon-git    { background: #fef3c7; }
+  .icon-arch   { background: #dbeafe; }
+  .icon-deploy { background: #d1fae5; }
+  .icon-db     { background: #f3e8ff; }
+  .icon-ai     { background: #fce7f3; }
+  .icon-danger { background: #fee2e2; }
+  .icon-flow   { background: #e0f2fe; }
+
+  h2 { font-size: 18px; font-weight: 700; color: var(--primary); }
+
+  /* CARTÕES DE PERGUNTA */
+  .qa-list { display: flex; flex-direction: column; gap: 14px; }
+
+  .qa {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .qa-q {
+    background: var(--primary);
+    color: white;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qa-q .tag {
+    background: rgba(255,255,255,0.15);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+
+  .qa-a {
+    background: var(--gray-50);
+    padding: 12px 16px;
+    font-size: 12.5px;
+    color: var(--gray-700);
+    line-height: 1.65;
+  }
+
+  .qa-a strong { color: var(--gray-900); }
+
+  .qa-a code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--gray-200);
+    color: #e11d48;
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  .qa-a .highlight {
+    background: #fef9c3;
+    border-left: 3px solid #d97706;
+    padding: 8px 12px;
+    border-radius: 0 6px 6px 0;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #78350f;
+  }
+
+  /* GLOSSÁRIO */
+  .glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .term {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: var(--gray-50);
+  }
+
+  .term-word {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--primary);
+    margin-bottom: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .term-def { font-size: 12px; color: var(--gray-700); }
+
+  /* FLUXO */
+  .flow {
+    background: var(--primary);
+    border-radius: 12px;
+    padding: 24px;
+    color: white;
+    font-size: 12px;
+    margin: 16px 0;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .flow-step:last-child { margin-bottom: 0; }
+
+  .flow-num {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .flow-text strong { color: #7dd3fc; }
+  .flow-text span { opacity: 0.7; font-size: 11px; }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .callout.green  { background: #d1fae5; border-left: 4px solid #059669; color: #065f46; }
+  .callout.yellow { background: #fef3c7; border-left: 4px solid #d97706; color: #78350f; }
+  .callout.blue   { background: #dbeafe; border-left: 4px solid #2563eb; color: #1e3a8a; }
+  .callout.red    { background: #fee2e2; border-left: 4px solid #dc2626; color: #7f1d1d; }
+
+  /* PRINT */
+  @media print {
+    .section { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+    .qa { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- CAPA -->
+<div class="cover">
+  <div class="cover-badge">Preparação para Reunião Técnica</div>
+  <h1>Guia de <span>Perguntas e Respostas</span><br>Reunião com Dev Team</h1>
+  <p>As perguntas mais prováveis que devs vão fazer — com as respostas certas, nos termos certos.</p>
+  <div class="cover-tip">
+    <strong>Dica de ouro:</strong> Se não souber responder na hora, diz <em>"está documentado no manual, posso te mostrar a seção exata"</em>. Isso é mais profissional do que chutar.
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══ GIT ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-git">🌿</div>
+    <h2>Git — Controle de Versão</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">Como o deploy funciona? Vocês usam CI/CD? <span class="tag">Comum</span></div>
+      <div class="qa-a">
+        <strong>Deploy manual por enquanto.</strong> O processo é: fazer o push para a branch <code>main</code> no GitHub, entrar no servidor via SSH, buscar as mudanças com <code>git fetch origin</code> e aplicar com <code>git reset --hard origin/main</code>, depois reiniciar o serviço com <code>systemctl restart agente-comexim</code>.
+        <div class="highlight">💡 Se perguntarem "por que não git pull?": pull pode falhar silenciosamente se o branch local tiver divergido. O reset --hard garante que o servidor fica idêntico ao repositório.</div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Qual é a estratégia de branching? <span class="tag">Provável</span></div>
+      <div class="qa-a">
+        <strong>Fluxo simples: tudo vai para main.</strong> Develop direto na main, deploy direto da main. Para um time pequeno isso funciona bem e evita complexidade desnecessária. Se o time quiser adotar Gitflow (com branch develop e feature branches), é só uma questão de convenção — a estrutura do projeto suporta.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O .env está no repositório? <span class="tag">Importante</span></div>
+      <div class="qa-a">
+        <strong>Não.</strong> O <code>.env</code> está no <code>.gitignore</code> — nunca vai pro repositório. O que existe no repo é um <code>.env.example</code> com todas as variáveis listadas mas sem valores reais. No servidor, o <code>.env</code> com as credenciais reais fica só na máquina.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Tem algum hook ou pipeline configurado? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>Não por enquanto.</strong> Não tem GitHub Actions, não tem webhook de deploy automático. O deploy é manual via SSH. Isso pode ser melhorado futuramente com um GitHub Action que faz SSH no servidor e executa os comandos de deploy automaticamente.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ ARQUITETURA ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-arch">🏗️</div>
+    <h2>Arquitetura do Sistema</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">Por que FastAPI e não Django ou Flask? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>Performance e async nativo.</strong> O FastAPI é assíncrono por padrão (baseado em Starlette + asyncio), o que é essencial aqui porque precisamos processar múltiplas mensagens simultâneas sem bloquear. Flask é síncrono. Django tem muito overhead desnecessário para uma API de webhook.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O que é LangGraph? Por que não LangChain direto? <span class="tag">IA</span></div>
+      <div class="qa-a">
+        <strong>LangGraph é uma camada acima do LangChain</strong> que permite criar agentes com estado e fluxos complexos de decisão. O agente usa o padrão <strong>ReAct</strong> (Reason + Act): a IA raciocina sobre qual ferramenta usar, executa, analisa o resultado e decide se precisa de mais ferramentas. LangChain puro não tem controle de fluxo tão estruturado.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Como funciona a integração com o WhatsApp? <span class="tag">Comum</span></div>
+      <div class="qa-a">
+        <strong>Via UAZAPI</strong>, que é um intermediário que conecta ao WhatsApp Web. O fluxo é: usuário manda mensagem → UAZAPI recebe → faz um POST para o nosso servidor (<code>/webhook</code>) → nossa API processa → chama a IA → manda a resposta de volta via UAZAPI. A gente não acessa o WhatsApp diretamente — o UAZAPI faz essa parte.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Por que Redis além do Supabase? Não dá pra usar só um? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>Papéis diferentes.</strong> Redis é in-memory — extremamente rápido para coisas que mudam a todo momento: histórico de conversa, buffer anti-flood, cache de autenticação. Supabase é PostgreSQL persistente — usado para agendamentos e preferências que precisam sobreviver a restart do servidor. Misturar os dois daria lentidão no Redis ou perda de dados no Supabase.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O sistema escala? Dá pra rodar em múltiplas instâncias? <span class="tag">Avançado</span></div>
+      <div class="qa-a">
+        <strong>Sim, com ressalvas.</strong> Redis e Supabase são externos — qualquer instância acessa os mesmos dados. O gargalo seria o SQL Server, que já tem sua própria gestão de conexões. Para escalar horizontalmente, precisaria de um load balancer na frente e garantir que o scheduler (APScheduler) rode em apenas uma instância para não duplicar envios.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ DEPLOY / SERVIDOR ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-deploy">🚀</div>
+    <h2>Deploy e Servidor</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">O que é systemd? Por que usar ele? <span class="tag">Linux</span></div>
+      <div class="qa-a">
+        <strong>Systemd é o gerenciador de processos do Linux.</strong> Garante que o serviço sobe automaticamente quando o servidor reinicia, reinicia sozinho se cair, e centraliza os logs (acessíveis via <code>journalctl</code>). A alternativa seria usar screen/tmux ou PM2 — systemd é a forma mais robusta e padrão em produção Linux.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Como ver se o serviço está rodando? <span class="tag">Operação</span></div>
+      <div class="qa-a">
+        <code>systemctl status agente-comexim</code> — mostra se está ativo, há quanto tempo, e as últimas linhas de log. Para ver logs completos em tempo real: <code>journalctl -u agente-comexim -f</code>.
+        <div class="highlight">⏱️ Lembra que o servidor registra em UTC. Brasília é UTC-3. Mensagem às 14h SP = 17h nos logs.</div>
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Como funciona o ambiente virtual Python (venv)? <span class="tag">Python</span></div>
+      <div class="qa-a">
+        <strong>Isola as dependências do projeto</strong> do Python do sistema. O <code>requirements.txt</code> lista todas as bibliotecas necessárias. No servidor, o venv fica em <code>/opt/agente-comexim-whatsapp/venv/</code>. Se instalar um pacote novo, precisa ativar o venv e rodar <code>pip install -r requirements.txt</code> antes de reiniciar o serviço.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Tem Docker? Por que não containerizou? <span class="tag">Infra</span></div>
+      <div class="qa-a">
+        <strong>Não tem Docker nesta versão.</strong> Roda direto no servidor Linux com Python + venv + systemd. Containerizar seria a próxima evolução natural — facilitaria o setup em novos servidores e o ambiente de teste. O ODBC Driver do SQL Server dentro de container tem algumas particularidades de instalação que complicam um pouco, mas é totalmente factível.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ BANCO DE DADOS ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-db">🗄️</div>
+    <h2>Banco de Dados</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">O sistema escreve alguma coisa no Protheus? <span class="tag">Crítico</span></div>
+      <div class="qa-a">
+        <strong>Não. Zero escrita.</strong> Todas as consultas são <code>SELECT * FROM stored_function()</code>. O sistema é 100% read-only no Protheus. Isso foi uma decisão de segurança intencional — a IA nunca modifica dados do ERP.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Por que stored functions e não queries SQL diretas? <span class="tag">SQL</span></div>
+      <div class="qa-a">
+        <strong>Segurança e controle.</strong> As stored functions encapsulam a lógica de negócio no banco — o sistema só chama <code>SELECT * FROM dbo.IA_Vendas()</code> e recebe os dados formatados. Não tem SQL dinâmico perigoso, não tem acesso direto às tabelas do Protheus. Qualquer mudança na estrutura de dados fica isolada dentro da function, sem precisar mexer no código Python.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O que é ODBC e por que é necessário? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>ODBC (Open Database Connectivity) é um driver de conexão padronizado.</strong> O Python usa a biblioteca <code>pyodbc</code> para se conectar ao SQL Server, e o pyodbc precisa do driver ODBC da Microsoft instalado no sistema operacional. É como um "tradutor" entre Python e SQL Server. No Linux, instala com <code>apt-get install msodbcsql17</code>.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Tem ORM? Usa SQLAlchemy? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>Não tem ORM.</strong> Acesso direto via <code>pyodbc</code>. Como o sistema só chama stored functions (não monta queries complexas nem mapeia entidades), um ORM adicionaria complexidade sem benefício. O arquivo <code>app/core/database.py</code> tem a classe <code>SQLServerClient</code> que gerencia toda a conexão.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ IA ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-ai">🤖</div>
+    <h2>Inteligência Artificial</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">Como a IA sabe qual consulta fazer? <span class="tag">IA</span></div>
+      <div class="qa-a">
+        <strong>O LLM (GPT-4o) decide.</strong> Cada "tool" tem uma descrição em linguagem natural. A IA lê a pergunta do usuário, compara com as descrições das tools disponíveis, e escolhe qual chamar. Por exemplo, se o usuário perguntar "quanto foi vendido em janeiro?", a IA escolhe a tool <code>pesquisa_vendas</code> automaticamente.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O histórico de conversa fica salvo para sempre? <span class="tag">Privacidade</span></div>
+      <div class="qa-a">
+        <strong>Não.</strong> O histórico fica no Redis com TTL de 2 horas (<code>REDIS_MEMORY_TTL=7200</code>). Depois de 2 horas de inatividade, expira automaticamente. Não tem banco de dados persistente de mensagens — por design, para não guardar dados sensíveis.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">E se a OpenAI ficar fora do ar? O sistema cai? <span class="tag">Risco</span></div>
+      <div class="qa-a">
+        <strong>Sim, o sistema fica sem resposta.</strong> A dependência da OpenAI é crítica — sem ela, a IA não funciona. O sistema retorna uma mensagem de erro amigável ao usuário, mas não tem fallback para outro modelo. Isso é uma limitação conhecida que pode ser endereçada futuramente com suporte a múltiplos provedores (ex: Azure OpenAI como backup).
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">O que é rate limit e como está tratado? <span class="tag">Operação</span></div>
+      <div class="qa-a">
+        <strong>Rate limit é o limite de requisições por minuto na API da OpenAI.</strong> O plano básico tem 30.000 tokens por minuto (TPM). Se várias pessoas usarem ao mesmo tempo com contexto grande, pode estourar. O sistema faz retry automático — espera 10 segundos e tenta de novo. Se o crédito da conta zerar (<code>insufficient_quota</code>), aí não tem retry — precisa adicionar crédito manualmente.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ FLUXO DA MENSAGEM ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-flow">📨</div>
+    <h2>Fluxo de uma Mensagem — Para Explicar ao Vivo</h2>
+  </div>
+
+  <p style="color:var(--gray-500); font-size:12px; margin-bottom:16px;">Use esse fluxo quando pedirem para você explicar "como funciona do começo ao fim":</p>
+
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-text"><strong>Usuário manda mensagem no WhatsApp</strong> <br><span>O UAZAPI captura e faz um POST para o nosso servidor</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-text"><strong>FastAPI recebe no endpoint /webhook</strong> <br><span>Extrai o número e o texto. Retorna 200 imediatamente pro UAZAPI para não dar timeout</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-text"><strong>Anti-flood: aguarda 20 segundos</strong> <br><span>Se o usuário mandar várias mensagens seguidas, acumula tudo e processa de uma vez</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-text"><strong>Autenticação via Protheus</strong> <br><span>Valida o número do WhatsApp e busca as permissões do usuário. Cache de 2h no Redis</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-text"><strong>Agente IA (LangGraph + GPT-4o)</strong> <br><span>Recebe a mensagem + histórico + permissões. Decide qual tool chamar</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">6</div>
+      <div class="flow-text"><strong>Tool executa query no SQL Server</strong> <br><span>SELECT * FROM dbo.IA_Vendas() — somente leitura, nunca escreve</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">7</div>
+      <div class="flow-text"><strong>IA interpreta o resultado e responde</strong> <br><span>Gera texto em linguagem natural. Divide em partes se for muito longo</span></div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">8</div>
+      <div class="flow-text"><strong>UAZAPI envia a resposta ao usuário</strong> <br><span>Histórico salvo no Redis por 2h</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ARMADILHAS ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-danger">⚡</div>
+    <h2>Perguntas Difíceis — Como Responder</h2>
+  </div>
+
+  <div class="qa-list">
+
+    <div class="qa">
+      <div class="qa-q">Por que não tem testes automatizados? <span class="tag">Difícil</span></div>
+      <div class="qa-a">
+        <strong>Honest answer:</strong> O projeto foi entregue em MVP (versão inicial funcionando). Testes automatizados são o próximo passo natural. A dificuldade principal é que a maior parte da lógica depende de serviços externos (OpenAI, SQL Server, Redis) — os testes precisariam de mocks bem estruturados. É tecnicamente viável e recomendado adicionar cobertura de testes na evolução do projeto.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Tem documentação de API? Swagger? <span class="tag">Técnico</span></div>
+      <div class="qa-a">
+        <strong>Sim, automaticamente.</strong> FastAPI gera Swagger UI automático. Basta acessar <code>http://servidor:8000/docs</code> enquanto o serviço está rodando. Mas a única rota relevante externamente é o <code>POST /webhook</code> — as demais são internas.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Como adicionamos uma nova consulta (nova stored function)? <span class="tag">Evolução</span></div>
+      <div class="qa-a">
+        4 passos: <strong>1)</strong> Criar a stored function no SQL Server. <strong>2)</strong> Registrar em <code>FUNCTION_PARAMETERS</code> no <code>database.py</code>. <strong>3)</strong> Criar a tool em <code>sql_tools.py</code> com descrição em linguagem natural. <strong>4)</strong> Adicionar na lista <code>get_tools()</code>. Sem mais nada — a IA aprende automaticamente a usar a nova tool pela descrição.
+      </div>
+    </div>
+
+    <div class="qa">
+      <div class="qa-q">Tem logs estruturados? Sentry? Datadog? <span class="tag">Observabilidade</span></div>
+      <div class="qa-a">
+        <strong>Logs via Python logging + journalctl por enquanto.</strong> Não tem Sentry nem Datadog nesta versão. Os logs já são bastante detalhados (query executada, tempo, erros com stack trace). A próxima evolução seria integrar um serviço de monitoramento de erros como Sentry — é uma adição pequena (instalar o SDK e adicionar uma linha no código).
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ GLOSSÁRIO ═══ -->
+<div class="section">
+  <div class="section-title">
+    <div class="section-icon icon-arch">📖</div>
+    <h2>Glossário Rápido — Termos que Podem Aparecer</h2>
+  </div>
+
+  <div class="glossary">
+    <div class="term">
+      <div class="term-word">webhook</div>
+      <div class="term-def">URL que recebe notificações automáticas de outro sistema. O UAZAPI faz POST no nosso /webhook quando chega mensagem.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">endpoint</div>
+      <div class="term-def">Uma rota/URL da API. O sistema tem o endpoint POST /webhook como entrada principal.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">async / await</div>
+      <div class="term-def">Programação assíncrona — permite processar múltiplas coisas ao mesmo tempo sem bloquear o servidor.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">TTL (Time to Live)</div>
+      <div class="term-def">Tempo de vida de um dado em cache. TTL=7200 significa que expira em 2 horas.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">LLM</div>
+      <div class="term-def">Large Language Model — o modelo de IA. Neste projeto: GPT-4o da OpenAI.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">tool / ferramenta</div>
+      <div class="term-def">Função que a IA pode chamar. Cada consulta SQL é uma "tool". A IA escolhe qual usar.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">ReAct pattern</div>
+      <div class="term-def">Padrão de agente IA: Reason (raciocina) + Act (executa tool) + Observe (analisa resultado) em loop.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">systemd service</div>
+      <div class="term-def">Processo Linux gerenciado pelo sistema. Sobe automaticamente no boot, reinicia se cair.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">venv</div>
+      <div class="term-def">Ambiente virtual Python — isola as dependências do projeto para não conflitar com outras aplicações do servidor.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">ODBC</div>
+      <div class="term-def">Driver de conexão ao SQL Server. Precisa estar instalado no servidor Linux para o Python conectar ao Protheus.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">stored function</div>
+      <div class="term-def">Função salva no banco SQL Server. O sistema faz SELECT * FROM dbo.FunctionName() para buscar dados.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">rate limit</div>
+      <div class="term-def">Limite de requisições por minuto na API da OpenAI. Se estourar, o sistema aguarda 10s e tenta novamente.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">git reset --hard</div>
+      <div class="term-def">Força o código local a ficar idêntico ao repositório remoto. Usado no deploy para garantir atualização correta.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">APScheduler</div>
+      <div class="term-def">Biblioteca Python de agendamento. Roda jobs em horários definidos — usado para enviar relatórios automáticos.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">MVP</div>
+      <div class="term-def">Minimum Viable Product — versão inicial funcionando com as funcionalidades essenciais. Base para evoluir.</div>
+    </div>
+    <div class="term">
+      <div class="term-word">SSH</div>
+      <div class="term-def">Protocolo para acessar o servidor remotamente pelo terminal com segurança.</div>
+    </div>
+  </div>
+
+  <div class="callout green" style="margin-top:20px;">
+    <div>✅</div>
+    <div><strong>Você está mais preparado do que imagina.</strong> O sistema está em produção, funcionando, com manual completo. Isso já coloca você à frente de 90% das entregas. Boa reunião!</div>
+  </div>
+
+</div>
+
+</div><!-- /content -->
+</body>
+</html>

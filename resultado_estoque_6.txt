@@ -1,0 +1,184 @@
+Query: Sacas para consumo em estoque
+Descrição: Filtro por sacasConsumo > 0
+Esperado: Deve filtrar apenas registros com sacasConsumo > 0
+================================================================================
+
+Resultados da consulta IA_Estoque (AGREGADOS POR LINHA):
+
+Total de registros SQL: 950
+Total de linhas: 10
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Sacas: 95,233.93 sacas
+- Sacas para Consumo: 21,882.94 sacas
+- Sacas para Exportação: 73,348.53 sacas
+- Peso Total: 5,619,014.53 kg
+- Total de Lotes: 746
+
+Dados por linha:
+[
+  {
+    "linha": "GRD",
+    "sacas_total": 38799.37,
+    "sacas_consumo": 7140.72,
+    "sacas_exportacao": 31657.52,
+    "peso_kg": 2289221.53,
+    "qtd_lotes": 213,
+    "qtd_registros": 213,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "4C, CP, GC, RF"
+  },
+  {
+    "linha": "LN3",
+    "sacas_total": 18981.45,
+    "sacas_consumo": 1713.79,
+    "sacas_exportacao": 17266.91,
+    "peso_kg": 1119953.38,
+    "qtd_lotes": 165,
+    "qtd_registros": 165,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO, COOP.MONTECCER",
+    "certificados": "4C, GC, RF"
+  },
+  {
+    "linha": "LN2/3",
+    "sacas_total": 11871.36,
+    "sacas_consumo": 1136.96,
+    "sacas_exportacao": 10734.06,
+    "peso_kg": 700427.82,
+    "qtd_lotes": 65,
+    "qtd_registros": 65,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO, COOP.MONTECCER",
+    "certificados": "4C, GC, RF"
+  },
+  {
+    "linha": "PVA",
+    "sacas_total": 11135.95,
+    "sacas_consumo": 11126.32,
+    "sacas_exportacao": 9.61,
+    "peso_kg": 657094.63,
+    "qtd_lotes": 252,
+    "qtd_registros": 252,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "4C, GC, RF"
+  },
+  {
+    "linha": "LN2",
+    "sacas_total": 9546.68,
+    "sacas_consumo": 400.22,
+    "sacas_exportacao": 9146.32,
+    "peso_kg": 563265.0,
+    "qtd_lotes": 35,
+    "qtd_registros": 35,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO, COOP.MONTECCER",
+    "certificados": "4C, GC, RF"
+  },
+  {
+    "linha": "LN1/2",
+    "sacas_total": 2794.21,
+    "sacas_consumo": 53.12,
+    "sacas_exportacao": 2741.04,
+    "peso_kg": 164860.17,
+    "qtd_lotes": 8,
+    "qtd_registros": 8,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "0, 4C, GC, RF"
+  },
+  {
+    "linha": "LN1",
+    "sacas_total": 1156.47,
+    "sacas_consumo": 34.69,
+    "sacas_exportacao": 1121.78,
+    "peso_kg": 68232.2,
+    "qtd_lotes": 2,
+    "qtd_registros": 2,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "N/A"
+  },
+  {
+    "linha": "CD",
+    "sacas_total": 509.34,
+    "sacas_consumo": 10.18,
+    "sacas_exportacao": 499.15,
+    "peso_kg": 30051.4,
+    "qtd_lotes": 1,
+    "qtd_registros": 1,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "RF"
+  },
+  {
+    "linha": "FUNDI",
+    "sacas_total": 371.66,
+    "sacas_consumo": 262.22,
+    "sacas_exportacao": 109.42,
+    "peso_kg": 21929.0,
+    "qtd_lotes": 4,
+    "qtd_registros": 4,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "RF"
+  },
+  {
+    "linha": "LN4",
+    "sacas_total": 67.44,
+    "sacas_consumo": 4.72,
+    "sacas_exportacao": 62.72,
+    "peso_kg": 3979.4,
+    "qtd_lotes": 1,
+    "qtd_registros": 1,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "N/A"
+  }
+]
+
+Instruções: Os dados acima são de ESTOQUE (snapshot atual).
+
+CAMPOS DISPONÍVEIS POR LINHA:
+- linha: tipo de linha (ex: "PVA", "GRD" para linha; "RF", "4C" para certificado)
+- sacas_total: total de sacas deste linha
+- sacas_consumo: sacas para consumo interno/mercado interno
+- sacas_exportacao: sacas para exportação
+- peso_kg: peso total em quilogramas
+- qtd_lotes: quantidade de lotes diferentes
+- qtd_registros: quantidade de registros SQL agregados
+- filiais: filiais onde este estoque está localizado
+- armazens: armazéns onde este estoque está localizado
+- certificados: certificações presentes neste tipo de café
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quanto café temos?" → Use "Total de Sacas" e "Peso Total" dos TOTAIS GERAIS
+   - "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+   - NÃO some manualmente! Os TOTAIS GERAIS já estão corretos!
+
+2. Estoque NÃO tem contratos ou clientes. É um snapshot atual do estoque físico.
+
+3. Para perguntas sobre TIPOS ESPECÍFICOS:
+   - "Quanto café PVA temos?" → Procure linha "PVA", use campo "sacas_total"
+   - "Café Rainforest?" → Procure certificado "RF", use campo "sacas_total"
+   - Use os campos apropriados do tipo específico
+
+4. CONVERSÃO PESO/SACAS:
+   - 1 saca de café ≈ 60 kg
+   - Peso e sacas são independentes (NÃO calcule um a partir do outro)
+
+5. INTERPRETAÇÃO DOS VALORES:
+   - sacas_total = sacas_consumo + sacas_exportacao (sempre)
+   - Se perguntam "para consumo", use sacas_consumo
+   - Se perguntam "para exportação", use sacas_exportacao
+   - Se perguntam "total", use sacas_total
+
+Exemplos corretos:
+- "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quanto café PVA?" → Procure linha "PVA", use campo "sacas_total"
+- "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+- "Qual tipo tem mais café?" → Procure linha com maior "sacas_total" 

@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual Técnico — Agente Comexim IA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --primary: #1a3a5c;
+    --primary-light: #2563a8;
+    --accent: #0ea5e9;
+    --accent-light: #e0f2fe;
+    --green: #059669;
+    --green-light: #d1fae5;
+    --yellow: #d97706;
+    --yellow-light: #fef3c7;
+    --red: #dc2626;
+    --red-light: #fee2e2;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-500: #64748b;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --border: #dde3ea;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', 'Consolas', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--gray-900);
+    background: white;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ─── CAPA ─── */
+  .cover {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%);
+    color: white;
+    padding: 80px 60px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+
+  .cover h1 {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+
+  .cover h1 span { color: #7dd3fc; }
+
+  .cover p {
+    font-size: 15px;
+    opacity: 0.85;
+    max-width: 520px;
+    margin-bottom: 40px;
+  }
+
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    font-size: 11px;
+    opacity: 0.7;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 20px;
+  }
+
+  .cover-meta strong { display: block; font-size: 13px; font-weight: 600; opacity: 1; }
+
+  /* ─── SUMÁRIO ─── */
+  .toc {
+    padding: 48px 60px;
+    page-break-after: always;
+    background: var(--gray-50);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .toc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 32px;
+  }
+
+  .toc a {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--gray-700);
+    padding: 5px 0;
+    font-size: 12px;
+    border-bottom: 1px solid transparent;
+    transition: color 0.15s;
+  }
+
+  .toc a:hover { color: var(--accent); }
+
+  .toc-num {
+    background: var(--primary);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ─── CONTEÚDO ─── */
+  .content {
+    padding: 0 60px;
+  }
+
+  /* ─── SECTION ─── */
+  .section {
+    padding: 48px 0 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section:last-child { border-bottom: none; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .section-num {
+    background: var(--primary);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.3px;
+  }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin: 24px 0 10px;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  p { margin-bottom: 12px; color: var(--gray-700); }
+
+  strong { color: var(--gray-900); font-weight: 600; }
+
+  ul, ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+
+  li {
+    color: var(--gray-700);
+    margin-bottom: 5px;
+    padding-left: 4px;
+  }
+
+  /* ─── DIAGRAMA ─── */
+  .diagram {
+    background: var(--primary);
+    border-radius: 12px;
+    padding: 32px;
+    margin: 20px 0;
+    color: white;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .diagram-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 2px 0;
+  }
+
+  .d-box {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .d-box.main {
+    background: rgba(255,255,255,0.22);
+    border-color: rgba(255,255,255,0.45);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .d-box.green { background: rgba(5,150,105,0.3); border-color: rgba(5,150,105,0.6); }
+  .d-box.blue  { background: rgba(14,165,233,0.25); border-color: rgba(14,165,233,0.5); }
+  .d-box.yellow{ background: rgba(217,119,6,0.3); border-color: rgba(217,119,6,0.6); }
+
+  .d-arrow {
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    padding: 0 8px;
+  }
+
+  .d-label {
+    color: rgba(255,255,255,0.5);
+    font-size: 10px;
+    padding: 0 4px;
+    font-style: italic;
+  }
+
+  .d-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .d-v-arrow {
+    color: rgba(255,255,255,0.6);
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .d-branch {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 4px;
+  }
+
+  .d-branch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ─── CÓDIGO ─── */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 22px;
+    overflow-x: auto;
+    margin: 14px 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.65;
+    border: 1px solid #1e293b;
+  }
+
+  pre .comment { color: #64748b; }
+  pre .string  { color: #86efac; }
+  pre .keyword { color: #7dd3fc; }
+  pre .func    { color: #c084fc; }
+  pre .num     { color: #fb923c; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--gray-100);
+    color: #e11d48;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+    border: none;
+    font-size: inherit;
+  }
+
+  /* ─── TABELAS ─── */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  thead tr {
+    background: var(--primary);
+    color: white;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:nth-child(even) { background: var(--gray-50); }
+
+  td {
+    padding: 9px 14px;
+    color: var(--gray-700);
+    vertical-align: top;
+  }
+
+  td code { font-size: 10.5px; }
+
+  /* ─── CALLOUTS ─── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 12px;
+  }
+
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .callout p { margin: 0; }
+
+  .callout.warn  { background: var(--yellow-light); border-left: 4px solid var(--yellow);  }
+  .callout.info  { background: var(--accent-light);  border-left: 4px solid var(--accent);  }
+  .callout.ok    { background: var(--green-light);   border-left: 4px solid var(--green);   }
+  .callout.danger{ background: var(--red-light);     border-left: 4px solid var(--red);     }
+
+  /* ─── TECH CARDS ─── */
+  .tech-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .tech-card {
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+
+  .tech-card .label {
+    font-size: 10px;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .tech-card .value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  /* ─── STEP LIST ─── */
+  .steps { margin: 16px 0; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: flex-start;
+  }
+
+  .step-num {
+    background: var(--accent);
+    color: white;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-body h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 4px;
+  }
+
+  .step-body p { margin: 0; font-size: 12px; }
+
+  /* ─── PERM BADGE ─── */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin: 1px;
+  }
+
+  .badge.financeiro { background: #dbeafe; color: #1d4ed8; }
+  .badge.vendas     { background: #dcfce7; color: #15803d; }
+  .badge.compras    { background: #fef9c3; color: #854d0e; }
+  .badge.estoque    { background: #fce7f3; color: #9d174d; }
+  .badge.admin      { background: #f3e8ff; color: #6b21a8; }
+  .badge.todos      { background: #f1f5f9; color: #475569; }
+
+  /* ─── RODAPÉ ─── */
+  .footer {
+    background: var(--primary);
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    padding: 24px;
+    font-size: 11px;
+    margin-top: 40px;
+  }
+
+  .footer strong { color: white; }
+
+  /* ─── PRINT ─── */
+  @media print {
+    body { max-width: none; }
+    .content { padding: 0 40px; }
+    .section { page-break-inside: avoid; }
+    h2, h3 { page-break-after: avoid; }
+    pre, table, .diagram { page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ CAPA ═══════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">Documentação Técnica</div>
+  <h1>Manual Técnico<br><span>Agente Comexim IA</span></h1>
+  <p>Sistema de consulta ao ERP Protheus via WhatsApp com agente de inteligência artificial. Guia completo para desenvolvedores — setup, deploy, arquitetura e manutenção.</p>
+  <div class="cover-meta">
+    <div><strong>Versão</strong>main · commit ae61c84</div>
+    <div><strong>Stack</strong>FastAPI · LangGraph · OpenAI · SQL Server</div>
+    <div><strong>Data</strong>Maio 2026</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ SUMÁRIO ═══════════════════════════════════════ -->
+<div class="toc">
+  <h2>Índice</h2>
+  <div class="toc-grid">
+    <a href="#s1"><span class="toc-num">1</span>Visão Geral da Arquitetura</a>
+    <a href="#s10"><span class="toc-num">10</span>Autenticação de Usuários</a>
+    <a href="#s2"><span class="toc-num">2</span>Estrutura de Pastas</a>
+    <a href="#s11"><span class="toc-num">11</span>Agente IA — Como Funciona</a>
+    <a href="#s3"><span class="toc-num">3</span>Fluxo Completo de uma Mensagem</a>
+    <a href="#s12"><span class="toc-num">12</span>Tools Disponíveis</a>
+    <a href="#s4"><span class="toc-num">4</span>Configuração do Ambiente (.env)</a>
+    <a href="#s13"><span class="toc-num">13</span>Scheduler de Relatórios</a>
+    <a href="#s5"><span class="toc-num">5</span>Como Subir o Projeto</a>
+    <a href="#s14"><span class="toc-num">14</span>Anti-Flood e Buffer</a>
+    <a href="#s6"><span class="toc-num">6</span>Deploy em Produção (systemd)</a>
+    <a href="#s15"><span class="toc-num">15</span>Permissões de Usuário</a>
+    <a href="#s7"><span class="toc-num">7</span>Banco de Dados — SQL Server</a>
+    <a href="#s16"><span class="toc-num">16</span>Armadilhas Conhecidas</a>
+    <a href="#s8"><span class="toc-num">8</span>Redis — Cache e Memória</a>
+    <a href="#s17"><span class="toc-num">17</span>Ambiente de Teste</a>
+    <a href="#s9"><span class="toc-num">9</span>Supabase — Agendamentos</a>
+    <a href="#s18"><span class="toc-num">18</span>Logs e Monitoramento</a>
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ═══════════════ 1 ═══════════════ -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2>Visão Geral da Arquitetura</h2>
+  </div>
+
+  <div class="diagram">
+    <div class="d-col" style="align-items:flex-start; gap:0;">
+      <div style="margin:6px 0;"><div class="d-box main">📱 WhatsApp (usuário)</div></div>
+      <div style="margin-left:80px; color:rgba(255,255,255,0.5); font-size:11px;">POST webhook</div>
+      <div style="margin-left:74px; color:rgba(255,255,255,0.6);">↓</div>
+      <div style="margin:4px 0;"><div class="d-box blue">🔀 UAZAPI — intermediário WhatsApp</div></div>
+      <div style="margin-left:74px; color:rgba(255,255,255,0.6);">↓</div>
+      <div style="margin:4px 0;"><div class="d-box main">⚡ FastAPI — main.py</div></div>
+      <div style="display:flex; gap:24px; margin:10px 0 10px 20px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="color:rgba(255,255,255,0.5);">├──►</div>
+          <div class="d-box" style="font-size:11px;">🔐 Autenticação<br><span style="font-size:10px;opacity:0.7;">Protheus API</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="color:rgba(255,255,255,0.5);">├──►</div>
+          <div class="d-box" style="font-size:11px;">🛡️ Anti-flood<br><span style="font-size:10px;opacity:0.7;">Redis buffer</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="color:rgba(255,255,255,0.5);">└──►</div>
+          <div class="d-box" style="font-size:11px;">🎙️ Whisper<br><span style="font-size:10px;opacity:0.7;">só áudio</span></div>
+        </div>
+      </div>
+      <div style="margin-left:74px; color:rgba(255,255,255,0.6);">↓</div>
+      <div style="margin:4px 0;"><div class="d-box main">🤖 AgentOrchestrator — LangGraph (ReAct)</div></div>
+      <div style="display:flex; gap:24px; margin:10px 0 10px 20px;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="color:rgba(255,255,255,0.5);">├──►</div>
+          <div class="d-box green" style="font-size:11px;">🗄️ SQL Tools<br><span style="font-size:10px;opacity:0.7;">→ SQL Server (Protheus)</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="color:rgba(255,255,255,0.5);">└──►</div>
+          <div class="d-box yellow" style="font-size:11px;">📄 ADA Tools<br><span style="font-size:10px;opacity:0.7;">→ API ADA (contratos)</span></div>
+        </div>
+      </div>
+      <div style="margin-left:74px; color:rgba(255,255,255,0.6);">↓</div>
+      <div style="margin:4px 0;"><div class="d-box blue">📤 ResponseFormatter → WhatsApp</div></div>
+    </div>
+  </div>
+
+  <h3>Tecnologias principais</h3>
+  <div class="tech-grid">
+    <div class="tech-card"><div class="label">API Web</div><div class="value">FastAPI + Uvicorn</div></div>
+    <div class="tech-card"><div class="label">Agente IA</div><div class="value">LangGraph + LangChain</div></div>
+    <div class="tech-card"><div class="label">LLM</div><div class="value">OpenAI GPT-4o</div></div>
+    <div class="tech-card"><div class="label">Banco ERP</div><div class="value">SQL Server via pyodbc</div></div>
+    <div class="tech-card"><div class="label">Cache / Memória</div><div class="value">Redis</div></div>
+    <div class="tech-card"><div class="label">Agendamentos</div><div class="value">Supabase (PostgreSQL)</div></div>
+    <div class="tech-card"><div class="label">WhatsApp</div><div class="value">UAZAPI</div></div>
+    <div class="tech-card"><div class="label">Transcrição</div><div class="value">OpenAI Whisper</div></div>
+    <div class="tech-card"><div class="label">Email</div><div class="value">SMTP Gmail</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════ 2 ═══════════════ -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2>Estrutura de Pastas</h2>
+  </div>
+
+<pre><code>agente-comexim/
+├── main.py                        <span class="comment"># Inicialização FastAPI + scheduler</span>
+├── requirements.txt               <span class="comment"># Dependências Python</span>
+├── .env                           <span class="comment"># Variáveis de ambiente (não vai pro git!)</span>
+├── .env.example                   <span class="comment"># Template do .env</span>
+│
+├── app/
+│   ├── api/
+│   │   └── webhook.py             <span class="comment"># Endpoint POST /webhook</span>
+│   │
+│   ├── agents/
+│   │   ├── orchestrator.py        <span class="comment"># Orquestrador principal (LangGraph)</span>
+│   │   ├── sql_tools.py           <span class="comment"># Tools de consulta SQL (30+ tools)</span>
+│   │   └── ada_tools.py           <span class="comment"># Tools de criação de contratos</span>
+│   │
+│   ├── core/
+│   │   ├── config.py              <span class="comment"># Configurações centralizadas (Pydantic)</span>
+│   │   ├── database.py            <span class="comment"># SQLServerClient — executa queries</span>
+│   │   ├── redis_client.py        <span class="comment"># Cliente Redis</span>
+│   │   ├── supabase_client.py     <span class="comment"># Cliente Supabase</span>
+│   │   └── ada_api_client.py      <span class="comment"># Cliente HTTP da API ADA</span>
+│   │
+│   ├── models/
+│   │   ├── user.py                <span class="comment"># UserPermissions, ProtheusAuthResponse</span>
+│   │   ├── message.py             <span class="comment"># WhatsAppMessage, parser de webhook</span>
+│   │   ├── preferences.py         <span class="comment"># UserPreferences</span>
+│   │   └── contrato_ada.py        <span class="comment"># Modelos de contrato de exportação</span>
+│   │
+│   ├── prompts/
+│   │   └── system_prompt.py       <span class="comment"># System prompt dinâmico</span>
+│   │
+│   ├── services/
+│   │   ├── auth.py                <span class="comment"># Autenticação via Protheus API</span>
+│   │   ├── whatsapp.py            <span class="comment"># Envio de mensagens via UAZAPI</span>
+│   │   ├── formatter.py           <span class="comment"># Divide respostas longas</span>
+│   │   ├── audio.py               <span class="comment"># Transcrição de áudio (Whisper)</span>
+│   │   ├── email.py               <span class="comment"># Envio de emails com anexo xlsx</span>
+│   │   ├── scheduler.py           <span class="comment"># Jobs agendados (APScheduler)</span>
+│   │   └── preference_learning.py <span class="comment"># Aprende preferências do usuário</span>
+│   │
+│   └── utils/
+│       ├── date_parser.py         <span class="comment"># Parser de datas em linguagem natural</span>
+│       ├── sql_validator.py       <span class="comment"># Validação de segurança das queries</span>
+│       └── field_resolver.py      <span class="comment"># Fuzzy match de campos de contrato</span></code></pre>
+</div>
+
+<!-- ═══════════════ 3 ═══════════════ -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2>Fluxo Completo de uma Mensagem</h2>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h4>Webhook recebe a mensagem <code>app/api/webhook.py</code></h4>
+        <p>UAZAPI faz POST para <code>/webhook</code>. O webhook parseia o payload, extrai número, texto e tipo (texto ou áudio). Ignora mensagens enviadas pelo próprio bot (<code>fromMe: true</code>). Agenda <code>process_message_flow()</code> como background task e retorna 200 imediatamente ao UAZAPI.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h4>Anti-flood <code>app/core/redis_client.py</code></h4>
+        <p>Mensagem entra no buffer Redis (<code>buffer:{telefone}</code>). Sistema aguarda <code>ANTI_FLOOD_WAIT_SECONDS</code> (padrão: 20s). Se novas mensagens chegarem, o timer reinicia. Quando o usuário para de digitar, todas as mensagens são concatenadas e processadas juntas.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h4>Autenticação <code>app/services/auth.py</code></h4>
+        <p>Consulta cache Redis (<code>user:{telefone}</code>). Se não estiver em cache, chama <code>POST {PROTHEUS_API_URL}/iaProtheus/getToken</code>. Retorna nome, email e lista de permissões. Fica em cache por <code>REDIS_MEMORY_TTL</code> (2h). Se não autorizado, responde e para.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <h4>Transcrição de áudio <code>app/services/audio.py</code> — <em>só se for áudio</em></h4>
+        <p>Baixa o arquivo via UAZAPI, envia para OpenAI Whisper, retorna texto transcrito que segue o fluxo normal.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <h4>Orquestração <code>app/agents/orchestrator.py</code></h4>
+        <p>Carrega histórico do Redis (últimas <code>REDIS_MEMORY_WINDOW × 2</code> mensagens). Detecta fluxo ADA ou consulta normal. Monta system prompt com dados do usuário + data atual. Cria agente LangGraph (ReAct) com as tools disponíveis. Chama OpenAI com todo o contexto.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <h4>Execução das tools <code>app/agents/sql_tools.py</code></h4>
+        <p>A IA decide qual tool chamar. A tool executa <code>sql_client.execute_function(nome, filtros)</code> que monta e roda <code>SELECT * FROM dbo.NomeFuncao(params)</code>. Resultado volta como lista de dicionários. A IA interpreta e gera resposta em linguagem natural.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">7</div>
+      <div class="step-body">
+        <h4>Formatação e envio <code>formatter.py</code> + <code>whatsapp.py</code></h4>
+        <p>Se <code>ENABLE_RESPONSE_FORMATTER=true</code>: divide resposta longa em múltiplas mensagens. Envia cada parte com delay de <code>MESSAGE_DELAY_SECONDS</code>. Chama <code>POST {EVOLUTION_API_URL}/send/text</code> do UAZAPI.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">8</div>
+      <div class="step-body">
+        <h4>Memória</h4>
+        <p>Mensagem do usuário e resposta da IA são salvas no Redis. Chave: <code>memory:{session_id}</code> com TTL de <code>REDIS_MEMORY_TTL</code> (2h).</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ 4 ═══════════════ -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2>Configuração do Ambiente (.env)</h2>
+  </div>
+
+  <p>Copie <code>.env.example</code> para <code>.env</code> e preencha todos os valores:</p>
+
+<pre><code><span class="comment"># ─── APPLICATION ─────────────────────────────</span>
+APP_NAME=agente-comexim
+ENV=production          <span class="comment"># development ou production</span>
+DEBUG=false
+LOG_LEVEL=INFO          <span class="comment"># DEBUG para ver mais detalhes</span>
+
+<span class="comment"># ─── SQL SERVER (Protheus) ────────────────────</span>
+SQL_SERVER_HOST=ip_ou_hostname_do_servidor
+SQL_SERVER_PORT=6776
+SQL_SERVER_DATABASE=nome_do_banco
+SQL_SERVER_USER=usuario_sql
+SQL_SERVER_PASSWORD=senha_sql
+SQL_SERVER_DRIVER=ODBC Driver 17 for SQL Server
+
+<span class="comment"># ─── REDIS ───────────────────────────────────</span>
+REDIS_HOST=redis-xxxxx.redislabs.com
+REDIS_PORT=18430
+REDIS_PASSWORD=senha_redis
+REDIS_DB=0
+
+<span class="comment"># ─── PROTHEUS API (autenticação) ─────────────</span>
+PROTHEUS_API_URL=http://ip_protheus:porta
+PROTHEUS_API_TOKEN_ENDPOINT=/iaProtheus/getToken
+
+<span class="comment"># ─── UAZAPI (WhatsApp) ───────────────────────</span>
+EVOLUTION_API_URL=https://sua_instancia.uazapi.com
+EVOLUTION_API_TOKEN=token_uazapi
+EVOLUTION_INSTANCE_NAME=nome_da_instancia
+
+<span class="comment"># ─── OPENAI ──────────────────────────────────</span>
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-proj-...
+AI_MODEL=gpt-4o
+AI_TEMPERATURE=0.3
+AI_MAX_TOKENS=4000
+FORMATTER_MODEL=gpt-4o-mini
+
+<span class="comment"># ─── MEMÓRIA ─────────────────────────────────</span>
+REDIS_MEMORY_TTL=7200        <span class="comment"># 2h — quanto tempo o histórico fica</span>
+REDIS_MEMORY_WINDOW=10       <span class="comment"># quantas trocas (user+AI) ficam no contexto</span>
+
+<span class="comment"># ─── ANTI-FLOOD ──────────────────────────────</span>
+ANTI_FLOOD_WAIT_SECONDS=20   <span class="comment"># aguarda 20s para acumular mensagens</span>
+MESSAGE_DELAY_SECONDS=3      <span class="comment"># delay entre partes de resposta longa</span>
+
+<span class="comment"># ─── SUPABASE ────────────────────────────────</span>
+SUPABASE_URL=https://xxxxx.supabase.co
+SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+<span class="comment"># ─── EMAIL (SMTP Gmail) ──────────────────────</span>
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=email@gmail.com
+SMTP_PASSWORD=senha_de_app_gmail   <span class="comment"># senha de app, não a senha da conta!</span>
+
+<span class="comment"># ─── FEATURES ────────────────────────────────</span>
+ENABLE_AUDIO_TRANSCRIPTION=true
+ENABLE_RESPONSE_FORMATTER=false
+ENABLE_PREFERENCE_LEARNING=true</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <p><strong>SQL_SERVER_DRIVER</strong> precisa corresponder ao driver ODBC instalado no servidor. Verificar com <code>odbcinst -q -d</code> (Linux). O mais comum é <em>ODBC Driver 17 for SQL Server</em>.</p>
+  </div>
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p><strong>SMTP_PASSWORD para Gmail</strong> é uma senha de aplicativo, não a senha da conta. Gerar em: Conta Google → Segurança → Senhas de app.</p>
+  </div>
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <p><strong>REDIS_MEMORY_WINDOW=10</strong> significa últimas 10 perguntas + 10 respostas em contexto. Aumentar demais estoura o limite de tokens da OpenAI (30k TPM no plano básico).</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 5 ═══════════════ -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2>Como Subir o Projeto</h2>
+  </div>
+
+  <h3>Pré-requisitos no servidor Linux</h3>
+<pre><code><span class="comment"># Python 3.12+</span>
+python3 --version
+
+<span class="comment"># ODBC Driver para SQL Server</span>
+curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+curl https://packages.microsoft.com/config/ubuntu/22.04/prod.list \
+  > /etc/apt/sources.list.d/mssql-release.list
+apt-get update
+ACCEPT_EULA=Y apt-get install -y msodbcsql17 unixodbc-dev</code></pre>
+
+  <h3>Instalação</h3>
+<pre><code><span class="comment"># Clonar o repositório</span>
+git clone https://github.com/SEU_ORG/agente-comexim-whatsapp.git
+cd agente-comexim-whatsapp
+
+<span class="comment"># Criar ambiente virtual</span>
+python3 -m venv venv
+source venv/bin/activate
+
+<span class="comment"># Instalar dependências</span>
+pip install -r requirements.txt
+
+<span class="comment"># Configurar variáveis de ambiente</span>
+cp .env.example .env
+nano .env   <span class="comment"># preencher com os valores reais</span></code></pre>
+
+  <h3>Rodar localmente</h3>
+<pre><code>source venv/bin/activate
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload</code></pre>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <p>O <code>--reload</code> reinicia automaticamente quando o código muda. <strong>Não usar em produção</strong> — usar systemd (seção 6).</p>
+  </div>
+
+  <h3>Verificar se subiu</h3>
+<pre><code>curl http://localhost:8000/
+<span class="comment"># deve retornar {"status": "ok"}</span></code></pre>
+</div>
+
+<!-- ═══════════════ 6 ═══════════════ -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2>Deploy em Produção (Linux/systemd)</h2>
+  </div>
+
+  <p>O serviço está configurado em <code>/etc/systemd/system/agente-comexim.service</code>.</p>
+
+  <h3>Comandos essenciais</h3>
+<pre><code><span class="comment"># Ver status</span>
+systemctl status agente-comexim
+
+<span class="comment"># Reiniciar após atualização</span>
+systemctl restart agente-comexim
+
+<span class="comment"># Ver logs em tempo real</span>
+journalctl -u agente-comexim -f
+
+<span class="comment"># Ver últimas 50 linhas</span>
+journalctl -u agente-comexim -n 50 --no-pager
+
+<span class="comment"># Logs de um período específico (servidor em UTC, Brasília = UTC-3)</span>
+journalctl -u agente-comexim --since "2026-05-29 17:25" --until "2026-05-29 17:35" --no-pager</code></pre>
+
+  <h3>Processo de deploy (passo a passo)</h3>
+<pre><code>cd /opt/agente-comexim-whatsapp
+
+<span class="comment"># 1. Atualizar código — SEMPRE assim, nunca só git pull</span>
+git fetch origin
+git reset --hard origin/main
+
+<span class="comment"># 2. Reiniciar serviço</span>
+systemctl restart agente-comexim
+
+<span class="comment"># 3. Confirmar que subiu sem erros</span>
+journalctl -u agente-comexim -n 20 --no-pager</code></pre>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <p><strong>Nunca usar só <code>git pull</code></strong> para deploy. Pode dizer "Already up to date" mesmo depois de buscar novos commits se o branch local estiver em estado divergente. Sempre usar <code>git fetch origin &amp;&amp; git reset --hard origin/main</code>.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 7 ═══════════════ -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2>Banco de Dados — SQL Server (Protheus)</h2>
+  </div>
+
+  <div class="callout ok">
+    <div class="callout-icon">✅</div>
+    <p>O sistema <strong>nunca escreve</strong> no banco. Todas as consultas são <code>SELECT * FROM stored_function()</code>. Nenhum INSERT, UPDATE ou DELETE.</p>
+  </div>
+
+  <h3>Como as queries funcionam</h3>
+  <p>O arquivo <code>app/core/database.py</code> tem a classe <code>SQLServerClient</code> com o método <code>execute_function()</code>:</p>
+
+<pre><code><span class="comment"># Funções sem parâmetros — filtros viram WHERE</span>
+sql_client.execute_function(<span class="string">"dbo.IA_Vendas"</span>, filters={<span class="string">"mesEmbarque"</span>: <span class="string">"202601"</span>})
+<span class="comment"># → SELECT * FROM dbo.IA_Vendas() WHERE mesEmbarque = '202601'</span>
+
+<span class="comment"># Funções Par — parâmetros vão na chamada SQL</span>
+sql_client.execute_function(<span class="string">"dbo.IA_VendasPar"</span>, filters={<span class="string">"data_inicio"</span>: <span class="string">"20260101"</span>, <span class="string">"data_fim"</span>: <span class="string">"20260131"</span>})
+<span class="comment"># → SELECT * FROM dbo.IA_VendasPar('20260101', '20260131')</span></code></pre>
+
+  <h3>Mapeamento de funções (FUNCTION_PARAMETERS em database.py)</h3>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Função SQL</th><th>Parâmetros</th><th>Tipo de filtro</th></tr></thead>
+      <tbody>
+        <tr><td><code>IA_Vendas</code></td><td>nenhum</td><td>WHERE (mesEmbarque)</td></tr>
+        <tr><td><code>IA_VendasPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL</td></tr>
+        <tr><td><code>IA_Compras</code></td><td>nenhum</td><td>WHERE (emissao)</td></tr>
+        <tr><td><code>IA_ComprasPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL</td></tr>
+        <tr><td><code>IA_ContasAPagar</code></td><td>nenhum</td><td>WHERE (vencimento)</td></tr>
+        <tr><td><code>IA_ContasAPagarPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL</td></tr>
+        <tr><td><code>IA_ContasPagas</code></td><td>nenhum</td><td>WHERE (emissao)</td></tr>
+        <tr><td><code>IA_ContasPagasPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL</td></tr>
+        <tr><td><code>IA_ContasAReceber</code></td><td>nenhum</td><td>WHERE (vencimentoReal)</td></tr>
+        <tr><td><code>IA_ContasAReceberPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL</td></tr>
+        <tr><td><code>IA_Orcamento</code></td><td>nenhum</td><td>WHERE (ano, mes)</td></tr>
+        <tr><td><code>IA_OrcamentoPar</code></td><td><code>data_inicio, data_fim</code></td><td>na chamada SQL (YYYYMM)</td></tr>
+        <tr><td><code>IA_Cotacao</code></td><td>nenhum</td><td>legado</td></tr>
+        <tr><td><code>IA_Cotacao_Par</code></td><td><code>data</code></td><td>na chamada SQL (YYYYMMDD)</td></tr>
+        <tr><td><code>IA_DespesaVenda</code></td><td>nenhum</td><td>WHERE (contrato)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Adicionar uma nova função</h3>
+  <ol>
+    <li>Criar a stored function no SQL Server</li>
+    <li>Adicionar entrada em <code>FUNCTION_PARAMETERS</code> em <code>app/core/database.py</code></li>
+    <li>Criar a tool correspondente em <code>app/agents/sql_tools.py</code></li>
+    <li>Adicionar a tool na lista <code>get_tools()</code> de <code>sql_tools.py</code></li>
+  </ol>
+</div>
+
+<!-- ═══════════════ 8 ═══════════════ -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2>Redis — Cache e Memória</h2>
+  </div>
+
+  <h3>O que fica no Redis</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Chave</th><th>Conteúdo</th><th>TTL</th></tr></thead>
+      <tbody>
+        <tr><td><code>user:{telefone}</code></td><td>Dados do usuário autenticado</td><td>REDIS_MEMORY_TTL (2h)</td></tr>
+        <tr><td><code>memory:{session_id}</code></td><td>Histórico de mensagens</td><td>REDIS_MEMORY_TTL (2h)</td></tr>
+        <tr><td><code>buffer:{telefone}</code></td><td>Buffer anti-flood</td><td>60s</td></tr>
+        <tr><td><code>scheduler_result:{telefone}</code></td><td>Último resultado de query (para xlsx)</td><td>300s</td></tr>
+        <tr><td><code>contrato_pendente:{session_id}</code></td><td>Estado de criação de contrato</td><td>3600s</td></tr>
+        <tr><td><code>ultimo_contrato:{session_id}</code></td><td>Último contrato consultado (contexto)</td><td>3600s</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p>Se ver no log <code>Conexão Redis perdida: Event loop is closed. Reconectando...</code> — isso é normal. O cliente reconecta automaticamente.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 9 ═══════════════ -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2>Supabase — Agendamentos e Preferências</h2>
+  </div>
+
+  <h3>Tabela: relatorios_agendados</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Campo</th><th>Tipo</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>id</code></td><td>uuid</td><td>ID do agendamento</td></tr>
+        <tr><td><code>telefone</code></td><td>text</td><td>Telefone do usuário</td></tr>
+        <tr><td><code>descricao</code></td><td>text</td><td>O que o relatório deve gerar</td></tr>
+        <tr><td><code>frequencia</code></td><td>text</td><td><code>diario</code>, <code>semanal</code>, <code>mensal</code> ou <code>unico</code></td></tr>
+        <tr><td><code>horario</code></td><td>text</td><td>HH:MM</td></tr>
+        <tr><td><code>dia_semana</code></td><td>int</td><td>0=segunda … 6=domingo (para semanal)</td></tr>
+        <tr><td><code>dia_mes</code></td><td>int</td><td>1-31 (para mensal)</td></tr>
+        <tr><td><code>canal</code></td><td>text</td><td><code>whatsapp</code>, <code>email</code> ou <code>ambos</code></td></tr>
+        <tr><td><code>email_destino</code></td><td>text</td><td>Email de destino (opcional)</td></tr>
+        <tr><td><code>next_run</code></td><td>timestamptz</td><td>Próxima execução</td></tr>
+        <tr><td><code>last_run</code></td><td>timestamptz</td><td>Última execução</td></tr>
+        <tr><td><code>status</code></td><td>text</td><td><code>ativo</code> ou <code>cancelado</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <p><strong>Constraint importante:</strong> A coluna <code>frequencia</code> tem um CHECK constraint. Se adicionar nova frequência no código, rodar no SQL Editor do Supabase:</p>
+  </div>
+
+<pre><code>ALTER TABLE relatorios_agendados DROP CONSTRAINT relatorios_agendados_frequencia_check;
+ALTER TABLE relatorios_agendados ADD CONSTRAINT relatorios_agendados_frequencia_check
+  CHECK (frequencia IN (<span class="string">'diario'</span>, <span class="string">'semanal'</span>, <span class="string">'mensal'</span>, <span class="string">'unico'</span>));</code></pre>
+</div>
+
+<!-- ═══════════════ 10 ═══════════════ -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Autenticação de Usuários</h2>
+  </div>
+
+  <h3>Fluxo normal</h3>
+  <ol>
+    <li>Usuário manda mensagem pelo WhatsApp</li>
+    <li>Sistema extrai o telefone (sem prefixo 55)</li>
+    <li>Consulta <code>POST {PROTHEUS_API_URL}/iaProtheus/getToken</code> com <code>{"telefone": "13991234567"}</code></li>
+    <li>Protheus retorna dados do usuário e lista de permissões</li>
+    <li>Resultado fica em cache no Redis por 2h</li>
+  </ol>
+
+  <h3>Bypass (hardcoded em auth.py)</h3>
+  <p>Alguns usuários estão configurados diretamente em <code>app/services/auth.py</code> para não depender da API do Protheus. Útil para testes e para usuários que a API não retorna corretamente.</p>
+
+<pre><code><span class="keyword">if</span> phone == <span class="string">"11999999999"</span>:
+    <span class="keyword">return</span> <span class="func">UserPermissions</span>(
+        telefone=<span class="string">"11999999999"</span>,
+        nome=<span class="string">"Nome do Usuário"</span>,
+        email=<span class="string">"email@comexim.com.br"</span>,
+        direitos=[<span class="string">"Financeiro"</span>, <span class="string">"Estoque"</span>, <span class="string">"Vendas"</span>, <span class="string">"Compras"</span>, <span class="string">"Orçamento"</span>]
+    )</code></pre>
+
+  <h3>Permissões disponíveis</h3>
+  <p>
+    <span class="badge financeiro">Financeiro</span>
+    <span class="badge estoque">Estoque</span>
+    <span class="badge vendas">Vendas</span>
+    <span class="badge compras">Compras</span>
+    <span class="badge admin">Orçamento</span>
+    <span class="badge todos">RH</span>
+    <span class="badge todos">Fiscal</span>
+    <span class="badge todos">Contábil</span>
+  </p>
+</div>
+
+<!-- ═══════════════ 11 ═══════════════ -->
+<div class="section" id="s11">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Agente IA — Como Funciona</h2>
+  </div>
+
+  <h3>Pattern ReAct (Reason + Act)</h3>
+
+  <div class="diagram">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; gap:6px;">
+      <div class="d-box">📩 Mensagem do usuário</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box blue">🧠 Raciocina sobre qual tool usar</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box green">⚙️ Executa a tool</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box yellow">📊 Analisa resultado</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box">🔁 Precisa mais tools?</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box main">✅ Resposta final</div>
+    </div>
+  </div>
+
+  <h3>System prompt</h3>
+  <p>Gerado dinamicamente em <code>app/prompts/system_prompt.py</code> com: nome e permissões do usuário, data e hora atual, instruções de comportamento, e lista de tools disponíveis e quando usar cada uma.</p>
+
+  <h3>Histórico de conversa</h3>
+  <p>O histórico fica no Redis e é carregado a cada mensagem. Limite configurável por <code>REDIS_MEMORY_WINDOW</code>. Janela deslizante — só as últimas N trocas são enviadas para a OpenAI.</p>
+
+  <h3>Rate limit OpenAI</h3>
+  <p>O sistema tem retry automático em caso de erro 429 (rate limit): aguarda 10 segundos e tenta novamente. Se falhar novamente, retorna mensagem de erro ao usuário.</p>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <p>Se o erro for <strong><code>insufficient_quota</code></strong> (crédito zerado), não há retry — precisa adicionar crédito na conta OpenAI em <strong>platform.openai.com/billing</strong>.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 12 ═══════════════ -->
+<div class="section" id="s12">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>Tools Disponíveis</h2>
+  </div>
+
+  <p>Todas as tools estão em <code>app/agents/sql_tools.py</code>. A IA escolhe qual usar baseada na pergunta do usuário.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Tool</th><th>Função SQL</th><th>Permissão</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>pesquisa_vendas</code></td><td><code>IA_Vendas / IA_VendasPar</code></td><td><span class="badge vendas">Vendas</span></td><td>Contratos de venda/exportação</td></tr>
+        <tr><td><code>pesquisa_compras</code></td><td><code>IA_Compras / IA_ComprasPar</code></td><td><span class="badge compras">Compras</span></td><td>Contratos de compra</td></tr>
+        <tr><td><code>pesquisa_contas_a_pagar</code></td><td><code>IA_ContasAPagar / Par</code></td><td><span class="badge financeiro">Financeiro</span></td><td>Contas a pagar</td></tr>
+        <tr><td><code>pesquisa_contas_pagas</code></td><td><code>IA_ContasPagas / Par</code></td><td><span class="badge financeiro">Financeiro</span></td><td>Contas já pagas</td></tr>
+        <tr><td><code>pesquisa_contas_a_receber</code></td><td><code>IA_ContasAReceber / Par</code></td><td><span class="badge financeiro">Financeiro</span></td><td>Contas a receber</td></tr>
+        <tr><td><code>pesquisa_saldo_bancario</code></td><td><code>IA_SaldoBancario</code></td><td><span class="badge financeiro">Financeiro</span></td><td>Saldo por banco/moeda</td></tr>
+        <tr><td><code>pesquisa_estoque</code></td><td><code>IA_Estoque</code></td><td><span class="badge estoque">Estoque</span></td><td>Estoque físico de café</td></tr>
+        <tr><td><code>pesquisa_cotacao</code></td><td><code>IA_Cotacao_Par</code></td><td><span class="badge vendas">Vendas</span></td><td>Cotações (dólar, euro, café, futuros)</td></tr>
+        <tr><td><code>pesquisa_orcamento</code></td><td><code>IA_Orcamento / Par</code></td><td><span class="badge financeiro">Financeiro</span></td><td>Orçamento vs realizado</td></tr>
+        <tr><td><code>pesquisa_despesa_venda</code></td><td><code>IA_DespesaVenda</code></td><td><span class="badge vendas">Vendas</span></td><td>Despesas por contrato</td></tr>
+        <tr><td><code>pesquisa_longshort</code></td><td><code>IA_LongShort</code></td><td><span class="badge vendas">Vendas</span></td><td>Posição long/short</td></tr>
+        <tr><td><code>pesquisa_internet</code></td><td>Tavily API</td><td><span class="badge todos">—</span></td><td>Busca na internet (fallback)</td></tr>
+        <tr><td><code>criar_relatorio_agendado</code></td><td>Supabase</td><td><span class="badge todos">—</span></td><td>Agenda relatório recorrente ou único</td></tr>
+        <tr><td><code>listar_relatorios_agendados</code></td><td>Supabase</td><td><span class="badge todos">—</span></td><td>Lista agendamentos ativos</td></tr>
+        <tr><td><code>cancelar_relatorio_agendado</code></td><td>Supabase</td><td><span class="badge todos">—</span></td><td>Cancela agendamento por ID</td></tr>
+        <tr><td><code>criar_contrato_venda</code></td><td>API ADA</td><td><span class="badge vendas">Vendas</span></td><td>Cria contrato de exportação</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Como a tool pesquisa_cotacao funciona</h3>
+  <p>Chama <code>SELECT * FROM dbo.IA_Cotacao_Par('YYYYMMDD')</code>. Se o usuário não informar data, usa o dia atual.</p>
+  <ul>
+    <li><code>data</code>: data desejada (qualquer formato, converte automaticamente para YYYYMMDD)</li>
+    <li><code>tipo</code>: filtro por tipo (<code>"Dolar"</code>, <code>"Euro"</code>, <code>"Café"</code>, <code>"Dólar Comercial"</code>)</li>
+    <li><code>ativo</code>: filtro por instrumento (<code>"DOLZ26"</code>, <code>"KCK6"</code>, etc.)</li>
+  </ul>
+  <p>Campos disponíveis no retorno: <code>COTACAO</code>, <code>AJUSTE</code>, <code>ABERTURA</code>, <code>FECHAMENTO</code>, <code>SITUACAO</code>, <code>tipo</code>, <code>ativo</code>.</p>
+</div>
+
+<!-- ═══════════════ 13 ═══════════════ -->
+<div class="section" id="s13">
+  <div class="section-header">
+    <div class="section-num">13</div>
+    <h2>Scheduler de Relatórios Agendados</h2>
+  </div>
+
+  <h3>Como funciona</h3>
+  <p>O APScheduler roda um job <strong>toda hora no minuto 0</strong> que:</p>
+  <ol>
+    <li>Busca no Supabase todos os relatórios com <code>next_run &lt;= agora</code> e <code>status = 'ativo'</code></li>
+    <li>Para cada relatório, autentica o usuário e executa a consulta via agente IA</li>
+    <li>Envia o resultado pelo canal configurado (<code>whatsapp</code>, <code>email</code> ou <code>ambos</code>)</li>
+    <li>Se <code>frequencia = 'unico'</code>: cancela o agendamento após enviar</li>
+    <li>Se recorrente: atualiza <code>next_run</code> para a próxima execução</li>
+  </ol>
+
+  <h3>Frequências suportadas</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Frequência</th><th>Descrição</th></tr></thead>
+      <tbody>
+        <tr><td><code>diario</code></td><td>Todos os dias no horário definido</td></tr>
+        <tr><td><code>semanal</code></td><td>Uma vez por semana no dia/horário definido</td></tr>
+        <tr><td><code>mensal</code></td><td>Uma vez por mês no dia/horário definido</td></tr>
+        <tr><td><code>unico</code></td><td>Uma única vez no horário definido, depois cancela automaticamente</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Email com anexo xlsx</h3>
+  <p>Quando o canal inclui email: salva resultado bruto no Redis (<code>scheduler_result:{telefone}</code>), lê do Redis e gera <code>.xlsx</code> com <code>openpyxl</code>, envia como anexo no email.</p>
+</div>
+
+<!-- ═══════════════ 14 ═══════════════ -->
+<div class="section" id="s14">
+  <div class="section-header">
+    <div class="section-num">14</div>
+    <h2>Anti-Flood e Buffer de Mensagens</h2>
+  </div>
+
+  <p>O sistema implementa um buffer para lidar com usuários que mandam várias mensagens em sequência rápida.</p>
+
+  <div class="diagram">
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <div class="d-box">📨 Mensagem chega</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box blue">buffer:{telefone}<br><small style="opacity:0.7">entra no Redis</small></div>
+      <div class="d-arrow">→</div>
+      <div class="d-box yellow">⏱️ Aguarda 20s</div>
+      <div class="d-arrow">→</div>
+      <div class="d-box" style="font-size:11px;">Nova mensagem?<br><small style="opacity:0.7">Timer reinicia</small></div>
+      <div class="d-arrow">→</div>
+      <div class="d-box green">✅ Processa tudo junto</div>
+    </div>
+  </div>
+
+  <p>Configuração: <code>ANTI_FLOOD_WAIT_SECONDS=20</code> no <code>.env</code></p>
+</div>
+
+<!-- ═══════════════ 15 ═══════════════ -->
+<div class="section" id="s15">
+  <div class="section-header">
+    <div class="section-num">15</div>
+    <h2>Permissões de Usuário</h2>
+  </div>
+
+  <p>Cada tool verifica a permissão antes de executar. Se o usuário não tiver a permissão, recebe mensagem explicando que não tem acesso.</p>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Permissão</th><th>Tools liberadas</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="badge financeiro">Financeiro</span></td>
+          <td><code>contas_a_pagar</code>, <code>contas_pagas</code>, <code>contas_a_receber</code>, <code>saldo_bancario</code>, <code>orcamento</code></td>
+        </tr>
+        <tr>
+          <td><span class="badge vendas">Vendas</span></td>
+          <td><code>vendas</code>, <code>cotacao</code>, <code>despesa_venda</code>, <code>longshort</code>, <code>criar_contrato</code></td>
+        </tr>
+        <tr>
+          <td><span class="badge compras">Compras</span></td>
+          <td><code>compras</code></td>
+        </tr>
+        <tr>
+          <td><span class="badge estoque">Estoque</span></td>
+          <td><code>estoque</code></td>
+        </tr>
+        <tr>
+          <td><span class="badge admin">Orçamento</span></td>
+          <td><code>orcamento</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════ 16 ═══════════════ -->
+<div class="section" id="s16">
+  <div class="section-header">
+    <div class="section-num">16</div>
+    <h2>O que NÃO Fazer — Armadilhas Conhecidas</h2>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <div>
+      <p><strong>Git no servidor — nunca só <code>git pull</code></strong></p>
+      <p>Pode dizer "Already up to date" mesmo com novos commits. Sempre usar:<br><code>git fetch origin &amp;&amp; git reset --hard origin/main</code></p>
+    </div>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <div>
+      <p><strong>Redis e event loop — não trocar o padrão ThreadPoolExecutor</strong></p>
+      <p>O <code>_salvar_resultado_scheduler</code> usa <code>ThreadPoolExecutor</code> para rodar coroutines de dentro de código síncrono (tools LangChain). Não tentar trocar por <code>asyncio.ensure_future()</code> ou <code>loop.run_until_complete()</code> — vai dar "event loop já rodando".</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div>
+      <p><strong>REDIS_MEMORY_WINDOW — não aumentar além de 15</strong></p>
+      <p>Com GPT-4o e histórico longo (especialmente com resultados de queries grandes), é fácil estourar os 30.000 TPM do plano básico da OpenAI.</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div>
+      <p><strong>ODBC Driver — primeiro passo que esquece em servidor novo</strong></p>
+      <p>O driver <code>ODBC Driver 17 for SQL Server</code> precisa estar instalado. Verificar com <code>odbcinst -q -d</code>.</p>
+    </div>
+  </div>
+
+  <div class="callout danger">
+    <div class="callout-icon">🚫</div>
+    <div>
+      <p><strong>.env nunca vai pro git</strong></p>
+      <p>O <code>.env</code> está no <code>.gitignore</code>. Se acidentalmente commitar com credenciais, trocar todas as senhas imediatamente.</p>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <div class="callout-icon">⚠️</div>
+    <div>
+      <p><strong>Supabase CHECK constraint</strong></p>
+      <p>A coluna <code>frequencia</code> tem constraint que limita os valores aceitos. Se criar nova frequência no código sem atualizar o constraint no Supabase, vai dar erro 400 silencioso ao tentar criar agendamento.</p>
+    </div>
+  </div>
+
+  <h3>Tabela de erros comuns</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Erro no log</th><th>Causa</th><th>Solução</th></tr></thead>
+      <tbody>
+        <tr><td><code>insufficient_quota</code></td><td>Crédito OpenAI zerado</td><td>Adicionar crédito em platform.openai.com/billing</td></tr>
+        <tr><td><code>Rate limit reached... TPM</code></td><td>Muitas requisições simultâneas</td><td>Retry automático após 10s</td></tr>
+        <tr><td><code>violates check constraint</code></td><td>Valor inválido no Supabase</td><td>Verificar CHECK constraint da coluna</td></tr>
+        <tr><td><code>No module named 'xxx'</code></td><td>Pacote não instalado</td><td><code>pip install xxx</code> no venv do servidor</td></tr>
+        <tr><td><code>'Settings' object has no attribute</code></td><td>Variável faltando no config.py</td><td>Adicionar campo em <code>app/core/config.py</code></td></tr>
+        <tr><td><code>ODBC Driver not found</code></td><td>Driver SQL Server não instalado</td><td>Instalar <code>msodbcsql17</code> no servidor</td></tr>
+        <tr><td><code>Conexão Redis perdida</code></td><td>Timeout de conexão</td><td>Normal — reconecta automaticamente</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══════════════ 17 ═══════════════ -->
+<div class="section" id="s17">
+  <div class="section-header">
+    <div class="section-num">17</div>
+    <h2>Como Criar um Ambiente de Teste</h2>
+  </div>
+
+  <h3>Opção recomendada: instância separada</h3>
+  <ol>
+    <li><strong>WhatsApp de teste:</strong> criar nova instância no UAZAPI com número diferente</li>
+    <li><strong>Banco de dados:</strong> apontar para banco de homologação do Protheus (ou banco de desenvolvimento)</li>
+    <li><strong>Redis:</strong> usar <code>REDIS_DB=1</code> (ou outro número diferente do de produção)</li>
+    <li><strong>Supabase:</strong> criar projeto separado, ou usar schema diferente</li>
+    <li><strong>OpenAI:</strong> mesma chave ou chave separada</li>
+  </ol>
+
+  <h3>.env do ambiente de teste</h3>
+<pre><code>ENV=development
+DEBUG=true
+LOG_LEVEL=DEBUG
+
+<span class="comment"># Mesmo SQL Server, banco diferente</span>
+SQL_SERVER_DATABASE=ProtheusHML
+
+<span class="comment"># Mesmo Redis, banco diferente</span>
+REDIS_DB=1
+
+<span class="comment"># Nova instância UAZAPI</span>
+EVOLUTION_INSTANCE_NAME=ComexIM_Teste</code></pre>
+
+  <h3>Subir na porta diferente</h3>
+<pre><code>uvicorn main:app --host 0.0.0.0 --port 8001 --reload</code></pre>
+
+  <p>Configurar o webhook da instância UAZAPI de teste para apontar para <code>http://seu_servidor:8001/webhook</code>.</p>
+
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p>O ambiente de teste requer um número de WhatsApp diferente. Não é possível usar o mesmo número de produção — o UAZAPI vincula cada instância a um número específico.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ 18 ═══════════════ -->
+<div class="section" id="s18">
+  <div class="section-header">
+    <div class="section-num">18</div>
+    <h2>Logs e Monitoramento</h2>
+  </div>
+
+  <h3>Onde olhar quando algo dá errado</h3>
+<pre><code><span class="comment"># 1. Ver o erro mais recente</span>
+journalctl -u agente-comexim -n 50 --no-pager | grep -i error
+
+<span class="comment"># 2. Acompanhar em tempo real</span>
+journalctl -u agente-comexim -f
+
+<span class="comment"># 3. Ver logs de uma mensagem específica</span>
+<span class="comment">#    Servidor em UTC — horário de Brasília = UTC-3</span>
+<span class="comment">#    Mensagem chegou às 14:30 SP = 17:30 UTC</span>
+journalctl -u agente-comexim \
+  --since "2026-05-29 17:25" \
+  --until "2026-05-29 17:35" \
+  --no-pager</code></pre>
+
+  <div class="callout info">
+    <div class="callout-icon">ℹ️</div>
+    <p><strong>Atenção ao fuso horário nos logs:</strong> o servidor registra em UTC. Brasília é UTC-3. Se a mensagem chegou às 14:30 no Brasil, procure nos logs por 17:30 UTC.</p>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<div class="footer">
+  <strong>Manual Técnico — Agente Comexim IA</strong><br>
+  Versão main · commit ae61c84 · Maio 2026 · FastAPI + LangGraph + OpenAI + SQL Server
+</div>
+
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Roteiro da Reunião — Agente Comexim IA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
+
+  :root {
+    --primary: #1a3a5c;
+    --accent: #0ea5e9;
+    --green: #059669;
+    --yellow: #d97706;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-700: #334155;
+    --gray-900: #0f172a;
+    --border: #dde3ea;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--gray-900);
+    background: white;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  /* CAPA */
+  .cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1a3a5c 70%, #0369a1 100%);
+    color: white;
+    padding: 56px 60px;
+    page-break-after: always;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 22px;
+  }
+
+  .cover h1 { font-size: 30px; font-weight: 700; margin-bottom: 10px; }
+  .cover h1 span { color: #7dd3fc; }
+  .cover p { font-size: 14px; opacity: 0.75; margin-bottom: 28px; max-width: 500px; }
+
+  .cover-box {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .cover-box strong { color: #7dd3fc; display: block; margin-bottom: 4px; }
+
+  /* CONTEÚDO */
+  .content { padding: 0 56px 48px; }
+
+  /* BLOCO DE FALA */
+  .bloco {
+    margin: 36px 0;
+    page-break-inside: avoid;
+  }
+
+  .bloco-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .bloco-num {
+    background: var(--primary);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .bloco-titulo {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .bloco-sub {
+    font-size: 11px;
+    color: #94a3b8;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+
+  /* FALA */
+  .fala {
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 18px 22px;
+    font-size: 13.5px;
+    color: var(--gray-700);
+    line-height: 1.75;
+    font-style: italic;
+    margin-bottom: 12px;
+  }
+
+  .fala strong { color: var(--gray-900); font-style: normal; }
+  .fala code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    background: #e2e8f0;
+    color: #be123c;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-style: normal;
+  }
+
+  /* DICA */
+  .dica {
+    display: flex;
+    gap: 10px;
+    background: #fef9c3;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #78350f;
+    margin-top: 8px;
+  }
+
+  /* SEPARADOR */
+  .sep {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* CHECKLIST */
+  .check-list {
+    background: var(--gray-50);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 16px 0;
+  }
+
+  .check-list h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+  }
+
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--gray-700);
+  }
+
+  .check-item:last-child { margin-bottom: 0; }
+
+  .check-icon {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  /* CÓDIGO */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.65;
+    margin: 12px 0;
+    overflow-x: auto;
+  }
+
+  pre .c { color: #64748b; }
+
+  @media print {
+    .bloco { page-break-inside: avoid; }
+    h2 { page-break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="cover-badge">Reunião Técnica — Roteiro de Apresentação</div>
+  <h1>O que falar na <span>reunião</span><br>com o time de devs</h1>
+  <p>Script pronto para você apresentar o projeto com confiança — do início ao fim, no tom certo.</p>
+  <div class="cover-box">
+    <strong>Como usar este guia</strong>
+    As falas em itálico são sugestões do que dizer — adapte para seu jeito natural. As dicas em amarelo são lembretes para você, não para falar em voz alta.
+  </div>
+</div>
+
+<div class="content">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">1</div>
+    <div class="bloco-titulo">Abertura <span class="bloco-sub">— primeiros 2 minutos</span></div>
+  </div>
+
+  <div class="fala">
+    "Pessoal, obrigado pelo tempo. Vou mostrar como o projeto foi construído, como vocês podem evoluir ele, e como subir em produção. Qualquer pergunta pode interromper à vontade — prefiro assim do que acumular dúvidas no final."
+  </div>
+
+  <div class="dica">
+    💡 Já abre deixando eles à vontade para perguntar. Isso tira a pressão de você ter que falar sem parar.
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">2</div>
+    <div class="bloco-titulo">O que o sistema faz <span class="bloco-sub">— visão geral</span></div>
+  </div>
+
+  <div class="fala">
+    "Em resumo: o sistema recebe mensagens de WhatsApp, entende o que o usuário quer usando IA, consulta o banco do Protheus, e responde em linguagem natural. O usuário pergunta 'quanto foi vendido em janeiro?' e recebe a resposta formatada, sem precisar abrir nenhum sistema."
+  </div>
+
+  <div class="fala">
+    "O fluxo completo é assim: mensagem chega pelo WhatsApp → passa por uma camada de autenticação que valida no Protheus se aquele número tem acesso → vai para o agente de IA → o agente decide qual consulta fazer no banco → retorna a resposta pro usuário."
+  </div>
+
+  <div class="dica">
+    💡 Aqui é um ótimo momento para mostrar ao vivo — manda uma mensagem no WhatsApp e mostra a resposta chegando em tempo real. Vale mais que qualquer explicação.
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">3</div>
+    <div class="bloco-titulo">Como foi construído <span class="bloco-sub">— stack técnico</span></div>
+  </div>
+
+  <div class="fala">
+    "A estrutura é: <strong>FastAPI</strong> como API web — é assíncrono, ideal para lidar com várias mensagens ao mesmo tempo. <strong>LangGraph</strong> para o agente de IA, usando o padrão ReAct onde a IA raciocina antes de agir. <strong>GPT-4o</strong> da OpenAI como modelo de linguagem. <strong>Redis</strong> para cache e memória das conversas. <strong>Supabase</strong> para agendamentos automáticos. E o banco do Protheus via ODBC para as consultas."
+  </div>
+
+  <div class="fala">
+    "Uma decisão importante: o sistema é <strong>100% read-only no Protheus</strong>. Tudo é <code>SELECT * FROM stored_function()</code>. A IA nunca escreve, nunca altera nada no ERP. Isso foi intencional por segurança."
+  </div>
+
+  <div class="dica">
+    💡 Essa parte do read-only sempre impressiona e gera confiança. Deixa claro que não tem risco de a IA estragar dados.
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">4</div>
+    <div class="bloco-titulo">Como adicionar novas funcionalidades <span class="bloco-sub">— o mais importante para eles</span></div>
+  </div>
+
+  <div class="fala">
+    "Quando vocês quiserem adicionar uma nova consulta — por exemplo, um relatório de RH — o processo é simples em 4 passos:"
+  </div>
+
+  <div class="check-list">
+    <h4>Passo a passo para nova funcionalidade</h4>
+    <div class="check-item"><div class="check-icon">1</div><div>Criar a <strong>stored function</strong> no SQL Server com os dados que quer retornar</div></div>
+    <div class="check-item"><div class="check-icon">2</div><div>Registrar a função em <code>app/core/database.py</code> no dicionário <code>FUNCTION_PARAMETERS</code></div></div>
+    <div class="check-item"><div class="check-icon">3</div><div>Criar a <strong>tool</strong> em <code>app/agents/sql_tools.py</code> — basicamente uma função Python com uma descrição em linguagem natural dizendo quando a IA deve usá-la</div></div>
+    <div class="check-item"><div class="check-icon">4</div><div>Adicionar na lista <code>get_tools()</code> no mesmo arquivo</div></div>
+  </div>
+
+  <div class="fala">
+    "O ponto mais importante: a IA aprende a usar a nova ferramenta <strong>pela descrição que vocês escrevem</strong>. Quanto mais clara e específica for a descrição, melhor a IA vai saber quando usar. Não tem treinamento, não tem nada especial — é só texto."
+  </div>
+
+  <div class="dica">
+    💡 Se tiver tempo, mostra o arquivo sql_tools.py e aponta uma tool existente. Eles vão entender na hora.
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">5</div>
+    <div class="bloco-titulo">Como subir em produção <span class="bloco-sub">— deploy</span></div>
+  </div>
+
+  <div class="fala">
+    "O servidor roda Linux com o serviço gerenciado pelo systemd. Para fazer um deploy, o processo é:"
+  </div>
+
+<pre><code><span class="c"># 1. Entra na pasta do projeto no servidor</span>
+cd /opt/agente-comexim-whatsapp
+
+<span class="c"># 2. Atualiza o código — sempre assim, não só "git pull"</span>
+git fetch origin
+git reset --hard origin/main
+
+<span class="c"># 3. Reinicia o serviço</span>
+systemctl restart agente-comexim
+
+<span class="c"># 4. Confirma que subiu sem erro</span>
+journalctl -u agente-comexim -n 20 --no-pager</code></pre>
+
+  <div class="fala">
+    "Tem um detalhe importante: não usar só <code>git pull</code> para deploy. Em algumas situações ele diz 'Already up to date' mesmo sem ter atualizado os arquivos. O <code>git reset --hard origin/main</code> garante que o servidor fica idêntico ao repositório."
+  </div>
+
+  <div class="dica">
+    💡 Esse é um dos aprendizados práticos do projeto. Falar isso mostra que você já passou por isso e resolveu.
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">6</div>
+    <div class="bloco-titulo">Configuração e variáveis de ambiente <span class="bloco-sub">— o .env</span></div>
+  </div>
+
+  <div class="fala">
+    "Toda a configuração do sistema fica no arquivo <code>.env</code> na raiz do projeto. Ele não vai pro GitHub por segurança — existe um <code>.env.example</code> com todas as variáveis listadas para servir de guia."
+  </div>
+
+  <div class="fala">
+    "As principais que vocês vão precisar configurar: <strong>credenciais do SQL Server</strong>, <strong>chave da OpenAI</strong>, <strong>token do UAZAPI</strong>, <strong>Redis</strong> e <strong>Supabase</strong>. Tem tudo documentado no manual com explicação de cada variável."
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">7</div>
+    <div class="bloco-titulo">Cuidados importantes <span class="bloco-sub">— o que não fazer</span></div>
+  </div>
+
+  <div class="fala">
+    "Algumas coisas que aprendi na prática que vale mencionar:"
+  </div>
+
+  <div class="fala">
+    "<strong>Primeiro:</strong> não aumentar o <code>REDIS_MEMORY_WINDOW</code> para além de 15. Esse parâmetro controla quantas mensagens ficam no contexto da IA — se ficar muito grande, estoura o limite de tokens da OpenAI quando vários usuários usam ao mesmo tempo."
+  </div>
+
+  <div class="fala">
+    "<strong>Segundo:</strong> se mudar de servidor, o primeiro passo é instalar o <strong>ODBC Driver</strong> do SQL Server. É fácil de esquecer e o sistema não sobe sem ele."
+  </div>
+
+  <div class="fala">
+    "<strong>Terceiro:</strong> o Supabase tem um CHECK constraint na coluna de frequência dos agendamentos. Se quiserem adicionar um novo tipo de agendamento no código, precisam atualizar esse constraint no Supabase também — senão vai dar erro silencioso."
+  </div>
+
+  <div class="fala">
+    "<strong>Quarto:</strong> se a API da OpenAI retornar erro <code>insufficient_quota</code>, é crédito zerado — não é bug de código. Precisa adicionar crédito em platform.openai.com. O sistema tem retry automático para rate limit normal, mas não tem fallback para crédito zerado."
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">8</div>
+    <div class="bloco-titulo">Ambiente de teste <span class="bloco-sub">— como criar</span></div>
+  </div>
+
+  <div class="fala">
+    "Para ter um ambiente de teste separado do de produção, precisam basicamente de três coisas: um <strong>número de WhatsApp diferente</strong> para criar nova instância no UAZAPI, apontar para o <strong>banco de homologação</strong> do Protheus, e usar <code>REDIS_DB=1</code> no lugar do 0 para não misturar os dados."
+  </div>
+
+  <div class="fala">
+    "O sistema sobe numa porta diferente — por exemplo <code>porta 8001</code> — e o webhook do UAZAPI de teste aponta pra essa porta. Produção continua na porta 8000 sem interferência."
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">9</div>
+    <div class="bloco-titulo">Como ver os logs quando algo dá errado <span class="bloco-sub">— monitoramento</span></div>
+  </div>
+
+  <div class="fala">
+    "Para investigar um problema, os logs ficam no journalctl. Os comandos mais úteis:"
+  </div>
+
+<pre><code><span class="c"># Ver erros recentes</span>
+journalctl -u agente-comexim -n 50 --no-pager | grep -i error
+
+<span class="c"># Acompanhar ao vivo</span>
+journalctl -u agente-comexim -f</code></pre>
+
+  <div class="fala">
+    "Um detalhe: o servidor registra em UTC, mas o horário de Brasília é UTC-3. Se uma mensagem chegou às 14h aqui, nos logs vai aparecer como 17h."
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ══════════════════════════════════════ -->
+<div class="bloco">
+  <div class="bloco-header">
+    <div class="bloco-num">10</div>
+    <div class="bloco-titulo">Encerramento <span class="bloco-sub">— como fechar bem</span></div>
+  </div>
+
+  <div class="fala">
+    "Tem um manual técnico completo com tudo isso documentado — arquitetura, estrutura de pastas, todas as variáveis do .env, processo de deploy, e uma tabela de erros comuns com a solução. Vou compartilhar com vocês."
+  </div>
+
+  <div class="fala">
+    "O projeto está em produção e funcionando. A base está sólida — adicionar novas consultas é rápido, o padrão está estabelecido. Qualquer dúvida que surgir durante o desenvolvimento, pode me chamar."
+  </div>
+
+  <div class="dica">
+    💡 Fecha no positivo. Sistema em produção funcionando é a maior prova de que o trabalho foi bem feito.
+  </div>
+</div>
+
+</div><!-- /content -->
+</body>
+</html>

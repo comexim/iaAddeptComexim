@@ -1,0 +1,241 @@
+================================================================================
+MAPEAMENTO COMPLETO: IA_Estoque()
+================================================================================
+
+Total de colunas: 18
+Total de registros analisados: 100
+
+COLUNAS E TIPOS:
+--------------------------------------------------------------------------------
+
+filial
+  Tipo: str
+  Exemplo: OURO FINO
+
+lote
+  Tipo: str
+  Exemplo: TR-06043100
+
+loteFonecedor
+  Tipo: str
+  Exemplo: 
+
+linha
+  Tipo: str
+  Exemplo: PVA
+
+impureza
+  Tipo: float
+  Exemplo: 0.0
+
+quebra
+  Tipo: float
+  Exemplo: 0.0
+
+pva
+  Tipo: float
+  Exemplo: 100.0
+
+grinder
+  Tipo: float
+  Exemplo: 0.0
+
+peneiraGrauda
+  Tipo: float
+  Exemplo: 0.0
+
+peneiraMTGB
+  Tipo: float
+  Exemplo: 0.0
+
+fundo
+  Tipo: float
+  Exemplo: 0.0
+
+certificado
+  Tipo: str
+  Exemplo: RF
+
+peso
+  Tipo: float
+  Exemplo: 1056.8
+
+armazem
+  Tipo: str
+  Exemplo: ARMAZEM OURO FINO
+
+pais
+  Tipo: str
+  Exemplo: BRASIL
+
+sacas
+  Tipo: Decimal
+  Exemplo: 17.91
+
+sacasConsumo
+  Tipo: Decimal
+  Exemplo: 17.91
+
+sacasExportacao
+  Tipo: Decimal
+  Exemplo: 0.0
+
+
+================================================================================
+ANÁLISE DE VALORES ÚNICOS
+================================================================================
+
+
+FILIAL (1 valores únicos):
+  - OURO FINO: 100 registros
+
+LINHA (9 valores únicos):
+  - CD: 1 registros
+  - FUNDI: 1 registros
+  - GRD: 43 registros
+  - LN1: 6 registros
+  - LN1/2: 2 registros
+  - LN2: 2 registros
+  - LN2/3: 6 registros
+  - LN3: 3 registros
+  - PVA: 36 registros
+
+CERTIFICADO (5 valores únicos):
+  - 4C: 8 registros
+  - CP: 2 registros
+  - GC: 6 registros
+  - GT: 2 registros
+  - RF: 69 registros
+
+================================================================================
+ESTATÍSTICAS NUMÉRICAS
+================================================================================
+
+
+impureza:
+  Mínimo: 0.35
+  Máximo: 100.00
+  Média: 18.88
+  Registros não-zero: 48/100
+
+pva:
+  Mínimo: 1.00
+  Máximo: 100.00
+  Média: 56.69
+  Registros não-zero: 64/100
+
+grinder:
+  Mínimo: 2.00
+  Máximo: 100.00
+  Média: 68.08
+  Registros não-zero: 50/100
+
+peneiraGrauda:
+  Mínimo: 4.73
+  Máximo: 100.00
+  Média: 68.66
+  Registros não-zero: 14/100
+
+peneiraMTGB:
+  Mínimo: 4.99
+  Máximo: 100.00
+  Média: 69.45
+  Registros não-zero: 15/100
+
+fundo:
+  Mínimo: 0.09
+  Máximo: 19.00
+  Média: 7.29
+  Registros não-zero: 8/100
+
+peso:
+  Mínimo: 115.70
+  Máximo: 57,559.40
+  Média: 6,963.43
+  Registros não-zero: 100/100
+
+sacas:
+  Mínimo: 1.96
+  Máximo: 975.58
+  Média: 118.02
+  Registros não-zero: 100/100
+
+sacasConsumo:
+  Mínimo: 0.46
+  Máximo: 734.86
+  Média: 62.51
+  Registros não-zero: 80/100
+
+sacasExportacao:
+  Mínimo: 1.96
+  Máximo: 565.83
+  Média: 106.27
+  Registros não-zero: 64/100
+
+================================================================================
+EXEMPLOS DE REGISTROS COMPLETOS
+================================================================================
+
+
+REGISTRO 1:
+--------------------------------------------------------------------------------
+filial: OURO FINO
+lote: TR-06043100
+loteFonecedor: 
+linha: PVA
+impureza: 0.0
+quebra: 0.0
+pva: 100.0
+grinder: 0.0
+peneiraGrauda: 0.0
+peneiraMTGB: 0.0
+fundo: 0.0
+certificado: RF
+peso: 1056.8
+armazem: ARMAZEM OURO FINO
+pais: BRASIL
+sacas: 17.91
+sacasConsumo: 17.91
+sacasExportacao: 0.0
+
+REGISTRO 2:
+--------------------------------------------------------------------------------
+filial: OURO FINO
+lote: TR-06043000
+loteFonecedor: 
+linha: PVA
+impureza: 0.0
+quebra: 0.0
+pva: 100.0
+grinder: 0.0
+peneiraGrauda: 0.0
+peneiraMTGB: 0.0
+fundo: 0.0
+certificado: RF
+peso: 671.2
+armazem: ARMAZEM OURO FINO
+pais: BRASIL
+sacas: 11.37
+sacasConsumo: 11.37
+sacasExportacao: 0.0
+
+REGISTRO 3:
+--------------------------------------------------------------------------------
+filial: OURO FINO
+lote: RB-064904NN
+loteFonecedor: 
+linha: PVA
+impureza: 0.0
+quebra: 0.0
+pva: 100.0
+grinder: 0.0
+peneiraGrauda: 0.0
+peneiraMTGB: 0.0
+fundo: 0.0
+certificado: RF
+peso: 1133.6
+armazem: ARMAZEM OURO FINO
+pais: BRASIL
+sacas: 19.21
+sacasConsumo: 19.21
+sacasExportacao: 0.0

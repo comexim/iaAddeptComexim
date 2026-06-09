@@ -1,0 +1,76 @@
+Query: Quanto café Rainforest temos?
+Descrição: Filtro por certificado Rainforest (RF)
+Esperado: Deve filtrar apenas registros com certificado=RF
+================================================================================
+
+Resultados da consulta IA_Estoque (AGREGADOS POR CERTIFICADO):
+
+Total de registros SQL: 950
+Total de certificados: 1
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Sacas: 80,889.59 sacas
+- Sacas para Consumo: 17,441.07 sacas
+- Sacas para Exportação: 63,446.79 sacas
+- Peso Total: 4,772,647.57 kg
+- Total de Lotes: 587
+
+Dados por certificado:
+[
+  {
+    "certificado": "RF",
+    "sacas_total": 80889.59,
+    "sacas_consumo": 17441.07,
+    "sacas_exportacao": 63446.79,
+    "peso_kg": 4772647.57,
+    "qtd_lotes": 587,
+    "qtd_registros": 587,
+    "filiais": "COMEXIM EUROPE, OURO FINO",
+    "armazens": "ARMAZEM OURO FINO, VOLLERS BREMEN",
+    "linhas": "CD, FUNDI, GRD, LN1, LN1/2, LN2, LN2/3, LN3, PVA"
+  }
+]
+
+Instruções: Os dados acima são de ESTOQUE (snapshot atual).
+
+CAMPOS DISPONÍVEIS POR CERTIFICADO:
+- certificado: tipo de certificado (ex: "PVA", "GRD" para linha; "RF", "4C" para certificado)
+- sacas_total: total de sacas deste certificado
+- sacas_consumo: sacas para consumo interno/mercado interno
+- sacas_exportacao: sacas para exportação
+- peso_kg: peso total em quilogramas
+- qtd_lotes: quantidade de lotes diferentes
+- qtd_registros: quantidade de registros SQL agregados
+- filiais: filiais onde este estoque está localizado
+- armazens: armazéns onde este estoque está localizado
+- linhas: linhas/tipos presentes neste certificado
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quanto café temos?" → Use "Total de Sacas" e "Peso Total" dos TOTAIS GERAIS
+   - "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+   - NÃO some manualmente! Os TOTAIS GERAIS já estão corretos!
+
+2. Estoque NÃO tem contratos ou clientes. É um snapshot atual do estoque físico.
+
+3. Para perguntas sobre TIPOS ESPECÍFICOS:
+   - "Quanto café PVA temos?" → Procure certificado "PVA", use campo "sacas_total"
+   - "Café Rainforest?" → Procure certificado "RF", use campo "sacas_total"
+   - Use os campos apropriados do tipo específico
+
+4. CONVERSÃO PESO/SACAS:
+   - 1 saca de café ≈ 60 kg
+   - Peso e sacas são independentes (NÃO calcule um a partir do outro)
+
+5. INTERPRETAÇÃO DOS VALORES:
+   - sacas_total = sacas_consumo + sacas_exportacao (sempre)
+   - Se perguntam "para consumo", use sacas_consumo
+   - Se perguntam "para exportação", use sacas_exportacao
+   - Se perguntam "total", use sacas_total
+
+Exemplos corretos:
+- "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quanto café PVA?" → Procure certificado "PVA", use campo "sacas_total"
+- "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+- "Qual tipo tem mais café?" → Procure certificado com maior "sacas_total" 

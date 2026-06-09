@@ -3847,6 +3847,25 @@ IMPORTANTE:
         logger.info(f"[DESPESA VENDA] Retornando {len(despesas_list)} tipos de despesa agregados")
         return despesas_list
 
+    def _pesquisa_despesa_venda_par(self, contrato: str, letra: Optional[str] = None) -> str:
+        """
+        Consulta despesas de venda de um contrato específico via IA_DespesaVendaPar.
+
+        Args:
+            contrato: Número do contrato (obrigatório). Ex: "235/25", "400/25A"
+            letra: Letra/parcela do contrato (opcional). Ex: "A", "B"
+
+        Returns:
+            Lista de despesas do contrato ou mensagem de erro
+        """
+        logger.info(f"[DESPESA VENDA PAR] Consultando despesas - contrato: {contrato}, letra: {letra}")
+
+        filters = {"numContrato": contrato}
+        if letra:
+            filters["numLetra"] = letra
+
+        return self._validate_and_execute("IA_DespesaVendaPar", filters)
+
     def _pesquisa_cotacao(
         self,
         data: Optional[str] = None,
@@ -4770,6 +4789,38 @@ Exemplos:
 - "Clima em Santos amanhã" → pesquisa_internet(query="previsão do tempo Santos SP amanhã")
 """
             ),
+
+            StructuredTool.from_function(
+                func=self._pesquisa_despesa_venda_par,
+                name="pesquisa_despesa_venda_par",
+                description="""Consulta DESPESAS DE VENDA de um contrato específico passando contrato e letra como parâmetros diretos ao banco de dados.
+
+Use esta ferramenta quando o usuário perguntar sobre despesas de um contrato específico E informar o número do contrato. Esta é a versão otimizada de pesquisa_despesa_venda — os filtros são passados diretamente ao SQL, tornando a busca mais precisa e eficiente.
+
+QUANDO USAR:
+- Usuário menciona um número de contrato específico E quer ver as despesas daquele contrato
+- Usuário quer saber quanto gastou em um contrato específico (desembaraço, fumigação, taxas, etc.)
+- Quando o número do contrato estiver disponível, SEMPRE prefira esta tool sobre pesquisa_despesa_venda
+
+DIFERENÇA de pesquisa_despesa_venda:
+- pesquisa_despesa_venda_par → passa contrato e letra diretamente ao SQL (mais eficiente e preciso)
+- pesquisa_despesa_venda → versão genérica, sem suporte à letra, filtra no resultado
+
+PARÂMETROS:
+- contrato (obrigatório): Número do contrato exatamente como informado pelo usuário
+  Ex: "235/25", "400/25A", "100/24"
+- letra (opcional): Letra ou parcela do contrato — informe APENAS se o usuário mencionar explicitamente
+  Ex: "A", "B", "C"
+
+EXEMPLOS DE USO:
+- "Quais as despesas do contrato 235/25?" → pesquisa_despesa_venda_par(contrato="235/25")
+- "Despesas do contrato 400/25A letra B" → pesquisa_despesa_venda_par(contrato="400/25A", letra="B")
+- "Quanto custou o desembaraço do contrato 100/24?" → pesquisa_despesa_venda_par(contrato="100/24")
+- "Mostre todas as despesas do contrato 310/25" → pesquisa_despesa_venda_par(contrato="310/25")
+
+⚠️ NÃO USE sem número de contrato — se o usuário não informou o contrato, use pesquisa_despesa_venda.""",
+            ),
+
         ]
         
         # Adiciona tool de criação de contratos ADA

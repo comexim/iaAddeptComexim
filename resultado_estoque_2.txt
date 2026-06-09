@@ -1,0 +1,76 @@
+Query: Quanto café PVA temos?
+Descrição: Filtro por linha PVA
+Esperado: Deve filtrar apenas registros com linha=PVA
+================================================================================
+
+Resultados da consulta IA_Estoque (AGREGADOS POR LINHA):
+
+Total de registros SQL: 950
+Total de linhas: 1
+
+TOTAIS GERAIS (PRÉ-CALCULADOS):
+- Total de Sacas: 11,135.95 sacas
+- Sacas para Consumo: 11,126.32 sacas
+- Sacas para Exportação: 9.61 sacas
+- Peso Total: 657,094.63 kg
+- Total de Lotes: 252
+
+Dados por linha:
+[
+  {
+    "linha": "PVA",
+    "sacas_total": 11135.95,
+    "sacas_consumo": 11126.32,
+    "sacas_exportacao": 9.61,
+    "peso_kg": 657094.63,
+    "qtd_lotes": 252,
+    "qtd_registros": 252,
+    "filiais": "OURO FINO",
+    "armazens": "ARMAZEM OURO FINO",
+    "certificados": "4C, GC, RF"
+  }
+]
+
+Instruções: Os dados acima são de ESTOQUE (snapshot atual).
+
+CAMPOS DISPONÍVEIS POR LINHA:
+- linha: tipo de linha (ex: "PVA", "GRD" para linha; "RF", "4C" para certificado)
+- sacas_total: total de sacas deste linha
+- sacas_consumo: sacas para consumo interno/mercado interno
+- sacas_exportacao: sacas para exportação
+- peso_kg: peso total em quilogramas
+- qtd_lotes: quantidade de lotes diferentes
+- qtd_registros: quantidade de registros SQL agregados
+- filiais: filiais onde este estoque está localizado
+- armazens: armazéns onde este estoque está localizado
+- certificados: certificações presentes neste tipo de café
+
+IMPORTANTE - REGRAS CRÍTICAS:
+1. ⚠️ SEMPRE USE OS "TOTAIS GERAIS (PRÉ-CALCULADOS)" PARA PERGUNTAS SOBRE TOTAIS!
+   - "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+   - "Quanto café temos?" → Use "Total de Sacas" e "Peso Total" dos TOTAIS GERAIS
+   - "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+   - NÃO some manualmente! Os TOTAIS GERAIS já estão corretos!
+
+2. Estoque NÃO tem contratos ou clientes. É um snapshot atual do estoque físico.
+
+3. Para perguntas sobre TIPOS ESPECÍFICOS:
+   - "Quanto café PVA temos?" → Procure linha "PVA", use campo "sacas_total"
+   - "Café Rainforest?" → Procure certificado "RF", use campo "sacas_total"
+   - Use os campos apropriados do tipo específico
+
+4. CONVERSÃO PESO/SACAS:
+   - 1 saca de café ≈ 60 kg
+   - Peso e sacas são independentes (NÃO calcule um a partir do outro)
+
+5. INTERPRETAÇÃO DOS VALORES:
+   - sacas_total = sacas_consumo + sacas_exportacao (sempre)
+   - Se perguntam "para consumo", use sacas_consumo
+   - Se perguntam "para exportação", use sacas_exportacao
+   - Se perguntam "total", use sacas_total
+
+Exemplos corretos:
+- "Quantas sacas temos?" → Use "Total de Sacas" dos TOTAIS GERAIS
+- "Quanto café PVA?" → Procure linha "PVA", use campo "sacas_total"
+- "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
+- "Qual tipo tem mais café?" → Procure linha com maior "sacas_total" 

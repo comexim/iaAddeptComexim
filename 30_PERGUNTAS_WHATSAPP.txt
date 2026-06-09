@@ -1,0 +1,114 @@
+═══════════════════════════════════════════════════════════════════════════════
+30 PERGUNTAS COMPLEXAS - TESTE FINAL VIA WHATSAPP
+═══════════════════════════════════════════════════════════════════════════════
+
+📦 1. IA_ESTOQUE (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[1.1] Temos mais café GRD brasileiro para exportação ou LN2 europeu para consumo?
+
+[1.2] Qual certificação tem mais sacas disponíveis para exportação: Rainforest, 4C ou GC?
+
+[1.3] Quanto café PVA brasileiro sem certificação Rainforest temos para o mercado interno?
+
+
+📈 2. IA_VENDAS (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[2.1] Vendi mais para a Nestlé ou para a Starbucks em dezembro de 2025?
+
+[2.2] Quantos contratos embarcaram na última semana e qual foi o valor total?
+
+[2.3] Quanto em valor está baixado no contas a receber em janeiro de 2026?
+
+
+🛒 3. IA_COMPRAS (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[3.1] Qual foi o maior fornecedor de café nos últimos 30 dias?
+
+[3.2] Comprei mais café em novembro ou dezembro de 2025?
+
+[3.3] Quanto gastei com compras de café no dia 15 de dezembro de 2025?
+
+
+💳 4. IA_CONTASPAGAS (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[4.1] Quanto paguei em dólar para fornecedores este mês?
+
+[4.2] Gastei mais com café ou com frete nos últimos 7 dias?
+
+[4.3] Quantos pagamentos fiz pelo Itaú Santos em dezembro de 2025 e qual o total?
+
+
+📋 5. IA_CONTASAPAGAR (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[5.1] Quanto em contas vencidas tenho a pagar e quantas são para fornecedores de café?
+
+[5.2] Quanto vou pagar de INSS e salários nos próximos 15 dias?
+
+[5.3] Tenho mais a pagar em compra de café ou tarifas bancárias este mês?
+
+
+💰 6. IA_CONTASARECEBER (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[6.1] Quanto a Nestlé vai me pagar nos próximos 7 dias?
+
+[6.2] Quem me deve mais: Nestlé ou Starbucks?
+
+[6.3] Quantos títulos vencidos tenho a receber e qual o valor total?
+
+
+🏦 7. IA_SALDOBANCARIO (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[7.1] Tenho mais dinheiro no Itaú Santos ou no Bradesco?
+
+[7.2] Quanto tenho em dólar em todos os bancos?
+
+[7.3] Quantos bancos estão com saldo negativo e qual o total devedor?
+
+
+📊 8. IA_ORCAMENTO (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[8.1] Vendi mais ou menos que o orçado em dezembro de 2025?
+
+[8.2] Qual foi o percentual de realização do orçamento no último trimestre de 2025?
+
+[8.3] Em qual mês de 2025 tive o maior estouro de orçamento?
+
+
+📈 9. IA_COTACAO (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[9.1] Qual está mais caro: contrato C (Arábica) ou KC (Robusta)?
+
+[9.2] Quanto subiu ou caiu o contrato C hoje?
+
+[9.3] Qual o spread entre o preço de abertura e fechamento do KC?
+
+
+💸 10. IA_DESPESAVENDA (3 perguntas)
+═══════════════════════════════════════════════════════════════════════════════
+
+[10.1] Gastei mais com desembaraço ou fumigação em todos os contratos?
+
+[10.2] Quanto gastei no total com despesas do contrato 235/25?
+
+[10.3] Qual tipo de despesa teve mais ocorrências em 2025 e quantos contratos foram afetados?
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FIM DAS 30 PERGUNTAS
+═══════════════════════════════════════════════════════════════════════════════
+
+INSTRUÇÕES:
+1. Copie cada pergunta e cole no WhatsApp
+2. Anote a resposta completa da IA
+3. Execute: python validador_automatico_30_queries.py (para obter valores esperados)
+4. Compare e marque ✅ ou ❌
+5. Meta: mínimo 27/30 corretas (90%)

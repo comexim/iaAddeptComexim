@@ -39,7 +39,12 @@
       "Bash(ssh:*)",
       "Bash(quantos já foram embarcados mas ainda não têm BL?\"\n\nIA respondeu: \"3 contratos\" ❌\nCorreto:      \"0 contratos\" \\(todos os 3 da Alemanha TÊM BL\\)\n\nCausa raiz:\n===========\nExiste uma \"otimização especial\" \\(linhas 380-416\\) que detecta \nperguntas sobre \"sem BL\" e retorna uma resposta direta formatada.\n\nMAS essa otimização:\n- Não verificava se a pergunta menciona país específico\n- Retornava dados de TODOS os contratos \\(60 total\\)\n- Não filtrava por Alemanha\n\nResultado: IA viu \"3 contratos sem BL\" \\(de outros países\\) \ne assumiu que eram da Alemanha.\n\nDados reais da Alemanha em dezembro/2025:\n=========================================\n1. 488/25 \\(COMEXIM EUROPE\\):     com BL ✓, embarcado ✓\n2. 453/25A \\(BERNHARD ROTHFOS\\):  com BL ✓, embarcado ✓\n3. 453/25B \\(BERNHARD ROTHFOS\\):  com BL ✓, embarcado ✓\n\nTotal: 3 embarcados, 3 com BL\nEmbarcados SEM BL = 3 - 3 = 0\n\nSolução implementada:\n=====================\n1. Detectar se pergunta menciona país específico\n   - Lista de países: alemanha, argentina, brasil, eua, china, etc.\n   - Se detectado, define menciona_pais = True\n\n2. NÃO aplicar otimização se menciona_pais = True\n   - Deixa a IA processar dados agregados normais\n   - Dados agregados incluem seção CONTRATOS POR PAÍS\n   - IA consegue filtrar por país corretamente\n\n3. Aplicar correção também para otimização \"sem amostra\"\n   - Mesma lógica, mesmo problema potencial\n\nResultado após fix:\n==================\n- Tool retorna 1720 linhas \\(não mais apenas 7\\)\n- Inclui seção CONTRATOS POR PAÍS com Alemanha\n- Inclui dados agregados por cliente com campos:\n  * total_contratos_com_bl\n  * total_contratos_embarcados\n- IA consegue calcular: embarcados_sem_bl = embarcados - com_bl\n\nAgora a IA pode responder corretamente: \"0 contratos\"\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(iconv:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(CAFE\", duplicando R$ 512.980,71.\n\nResultado: Total errado \\(faltavam R$ 521k\\).\n\nSolução: Dedupulicar baseado em \\(numero, parcela, filial\\) antes de \nprocessar, mantendo apenas a primeira ocorrência de cada título.\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(nslookup:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }
