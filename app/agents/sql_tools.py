@@ -2831,7 +2831,7 @@ IMPORTANTE:
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None, data_emissao: Optional[str] = None, natureza: Optional[str] = None) -> str:
+    def _pesquisa_contas_a_pagar(self, data_vencimento: Optional[str] = None, data_emissao: Optional[str] = None, natureza: Optional[str] = None, fornecedor: Optional[str] = None, limite: Optional[int] = None) -> str:
         """
         Consulta contas a pagar (vencimentos futuros/pendentes).
 
@@ -2843,11 +2843,10 @@ IMPORTANTE:
         Returns:
             Dados de contas a pagar formatados
         """
-        logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}, data_emissao: {data_emissao}, natureza: {natureza}")
+        logger.info(f"[CONTAS A PAGAR] Consultando contas a pagar - data_vencimento: {data_vencimento}, data_emissao: {data_emissao}, natureza: {natureza}, fornecedor: {fornecedor}, limite: {limite}")
 
-        # NOVA LÓGICA: Detecta se deve usar IA_ContasAPagarPar ou IA_ContasAPagar
-        function_name = "IA_ContasAPagar"
-        filters = None
+        procedure_name = "usp_IA_ContasAPagar"
+        procedure_params = {}
         data_fim_filter = None
         emissao_fim_filter = None
 
@@ -2874,26 +2873,33 @@ IMPORTANTE:
                     fim = parsed.get("data_fim", inicio)
                     logger.info(f"[CONTAS A PAGAR] Data única detectada: {inicio}")
 
-                # Se temos datas, usa IA_ContasAPagarPar com parâmetros
-                if inicio and fim:
-                    function_name = "IA_ContasAPagarPar"
-                    filters = {
-                        "data_inicio": inicio,
-                        "data_fim": fim
-                    }
-                    logger.info(f"[CONTAS A PAGAR] Usando IA_ContasAPagarPar('{inicio}', '{fim}')")
-        else:
-            logger.info("[CONTAS A PAGAR] Sem data - usando IA_ContasAPagar() sem parâmetros")
+                # Para contas a pagar, "esta semana" considera domingo a sábado.
+                texto_data = str(data_para_parse).lower()
+                if inicio and fim and any(expressao in texto_data for expressao in ("esta semana", "essa semana", "desta semana", "nessa semana")):
+                    from datetime import datetime, timedelta
+                    inicio = (datetime.strptime(inicio, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
+                    fim = (datetime.strptime(fim, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
 
-        # Valida permissão (usa function_name detectado)
-        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+                if inicio and fim:
+                    procedure_params["VencIni"] = inicio
+                    procedure_params["VencFim"] = fim
+        else:
+            logger.info("[CONTAS A PAGAR] Consulta sem filtro de vencimento")
+
+        if fornecedor:
+            procedure_params["Fornec"] = fornecedor
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: {function_name}")
+            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
             return error_msg
 
-        # Executa query
+        logger.info(f"[CONTAS A PAGAR] Executando {procedure_name} com parâmetros: {procedure_params}")
+
+        # Executa stored procedure
         try:
-            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            result_list = sql_client.execute_procedure(procedure_name, procedure_params or None)
 
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
@@ -2947,6 +2953,13 @@ IMPORTANTE:
                 logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
                 result_list = result_dedup
 
+            # Consultas somente por fornecedor retornam 10 registros distintos por padrão.
+            if fornecedor and not data_vencimento and not data_emissao:
+                if limite is None:
+                    result_list = result_list[:10]
+                elif limite > 0:
+                    result_list = result_list[:limite]
+
             # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
             if len(result_list) <= 50:
                 total_geral = 0
@@ -2976,7 +2989,7 @@ IMPORTANTE:
                     linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}")
 
                 tabela_str = "\n".join(linhas)
-                return f"""Resultados da consulta IA_ContasAPagar:
+                return f"""Resultados da consulta usp_IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
 Valor total a pagar: R$ {total_geral:,.2f}
@@ -3069,7 +3082,7 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos dado
             formatted_por_dia = json.dumps(dias_list, ensure_ascii=False, indent=2, default=convert_decimals)
             formatted_por_fornecedor = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta IA_ContasAPagar:
+            return f"""Resultados da consulta usp_IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
 Total de fornecedores únicos: {len(por_fornecedor)}
@@ -3089,7 +3102,7 @@ IMPORTANTE:
 
         except Exception as e:
             import traceback
-            logger.error(f"Erro ao executar IA_ContasAPagar: {e}")
+            logger.error(f"Erro ao executar usp_IA_ContasAPagar: {e}")
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
@@ -4348,10 +4361,23 @@ Argumentos:
   - Se NÃO INFORMADO: retorna todas as naturezas
   - Se INFORMADO: filtra apenas contas com natureza correspondente
 
+- fornecedor (opcional): Nome do fornecedor/credor enviado para a stored procedure
+  - Exemplos: "ATLAS", "JULIO CESAR", "Rodrigo"
+  - Pode ser combinado com data_vencimento
+  - Se informado sem data, retorna os 10 primeiros registros por padrão
+
+- limite (opcional): Quantidade de registros desejada em consultas somente por fornecedor
+  - Use um número positivo quando o usuário pedir mais registros ou uma quantidade específica
+  - Use limite=0 quando o usuário pedir todos os registros
+
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
 - "Contas vencidas" ou "Contas atrasadas" → pesquisa_contas_a_pagar(data_vencimento="vencidas")
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
+- "Quanto temos de contas a pagar para a ATLAS nesta semana?" → pesquisa_contas_a_pagar(data_vencimento="esta semana", fornecedor="ATLAS")
+- "Quais os próximos pagamentos para o JULIO CESAR?" → pesquisa_contas_a_pagar(fornecedor="JULIO CESAR")
+- "Mostre os próximos 20 pagamentos para o JULIO CESAR" → pesquisa_contas_a_pagar(fornecedor="JULIO CESAR", limite=20)
+- "Temos algo para pagar para o Rodrigo amanhã?" → pesquisa_contas_a_pagar(data_vencimento="amanhã", fornecedor="Rodrigo")
 - "Pagamentos deste mês" → pesquisa_contas_a_pagar(data_vencimento="este mês")
 - "Todas as contas a pagar" → pesquisa_contas_a_pagar()
 - "Contas com vencimento em 12/12/2025" → pesquisa_contas_a_pagar(data_vencimento="20251212")
