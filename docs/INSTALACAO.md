@@ -104,7 +104,7 @@ run.bat
 venv\Scripts\activate
 python main.py
 ```
-
+Teste
 **Opção 3: Desenvolvimento (auto-reload)**
 ```bash
 uvicorn main:app --reload --port 8000
