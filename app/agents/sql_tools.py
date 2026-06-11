@@ -2637,6 +2637,90 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return self._validate_and_execute(function_name, filters, pagina=pagina)
 
+    def _parse_periodo_contas_pagas(self, periodo: str) -> Optional[Dict[str, str]]:
+        """Normaliza periodos financeiros especificos para a procedure de contas pagas."""
+        from datetime import datetime, timedelta
+        from dateutil.relativedelta import relativedelta
+
+        texto = unicodedata.normalize("NFKD", str(periodo).lower().strip()).encode("ascii", "ignore").decode("ascii")
+        agora = date_parser.get_current_date()
+
+        meses = {
+            "janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4,
+            "maio": 5, "junho": 6, "julho": 7, "agosto": 8,
+            "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
+        }
+        numeros = {
+            "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3,
+            "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
+            "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
+        }
+
+        def intervalo(inicio: datetime, fim: datetime) -> Dict[str, str]:
+            return {
+                "data_inicio": inicio.strftime("%Y%m%d"),
+                "data_fim": fim.strftime("%Y%m%d"),
+            }
+
+        # Quinzenas devem ser resolvidas antes de mes/ano.
+        if "quinzena" in texto:
+            ano_match = re.search(r"(20\d{2})", texto)
+            ano = int(ano_match.group(1)) if ano_match else agora.year
+            mes = agora.month
+            for nome, numero in meses.items():
+                if nome in texto:
+                    mes = numero
+                    break
+
+            primeira = "primeira" in texto or "1a" in texto or "1 " in texto
+            segunda = "segunda" in texto or "2a" in texto or "2 " in texto
+            if primeira or (not segunda and agora.day <= 15):
+                return intervalo(datetime(ano, mes, 1), datetime(ano, mes, 15))
+
+            primeiro_dia = datetime(ano, mes, 1)
+            ultimo_dia = primeiro_dia + relativedelta(months=1) - timedelta(days=1)
+            return intervalo(datetime(ano, mes, 16), ultimo_dia)
+
+        # "Ultimos N meses" usa meses completos, incluindo o mes atual.
+        match_meses = re.search(r"ultimos?\s+(\d+|[a-z]+)\s+mes(?:es)?", texto)
+        if match_meses:
+            quantidade_texto = match_meses.group(1)
+            quantidade = int(quantidade_texto) if quantidade_texto.isdigit() else numeros.get(quantidade_texto)
+            if quantidade and quantidade > 0:
+                inicio_mes_atual = agora.replace(day=1)
+                inicio = inicio_mes_atual - relativedelta(months=quantidade - 1)
+                fim = inicio_mes_atual + relativedelta(months=1) - timedelta(days=1)
+                return intervalo(inicio, fim)
+
+        if any(expressao in texto for expressao in ("este trimestre", "esse trimestre", "trimestre atual")):
+            primeiro_mes = ((agora.month - 1) // 3) * 3 + 1
+            inicio = datetime(agora.year, primeiro_mes, 1)
+            fim = inicio + relativedelta(months=3) - timedelta(days=1)
+            return intervalo(inicio, fim)
+
+        if "trimestre passado" in texto or "ultimo trimestre" in texto:
+            primeiro_mes = ((agora.month - 1) // 3) * 3 + 1
+            inicio = datetime(agora.year, primeiro_mes, 1) - relativedelta(months=3)
+            fim = inicio + relativedelta(months=3) - timedelta(days=1)
+            return intervalo(inicio, fim)
+
+        if any(expressao in texto for expressao in ("este ano", "esse ano", "ano atual")):
+            return intervalo(datetime(agora.year, 1, 1), datetime(agora.year, 12, 31))
+
+        if "ano passado" in texto or "ultimo ano" in texto:
+            ano = agora.year - 1
+            return intervalo(datetime(ano, 1, 1), datetime(ano, 12, 31))
+
+        # Regra financeira solicitada: uma referencia mensal com ano abrange o ano inteiro.
+        ano_match = re.search(r"(20\d{2})", texto)
+        tem_mes_nomeado = any(nome in texto for nome in meses)
+        tem_mes_ano_numerico = bool(re.match(r"^\s*(0?[1-9]|1[0-2])/(20\d{2})\s*$", texto))
+        if ano_match and (tem_mes_nomeado or tem_mes_ano_numerico):
+            ano = int(ano_match.group(1))
+            return intervalo(datetime(ano, 1, 1), datetime(ano, 12, 31))
+
+        return date_parser.parse_natural_date(periodo)
+
     def _pesquisa_contas_pagas(self, data_inicio: Optional[str] = None, fornecedor: Optional[str] = None, limite: Optional[int] = None) -> str:
         """
         Consulta contas já pagas pela empresa.
@@ -2655,7 +2739,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         procedure_params = {}
 
         if data_inicio:
-            parsed = date_parser.parse_natural_date(data_inicio)
+            parsed = self._parse_periodo_contas_pagas(data_inicio)
             logger.info(f"[CONTAS PAGAS] date_parser retornou: {parsed}")
 
             if parsed:
@@ -4366,9 +4450,12 @@ Para contas pendentes/futuras, use pesquisa_contas_a_pagar.
 
 Argumentos:
 - data_inicio (opcional): Data ou período para filtro dos pagamentos
-  - Formato flexível: "05/12/2025", "este mês", "últimos 30 dias", "dezembro 2025"
+  - Formato flexível: "05/12/2025", "este mês", "últimos 30 dias", "janeiro/2025"
   - Se NÃO INFORMADO: retorna todas as contas pagas (sem filtro de data)
   - Se INFORMADO: envia o início e fim do período para a stored procedure
+  - SEMPRE repasse a expressão temporal completa informada pelo usuário
+  - Semana, mês/ano, ano, quinzena, trimestre e "últimos N meses" são convertidos em DataIni e DataFim
+  - Regra de mês/ano: "janeiro/2025" ou "janeiro de 2025" envia DataIni=20250101 e DataFim=20251231
 
 - fornecedor (opcional): Nome do fornecedor/beneficiário enviado para a stored procedure
   - Exemplos: "ATLAS", "JULIO CESAR", "Rodrigo"
@@ -4385,8 +4472,11 @@ Exemplos de uso:
 - "Quais os últimos pagamentos para o JULIO CESAR?" → pesquisa_contas_pagas(fornecedor="JULIO CESAR")
 - "Mostre os últimos 20 pagamentos para o JULIO CESAR" → pesquisa_contas_pagas(fornecedor="JULIO CESAR", limite=20)
 - "Temos algo pago para o Rodrigo ontem?" → pesquisa_contas_pagas(data_inicio="ontem", fornecedor="Rodrigo")
+- "Temos algo pago para o Rodrigo em janeiro/2025?" → pesquisa_contas_pagas(data_inicio="janeiro/2025", fornecedor="Rodrigo")
+- "Quanto pagamos para a ATLAS nos últimos três meses?" → pesquisa_contas_pagas(data_inicio="últimos três meses", fornecedor="ATLAS")
+- "Pagamentos da primeira quinzena de janeiro de 2025" → pesquisa_contas_pagas(data_inicio="primeira quinzena de janeiro de 2025")
 - "Pagamentos desde 05/12/2025" → pesquisa_contas_pagas(data_inicio="05/12/2025")
-- "Contas pagas em dezembro de 2025" → pesquisa_contas_pagas(data_inicio="dezembro 2025")
+- "Contas pagas no ano de 2025" → pesquisa_contas_pagas(data_inicio="2025")
 - "Todas as contas pagas" → pesquisa_contas_pagas()
 """
             ),
