@@ -2431,20 +2431,79 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_vendas(self, periodo: Optional[str] = None, pagina: int = 1) -> str:
+    def _parse_periodo_vendas(self, periodo: str) -> Optional[Dict[str, str]]:
+        """Converte periodos de vendas para meses no formato YYYY/MM."""
+        from dateutil.relativedelta import relativedelta
+
+        texto = unicodedata.normalize("NFKD", str(periodo).lower().strip()).encode("ascii", "ignore").decode("ascii")
+        agora = date_parser.get_current_date()
+        numeros = {
+            "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3,
+            "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
+            "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
+        }
+
+        if any(expressao in texto for expressao in ("este ano", "esse ano", "ano atual")):
+            return {
+                "mes_inicio": f"{agora.year}/01",
+                "mes_fim": f"{agora.year}/12",
+            }
+
+        match_ultimos_meses = re.search(r"ultimos?\s+(\d+|[a-z]+)\s+mes(?:es)?", texto)
+        if match_ultimos_meses:
+            quantidade_texto = match_ultimos_meses.group(1)
+            quantidade = int(quantidade_texto) if quantidade_texto.isdigit() else numeros.get(quantidade_texto)
+            if quantidade and quantidade > 0:
+                inicio = agora.replace(day=1) - relativedelta(months=quantidade)
+                return {
+                    "mes_inicio": inicio.strftime("%Y/%m"),
+                    "mes_fim": agora.strftime("%Y/%m"),
+                }
+
+        parsed = date_parser.parse_natural_date(periodo)
+        if not parsed:
+            return None
+
+        if parsed.get("ano_completo") and parsed.get("ano"):
+            ano = parsed["ano"]
+            return {"mes_inicio": f"{ano}/01", "mes_fim": f"{ano}/12"}
+
+        if parsed.get("meses") and parsed.get("ano"):
+            return {
+                "mes_inicio": f"{parsed['ano']}/{parsed['meses'][0]}",
+                "mes_fim": f"{parsed['ano']}/{parsed['meses'][-1]}",
+            }
+
+        if parsed.get("mes_embarque"):
+            return {
+                "mes_inicio": parsed["mes_embarque"],
+                "mes_fim": parsed["mes_embarque"],
+            }
+
+        if parsed.get("data_inicio"):
+            mes_inicio = f"{parsed['data_inicio'][:4]}/{parsed['data_inicio'][4:6]}"
+            data_fim = parsed.get("data_fim", parsed["data_inicio"])
+            mes_fim = f"{data_fim[:4]}/{data_fim[4:6]}"
+            return {"mes_inicio": mes_inicio, "mes_fim": mes_fim}
+
+        return None
+
+    def _pesquisa_vendas(self, periodo: Optional[str] = None, cliente: Optional[str] = None, limite: Optional[int] = None, pagina: int = 1) -> str:
         """
         Consulta dados de vendas e embarques da empresa.
 
         Args:
             periodo: Período desejado (ex: "dezembro 2025", "hoje", "sexta-feira passada")
                     Aceita mês/ano ou datas específicas
+            cliente: Nome do cliente
+            limite: Quantidade máxima de registros em consultas somente por cliente
             pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
                    Se a resposta indicar "HÁ MAIS CONTRATOS", chame com pagina=2, pagina=3, etc.
 
         Returns:
             Dados de vendas formatados
         """
-        logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, pagina={pagina}")
+        logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, limite={limite}, pagina={pagina}")
 
         # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
         contrato_na_query = None
@@ -2494,73 +2553,50 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 periodo = None  # Força periodo=None
 
         # Extrai nome do cliente da pergunta original do usuário
-        client_filter = None
-        if self.user_query:
+        client_filter = cliente
+        if not client_filter and self.user_query:
             client_filter = self._extract_client_name(self.user_query)
             if client_filter:
                 logger.info(f"[FILTRO CLIENTE] Detectado '{client_filter}' na pergunta: {self.user_query}")
 
-        # NOVA LÓGICA: Detecta se deve usar IA_VendasPar ou IA_Vendas
-        function_name = "IA_Vendas"
-        filters = None
+        procedure_name = "usp_IA_Vendas"
+        procedure_params = {}
 
         if periodo:
-            parsed = date_parser.parse_natural_date(periodo)
-            logger.info(f"[DEBUG] date_parser retornou: {parsed}")
-
+            parsed = self._parse_periodo_vendas(periodo)
+            logger.info(f"[VENDAS] Período convertido para meses: {parsed}")
             if parsed:
-                # Extrai datas do parsed
-                data_inicio = None
-                data_fim = None
-
-                # Detecta se a pergunta menciona EXPLICITAMENTE embarque/embarcado
-                menciona_embarque = self.user_query and ("embarcad" in self.user_query.lower() or "embarque" in self.user_query.lower())
-
-                # PRIORIDADE 1: Se a pergunta menciona EXPLICITAMENTE "embarque" E tem mes_embarque → usar mesEmbarque como data
-                if menciona_embarque and "mes_embarque" in parsed:
-                    data_inicio = parsed["mes_embarque"]
-                    data_fim = parsed["mes_embarque"]
-                    logger.info(f"[DEBUG] Palavra-chave 'embarcado/embarque' detectada - Usando mes_embarque: {data_inicio}")
-                # PRIORIDADE 2: Se tem mes_embarque (mês completo como "janeiro 2026") → usar mesEmbarque
-                elif "mes_embarque" in parsed:
-                    data_inicio = parsed["mes_embarque"]
-                    data_fim = parsed["mes_embarque"]
-                    logger.info(f"[DEBUG] Mês específico detectado - Usando mes_embarque: {data_inicio}")
-                # PRIORIDADE 3: Se tem data_inicio E data_fim
-                elif "data_inicio" in parsed and "data_fim" in parsed:
-                    data_inicio = parsed["data_inicio"]
-                    data_fim = parsed["data_fim"]
-                    logger.info(f"[DEBUG] Período detectado ({data_inicio} até {data_fim})")
-                # PRIORIDADE 4: Se tem apenas data_inicio
-                elif "data_inicio" in parsed:
-                    data_inicio = parsed["data_inicio"]
-                    data_fim = parsed.get("data_fim", data_inicio)  # Se não tem fim, usa inicio
-                    logger.info(f"[DEBUG] Data única detectada: {data_inicio}")
-
-                # Se temos datas, usa IA_VendasPar com parâmetros
-                if data_inicio and data_fim:
-                    function_name = "IA_VendasPar"
-                    filters = {
-                        "data_inicio": data_inicio,
-                        "data_fim": data_fim
-                    }
-                    logger.info(f"[VENDAS] Usando IA_VendasPar('{data_inicio}', '{data_fim}')")
+                procedure_params["MesIni"] = parsed["mes_inicio"]
+                procedure_params["MesFim"] = parsed["mes_fim"]
         else:
-            # PERMITIDO: periodo=None para queries que filtram por outros campos
-            # Exemplo: "contratos baixados EM janeiro 2026" usa campos contratos_baixados_jan2026
-            logger.info("[DEBUG] periodo=None - usando IA_Vendas() sem parâmetros")
-            function_name = "IA_Vendas"
-            filters = None
+            logger.info("[VENDAS] Consulta sem filtro de mês de embarque")
 
-        result = self._validate_and_execute(function_name, filters, client_filter, pagina=pagina)
+        if client_filter:
+            procedure_params["Cliente"] = client_filter
 
-        # FALLBACK: Se retornou vazio com filtro de data E tem client_filter,
-        # tenta novamente sem data (IA_Vendas sem Par) — cliente pode ter embarques em outro período
-        if client_filter and filters and ("Nenhum" in result or "nenhum" in result):
-            logger.info(f"[FALLBACK CLIENTE] IA_VendasPar retornou vazio para '{client_filter}' — tentando IA_Vendas sem filtro de data")
-            result = self._validate_and_execute("IA_Vendas", None, client_filter, pagina=pagina)
+        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
+            return error_msg
 
-        return result
+        logger.info(f"[VENDAS] Executando {procedure_name} com parâmetros: {procedure_params}")
+
+        try:
+            results = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            self._salvar_resultado_scheduler(results)
+
+            if client_filter and not periodo:
+                if limite is None:
+                    results = results[:10]
+                elif limite > 0:
+                    results = results[:limite]
+
+            return self._format_results(results, "IA_Vendas", client_filter, pagina=pagina)
+        except Exception as e:
+            import traceback
+            logger.error(f"Erro ao executar {procedure_name}: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return "Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None, pagina: int = 1) -> str:
         """
@@ -4374,7 +4410,22 @@ CASO 2 - SEMPRE PASSE periodo='[mês] [ano]':
 - Se tem "baixados/pagos/quitados EM" → NÃO passe periodo (use campos contratos_baixados_*)
 - Se NÃO tem essas palavras e menciona mês → PASSE periodo (filtra por mesEmbarque)
 
-Exemplos de periodo: 'sexta-feira passada', 'hoje', 'últimos 7 dias', 'dezembro 2025', 'janeiro 2026'"""
+ARGUMENTOS PARA A STORED PROCEDURE:
+- periodo (opcional): mês ou intervalo de embarque. O sistema converte para MesIni e MesFim no formato YYYY/MM.
+- cliente (opcional): nome do cliente enviado para a stored procedure.
+- limite (opcional): quantidade desejada quando a consulta for somente por cliente.
+  - Sem período e sem limite informado, retorna os 10 primeiros registros.
+  - Use limite=0 quando o usuário pedir todos os registros.
+
+Exemplos:
+- "Quais contratos de venda temos para esse mês?" → pesquisa_vendas(periodo="este mês")
+- "Quais os últimos contratos para o cliente NESTRADE?" → pesquisa_vendas(cliente="NESTRADE")
+- "Mostre os últimos 20 contratos para o cliente NESTRADE" → pesquisa_vendas(cliente="NESTRADE", limite=20)
+- "Temos algum contrato para o MIORI esse ano?" → pesquisa_vendas(periodo="este ano", cliente="MIORI")
+- "Temos algum contrato em janeiro/2025?" → pesquisa_vendas(periodo="janeiro/2025")
+- "Quantos contratos temos para o MIORI nos últimos três meses?" → pesquisa_vendas(periodo="últimos três meses", cliente="MIORI")
+
+Exemplos de periodo: 'este mês', 'este ano', 'últimos três meses', 'dezembro 2025', 'janeiro/2026'"""
             ),
             StructuredTool.from_function(
                 func=self._pesquisa_compras,

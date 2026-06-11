@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 FUNCTION_PERMISSIONS: Dict[str, PermissionType] = {
     "IA_Vendas": "Vendas",
     "IA_VendasPar": "Vendas",
+    "usp_IA_Vendas": "Vendas",
     "IA_Compras": "Compras",
     "IA_ComprasPar": "Compras",
     "IA_ContasPagas": "Financeiro",
