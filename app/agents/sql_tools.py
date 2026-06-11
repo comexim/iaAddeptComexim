@@ -2637,21 +2637,22 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return self._validate_and_execute(function_name, filters, pagina=pagina)
 
-    def _pesquisa_contas_pagas(self, data_inicio: Optional[str] = None) -> str:
+    def _pesquisa_contas_pagas(self, data_inicio: Optional[str] = None, fornecedor: Optional[str] = None, limite: Optional[int] = None) -> str:
         """
         Consulta contas já pagas pela empresa.
 
         Args:
             data_inicio: Data inicial (ex: "este mês", "últimos 30 dias")
+            fornecedor: Nome do fornecedor/beneficiário
+            limite: Quantidade máxima de registros em consultas somente por fornecedor
 
         Returns:
             Dados de contas pagas formatados
         """
-        logger.info(f"[CONTAS PAGAS] Consultando contas pagas - data_inicio: {data_inicio}")
+        logger.info(f"[CONTAS PAGAS] Consultando contas pagas - data_inicio: {data_inicio}, fornecedor: {fornecedor}, limite: {limite}")
 
-        # NOVA LÓGICA: Detecta se deve usar IA_ContasPagasPar ou IA_ContasPagas
-        function_name = "IA_ContasPagas"
-        filters = None
+        procedure_name = "usp_IA_ContasPagas"
+        procedure_params = {}
 
         if data_inicio:
             parsed = date_parser.parse_natural_date(data_inicio)
@@ -2662,46 +2663,55 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 inicio = None
                 fim = None
 
-                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
-                if "mes_embarque" in parsed:
-                    inicio = parsed["mes_embarque"]
-                    fim = parsed["mes_embarque"]
-                    logger.info(f"[CONTAS PAGAS] Mês detectado: {inicio}")
-                # Prioridade 2: Se tem data_inicio e data_fim
-                elif "data_inicio" in parsed and "data_fim" in parsed:
+                # Prioridade 1: Se tem data_inicio e data_fim
+                if "data_inicio" in parsed and "data_fim" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed["data_fim"]
                     logger.info(f"[CONTAS PAGAS] Período detectado ({inicio} até {fim})")
-                # Prioridade 3: Se tem apenas data_inicio
+                # Prioridade 2: Se tem apenas data_inicio
                 elif "data_inicio" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed.get("data_fim", inicio)
                     logger.info(f"[CONTAS PAGAS] Data única detectada: {inicio}")
 
-                # Se temos datas, usa IA_ContasPagasPar com parâmetros
-                if inicio and fim:
-                    function_name = "IA_ContasPagasPar"
-                    filters = {
-                        "data_inicio": inicio,
-                        "data_fim": fim
-                    }
-                    logger.info(f"[CONTAS PAGAS] Usando IA_ContasPagasPar('{inicio}', '{fim}')")
-        else:
-            logger.info("[CONTAS PAGAS] Sem data - usando IA_ContasPagas() sem parâmetros")
+                # Para contas pagas, "esta semana" considera domingo a sábado.
+                texto_data = str(data_inicio).lower()
+                if inicio and fim and any(expressao in texto_data for expressao in ("esta semana", "essa semana", "desta semana", "nessa semana")):
+                    from datetime import datetime, timedelta
+                    inicio = (datetime.strptime(inicio, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
+                    fim = (datetime.strptime(fim, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
 
-        # Valida permissão (usa function_name detectado)
-        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+                if inicio and fim:
+                    procedure_params["DataIni"] = inicio
+                    procedure_params["DataFim"] = fim
+        else:
+            logger.info("[CONTAS PAGAS] Consulta sem filtro de data")
+
+        if fornecedor:
+            procedure_params["Fornec"] = fornecedor
+
+        # Valida permissão
+        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: {function_name}")
+            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
             return error_msg
 
-        # Executa query
+        logger.info(f"[CONTAS PAGAS] Executando {procedure_name} com parâmetros: {procedure_params}")
+
+        # Executa stored procedure
         try:
-            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            result_list = sql_client.execute_procedure(procedure_name, procedure_params or None)
             self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
                 return "Nenhuma conta paga encontrada para o período especificado."
+
+            # Consultas somente por fornecedor retornam 10 registros por padrão.
+            if fornecedor and not data_inicio:
+                if limite is None:
+                    result_list = result_list[:10]
+                elif limite > 0:
+                    result_list = result_list[:limite]
 
             # Se poucos registros (<= 50), retorna todos
             if len(result_list) <= 50:
@@ -2712,7 +2722,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
                 formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-                return f"""Resultados da consulta IA_ContasPagas:
+                return f"""Resultados da consulta usp_IA_ContasPagas:
 
 Total de registros: {len(result_list)}
 
@@ -2807,7 +2817,7 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
 
             formatted = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta IA_ContasPagas (AGREGADOS POR FORNECEDOR):
+            return f"""Resultados da consulta usp_IA_ContasPagas (AGREGADOS POR FORNECEDOR):
 
 Total de registros SQL: {len(result_list)}
 Total de fornecedores únicos: {len(por_fornecedor)}
@@ -2831,7 +2841,7 @@ IMPORTANTE:
 
         except Exception as e:
             import traceback
-            logger.error(f"Erro ao executar IA_ContasPagas: {e}")
+            logger.error(f"Erro ao executar usp_IA_ContasPagas: {e}")
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
@@ -4355,13 +4365,26 @@ Esta ferramenta retorna informações sobre pagamentos realizados, incluindo TOD
 Para contas pendentes/futuras, use pesquisa_contas_a_pagar.
 
 Argumentos:
-- data_inicio (opcional): Data inicial para filtro de emissão
+- data_inicio (opcional): Data ou período para filtro dos pagamentos
   - Formato flexível: "05/12/2025", "este mês", "últimos 30 dias", "dezembro 2025"
   - Se NÃO INFORMADO: retorna todas as contas pagas (sem filtro de data)
-  - Se INFORMADO: filtra pagamentos com emissão >= data_inicio
+  - Se INFORMADO: envia o início e fim do período para a stored procedure
+
+- fornecedor (opcional): Nome do fornecedor/beneficiário enviado para a stored procedure
+  - Exemplos: "ATLAS", "JULIO CESAR", "Rodrigo"
+  - Pode ser combinado com data_inicio
+  - Se informado sem data, retorna os 10 primeiros registros por padrão
+
+- limite (opcional): Quantidade de registros desejada em consultas somente por fornecedor
+  - Use um número positivo quando o usuário pedir mais registros ou uma quantidade específica
+  - Use limite=0 quando o usuário pedir todos os registros
 
 Exemplos de uso:
 - "Quais contas foram pagas este mês?" → pesquisa_contas_pagas(data_inicio="este mês")
+- "Quanto pagamos para a ATLAS nesta semana?" → pesquisa_contas_pagas(data_inicio="esta semana", fornecedor="ATLAS")
+- "Quais os últimos pagamentos para o JULIO CESAR?" → pesquisa_contas_pagas(fornecedor="JULIO CESAR")
+- "Mostre os últimos 20 pagamentos para o JULIO CESAR" → pesquisa_contas_pagas(fornecedor="JULIO CESAR", limite=20)
+- "Temos algo pago para o Rodrigo ontem?" → pesquisa_contas_pagas(data_inicio="ontem", fornecedor="Rodrigo")
 - "Pagamentos desde 05/12/2025" → pesquisa_contas_pagas(data_inicio="05/12/2025")
 - "Contas pagas em dezembro de 2025" → pesquisa_contas_pagas(data_inicio="dezembro 2025")
 - "Todas as contas pagas" → pesquisa_contas_pagas()
