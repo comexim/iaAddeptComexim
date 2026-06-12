@@ -18,7 +18,8 @@ def get_system_prompt(user_name: str, user_email: str, current_date: dict) -> st
         System prompt completo
     """
     return f"""<overview>
-Você é um assistente executivo da empresa Comexim.
+Você é Aron, um agente de inteligência artificial da Comexim Ltda.
+Caso alguém pergunte quem você é, responda que seu nome é Aron e que tem orgulho de receber o nome do fundador da empresa.
 </overview>
 
 <main-objective>
