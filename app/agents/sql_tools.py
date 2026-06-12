@@ -2598,80 +2598,120 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return "Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
-    def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None, pagina: int = 1) -> str:
+    def _parse_periodo_compras(self, periodo: str) -> Optional[Dict[str, str]]:
+        """Converte periodos de compras para datas no formato YYYYMMDD."""
+        from datetime import timedelta
+        from dateutil.relativedelta import relativedelta
+
+        texto = unicodedata.normalize("NFKD", str(periodo).lower().strip()).encode("ascii", "ignore").decode("ascii")
+        agora = date_parser.get_current_date()
+        numeros = {
+            "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3,
+            "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
+            "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
+        }
+
+        if any(expressao in texto for expressao in ("este ano", "esse ano", "ano atual")):
+            return {
+                "data_inicio": f"{agora.year}0101",
+                "data_fim": f"{agora.year}1231",
+            }
+
+        match_ultimos_meses = re.search(r"ultimos?\s+(\d+|[a-z]+)\s+mes(?:es)?", texto)
+        if match_ultimos_meses:
+            quantidade_texto = match_ultimos_meses.group(1)
+            quantidade = int(quantidade_texto) if quantidade_texto.isdigit() else numeros.get(quantidade_texto)
+            if quantidade and quantidade > 0:
+                inicio = agora.replace(day=1) - relativedelta(months=quantidade)
+                fim = agora.replace(day=1) + relativedelta(months=1) - timedelta(days=1)
+                return {
+                    "data_inicio": inicio.strftime("%Y%m%d"),
+                    "data_fim": fim.strftime("%Y%m%d"),
+                }
+
+        parsed = date_parser.parse_natural_date(periodo)
+        if not parsed:
+            return None
+
+        if parsed.get("data_inicio"):
+            return {
+                "data_inicio": parsed["data_inicio"],
+                "data_fim": parsed.get("data_fim", parsed["data_inicio"]),
+            }
+
+        if parsed.get("mes_embarque"):
+            from calendar import monthrange
+            ano, mes = map(int, parsed["mes_embarque"].split("/"))
+            return {
+                "data_inicio": f"{ano:04d}{mes:02d}01",
+                "data_fim": f"{ano:04d}{mes:02d}{monthrange(ano, mes)[1]:02d}",
+            }
+
+        return None
+
+    def _pesquisa_compras(self, data_inicio: Optional[str] = None, data_fim: Optional[str] = None, fornecedor: Optional[str] = None, limite: Optional[int] = None, pagina: int = 1) -> str:
         """
         Consulta dados de compras e aquisições.
 
         Args:
             data_inicio: Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025")
             data_fim: Data/período final para range (ex: "outubro 2025", "dezembro 2025")
+            fornecedor: Nome do fornecedor
+            limite: Quantidade máxima de registros em consultas somente por fornecedor
             pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
 
         Returns:
             Dados de compras formatados
         """
-        # NOVA LÓGICA: Detecta se deve usar IA_ComprasPar ou IA_Compras
-        function_name = "IA_Compras"
-        filters = None
+        procedure_name = "usp_IA_Compras"
+        procedure_params = {}
 
         # Se data_fim fornecido separadamente, parseia os dois e monta range
         if data_inicio and data_fim:
-            parsed_inicio = date_parser.parse_natural_date(data_inicio)
-            parsed_fim = date_parser.parse_natural_date(data_fim)
+            parsed_inicio = self._parse_periodo_compras(data_inicio)
+            parsed_fim = self._parse_periodo_compras(data_fim)
             logger.info(f"[COMPRAS] Range: data_inicio={parsed_inicio}, data_fim={parsed_fim}")
 
-            inicio = None
-            fim = None
-
-            if parsed_inicio:
-                inicio = parsed_inicio.get("data_inicio") or parsed_inicio.get("mes_embarque")
-                # Para mês, pega o primeiro dia
-                if inicio and len(inicio) == 7:  # formato YYYY/MM
-                    inicio = inicio.replace("/", "") + "01"
-
-            if parsed_fim:
-                fim = parsed_fim.get("data_fim") or parsed_fim.get("mes_embarque")
-                # Para mês, pega o último dia
-                if fim and len(fim) == 7:  # formato YYYY/MM
-                    from calendar import monthrange
-                    y, m = int(fim[:4]), int(fim[5:7])
-                    last_day = monthrange(y, m)[1]
-                    fim = f"{fim[:4]}{fim[5:7]}{last_day:02d}"
-
-            if inicio and fim:
-                function_name = "IA_ComprasPar"
-                filters = {"data_inicio": inicio, "data_fim": fim}
-                logger.info(f"[COMPRAS] Usando IA_ComprasPar('{inicio}', '{fim}') [range explícito]")
+            if parsed_inicio and parsed_fim:
+                procedure_params["DataIni"] = parsed_inicio["data_inicio"]
+                procedure_params["DataFim"] = parsed_fim["data_fim"]
 
         elif data_inicio:
-            parsed = date_parser.parse_natural_date(data_inicio)
+            parsed = self._parse_periodo_compras(data_inicio)
             logger.info(f"[COMPRAS] date_parser retornou: {parsed}")
 
             if parsed:
-                inicio = None
-                fim = None
-
-                if "mes_embarque" in parsed:
-                    inicio = parsed["mes_embarque"]
-                    fim = parsed["mes_embarque"]
-                    logger.info(f"[COMPRAS] Mês detectado: {inicio}")
-                elif "data_inicio" in parsed and "data_fim" in parsed:
-                    inicio = parsed["data_inicio"]
-                    fim = parsed["data_fim"]
-                    logger.info(f"[COMPRAS] Período detectado ({inicio} até {fim})")
-                elif "data_inicio" in parsed:
-                    inicio = parsed["data_inicio"]
-                    fim = parsed.get("data_fim", inicio)
-                    logger.info(f"[COMPRAS] Data única detectada: {inicio}")
-
-                if inicio and fim:
-                    function_name = "IA_ComprasPar"
-                    filters = {"data_inicio": inicio, "data_fim": fim}
-                    logger.info(f"[COMPRAS] Usando IA_ComprasPar('{inicio}', '{fim}')")
+                procedure_params["DataIni"] = parsed["data_inicio"]
+                procedure_params["DataFim"] = parsed["data_fim"]
         else:
-            logger.info("[COMPRAS] Sem data - usando IA_Compras() sem parâmetros")
+            logger.info("[COMPRAS] Consulta sem filtro de data")
 
-        return self._validate_and_execute(function_name, filters, pagina=pagina)
+        if fornecedor:
+            procedure_params["Fornec"] = fornecedor
+
+        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
+            return error_msg
+
+        logger.info(f"[COMPRAS] Executando {procedure_name} com parâmetros: {procedure_params}")
+
+        try:
+            results = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            self._salvar_resultado_scheduler(results)
+
+            if fornecedor and not data_inicio and not data_fim:
+                if limite is None:
+                    results = results[:10]
+                elif limite > 0:
+                    results = results[:limite]
+
+            return self._format_results(results, "IA_Compras", pagina=pagina)
+        except Exception as e:
+            import traceback
+            logger.error(f"Erro ao executar {procedure_name}: {e}")
+            logger.error(f"Traceback completo: {traceback.format_exc()}")
+            return "Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
     def _parse_periodo_contas_pagas(self, periodo: str) -> Optional[Dict[str, str]]:
         """Normaliza periodos financeiros especificos para a procedure de contas pagas."""
@@ -4446,6 +4486,10 @@ Esta ferramenta retorna informações sobre pedidos e contratos de compra, inclu
 Argumentos:
 - data_inicio (opcional): Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025", "últimos 7 dias")
 - data_fim (opcional): Data/período final para range (ex: "outubro 2025", "dezembro 2025")
+- fornecedor (opcional): Nome do fornecedor enviado para a stored procedure
+- limite (opcional): Quantidade desejada quando a consulta for somente por fornecedor
+  - Sem período e sem limite informado, retorna os 10 primeiros registros
+  - Use limite=0 quando o usuário pedir todos os registros
   - Se NENHUM informado: retorna TODAS as compras
   - Se apenas data_inicio: filtra a partir daquela data
   - Se ambos: filtra o intervalo completo
@@ -4455,6 +4499,12 @@ Argumentos:
 - "todas as compras" → pesquisa_compras() [sem parâmetros]
 
 Exemplos de uso:
+- "Quais compras temos para esse mês?" → pesquisa_compras(data_inicio="este mês")
+- "Quais os últimos contratos de compra para o fornecedor LIBRA?" → pesquisa_compras(fornecedor="LIBRA")
+- "Mostre os últimos 20 contratos de compra para a LIBRA" → pesquisa_compras(fornecedor="LIBRA", limite=20)
+- "Temos alguma compra para o LIBRA esse ano?" → pesquisa_compras(data_inicio="este ano", fornecedor="LIBRA")
+- "Temos alguma compra em janeiro/2025?" → pesquisa_compras(data_inicio="janeiro/2025")
+- "Quantas compras temos para a LIBRA nos últimos três meses?" → pesquisa_compras(data_inicio="últimos três meses", fornecedor="LIBRA")
 - "Compras de 2025" → pesquisa_compras(data_inicio="2025")
 - "Compras de janeiro a outubro de 2025" → pesquisa_compras(data_inicio="janeiro 2025", data_fim="outubro 2025")
 - "Compras de dezembro de 2025" → pesquisa_compras(data_inicio="dezembro 2025")
