@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     env: Literal["development", "production"] = "development"
     debug: bool = True
     log_level: str = "INFO"
+    port: int = 8000
 
     # SQL Server
     sql_server_host: str
