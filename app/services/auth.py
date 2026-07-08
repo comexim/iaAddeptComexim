@@ -80,7 +80,7 @@ class AuthService:
             )
 
         # BYPASS: Rodrigo Perez - acesso parcial
-        if phone == "13991555279":
+        if phone == "13991674657":
             logger.info(f"[BYPASS] {phone} Rodrigo Perez - ACESSO PARCIAL")
             return UserPermissions(
                 telefone="13991555279",
