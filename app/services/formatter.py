@@ -74,6 +74,7 @@ class ResponseFormatter:
     def _limpar_markdown(self, text: str) -> str:
         """Remove elementos markdown que não renderizam bem no WhatsApp."""
         import re
+        text = text.replace("\\n\\n", "\n\n")
         # [texto](url) → texto
         text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
         # URLs soltas (http://... ou https://...) → remove

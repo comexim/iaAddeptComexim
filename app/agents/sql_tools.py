@@ -13,6 +13,7 @@ from app.utils.sql_validator import sql_validator
 from app.utils.date_parser import date_parser
 from app.models.user import UserPermissions
 from app.core.redis_client import redis_client
+from app.services.commercial_metrics import aggregate_purchases, format_pt_br
 
 logger = logging.getLogger(__name__)
 
@@ -1693,8 +1694,51 @@ Exemplos corretos:
 - "Sacas para exportação?" → Use "Sacas para Exportação" dos TOTAIS GERAIS
 - "Qual tipo tem mais café?" → Procure {criterio} com maior "sacas_total" """
 
+            # COMPRAS: usa esquema e métricas próprios. Nunca passa compras pela
+            # agregação de vendas, que espera cliente/contrato/valorTotal.
+            elif function_name in ("IA_Compras", "IA_ComprasPar"):
+                logger.info(
+                    f"[AGREGAÇÃO COMPRAS] {len(results)} registros, "
+                    "agregando por fornecedor e moeda..."
+                )
+                metrics = aggregate_purchases(results)
+                totals_lines = []
+                for total in metrics["totais_por_moeda"]:
+                    currency = total["moeda"]
+                    currency_label = currency if currency != "N/I" else "moeda não informada"
+                    average = total["media_ponderada"]
+                    average_label = (
+                        format_pt_br(average) if average is not None else "N/A"
+                    )
+                    totals_lines.append(
+                        f"- {currency_label}: valor {format_pt_br(total['valor_total'])} | "
+                        f"quantidade {format_pt_br(total['quantidade_total'])} | "
+                        f"média ponderada {average_label}"
+                    )
+
+                suppliers = metrics["fornecedores"][:50]
+                suppliers_json = json.dumps(
+                    suppliers, ensure_ascii=False, indent=2, default=convert_decimals
+                )
+                return f"""RESULTADO DETERMINÍSTICO DE COMPRAS
+
+Total de contratos/pedidos únicos: {metrics['total_contratos']}
+
+TOTAIS SEPARADOS POR MOEDA:
+{chr(10).join(totals_lines)}
+
+FORNECEDORES (ordenados pelo valor dos registros de compra):
+{suppliers_json}
+
+REGRAS OBRIGATÓRIAS:
+- Estes dados são exclusivamente de COMPRAS. Não os apresente como vendas.
+- Não some valores de moedas diferentes.
+- "N/I" significa que a origem não informou moeda; nunca rotule esse valor como R$.
+- A média oficial é a média ponderada: valor total dividido pela quantidade total.
+- Formate números no padrão pt-BR."""
+
             # VENDAS: Agrega por cliente
-            else:
+            elif function_name == "IA_Vendas":
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
 
                 # Monta lista completa de todos os identificadores ANTES da agregação
