@@ -4,6 +4,7 @@ Orquestrador principal do agente usando LangGraph
 import re
 import json
 import logging
+import unicodedata
 from typing import Optional, Sequence
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
@@ -20,6 +21,11 @@ from app.prompts.system_prompt import get_system_prompt, get_current_date_info
 from app.services.preference_learning import preference_learning
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_query_text(text: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(text or "").lower())
+    return "".join(char for char in normalized if not unicodedata.combining(char))
 
 # Palavras-chave que indicam intenção de criar contrato
 _CRIAR_CONTRATO_KEYWORDS = re.compile(
@@ -520,6 +526,38 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
         return self.agent
 
+    def _should_force_vendas_market_query(self, message: str) -> bool:
+        """Evita resposta de memória para vendas de mercado interno/externo."""
+        text = _normalize_query_text(message)
+        mentions_sales = any(term in text for term in ("venda", "vendas", "vendemos", "vendeu", "venderam"))
+        mentions_market = any(term in text for term in ("mercado interno", "mercado nacional", "mercado externo", "mercado internacional"))
+        return mentions_sales and mentions_market
+
+    def _extract_sales_period_from_message(self, message: str) -> Optional[str]:
+        """Extrai período simples para pesquisa_vendas em rotas forçadas."""
+        text = _normalize_query_text(message)
+
+        year_match = re.search(r"\b(20\d{2})\b", text)
+        if year_match:
+            return year_match.group(1)
+
+        for expression in (
+            "este ano",
+            "esse ano",
+            "ano atual",
+            "este mes",
+            "esse mes",
+            "mes atual",
+            "ultimos 7 dias",
+            "ultimos sete dias",
+            "hoje",
+            "ontem",
+        ):
+            if expression in text:
+                return expression
+
+        return None
+
     async def process_message(self, message: str) -> str:
         """
         Processa mensagem do usuário
@@ -561,6 +599,23 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             self.tools = sql_tools.get_all_tools()
 
             logger.info(f"Processando mensagem do usuário {self.user.nome}: {message[:100]}...")
+
+            if self._should_force_vendas_market_query(message):
+                periodo_forcado = self._extract_sales_period_from_message(message)
+                if not periodo_forcado:
+                    output = "De qual período você gostaria de consultar as vendas por mercado?"
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+                logger.info(
+                    f"[FORCE TOOL] Pergunta de vendas por mercado detectada. "
+                    f"Chamando pesquisa_vendas(periodo={periodo_forcado!r})"
+                )
+                output = sql_tools._pesquisa_vendas(periodo=periodo_forcado)
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                logger.info(f"Resposta gerada via tool forçada: {output[:100]}...")
+                return output
 
             # 1. Detecta e aplica feedback sobre preferências
             feedbacks_detected = []

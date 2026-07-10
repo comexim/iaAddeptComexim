@@ -16,6 +16,7 @@ from app.core.redis_client import redis_client
 from app.services.commercial_metrics import (
     aggregate_purchases,
     aggregate_sales_by_branch,
+    aggregate_sales_totals,
     detect_sales_branch_from_query,
     filter_sales_by_branch,
     filter_sales_by_market,
@@ -1507,6 +1508,26 @@ class SQLTools:
                 logger.info(f"[FILTROS APLICADOS] {', '.join(filtros_aplicados)}")
                 if not results:
                     return "Nenhum resultado encontrado após aplicar os filtros solicitados."
+
+            if function_name == "IA_Vendas" and any(term in query_lower for term in ["mercado interno", "mercado nacional", "mercado externo", "mercado internacional"]):
+                market_label = "mercado interno" if any(term in query_lower for term in ["mercado interno", "mercado nacional"]) else "mercado externo"
+                market_rule = "pais = BRASIL" if market_label == "mercado interno" else "pais diferente de BRASIL"
+                totals = aggregate_sales_totals(results)
+                return f"""RESULTADO DETERMINÍSTICO DE VENDAS - {market_label.upper()}
+
+Filtro aplicado: {market_rule}
+
+Total de contratos: {totals['contratos']}
+Total de sacas: {format_pt_br(totals['sacas'])}
+Valor total: USD {format_pt_br(totals['valor_usd'])}
+Total de clientes: {totals['clientes']}
+
+REGRAS OBRIGATÓRIAS:
+- Mercado interno em vendas significa somente registros com pais = BRASIL.
+- Mercado externo em vendas significa registros com pais diferente de BRASIL.
+- A coluna valorTotal da usp_IA_Vendas está SEMPRE em USD.
+- Nunca apresente valorTotal de vendas como R$.
+- Se o usuário pedir em reais, converta explicitamente com cotação antes."""
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega

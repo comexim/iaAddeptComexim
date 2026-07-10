@@ -1,6 +1,7 @@
 from app.services.commercial_metrics import (
     aggregate_purchases,
     aggregate_sales_by_branch,
+    aggregate_sales_totals,
     detect_sales_branch_from_query,
     filter_sales_by_market,
     format_pt_br,
@@ -70,6 +71,20 @@ def test_sales_market_filters_use_pais_column():
     assert [row["contrato"] for row in filter_sales_by_market(rows, "externo")] == ["2", "3"]
 
 
+def test_sales_totals_are_in_usd_and_deduplicated():
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "1", "filial": "05", "cliente": "A", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "2", "filial": "60", "cliente": "B", "sacas": 30, "valorTotal": 6000},
+    ]
+
+    result = aggregate_sales_totals(rows)
+
+    assert result["contratos"] == 2
+    assert result["sacas"] == 40.0
+    assert result["valor_usd"] == 7000.0
+
+
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
     test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
@@ -77,4 +92,5 @@ if __name__ == "__main__":
     test_sales_branch_mapping_and_aggregation()
     test_sales_branch_detection_from_query()
     test_sales_market_filters_use_pais_column()
+    test_sales_totals_are_in_usd_and_deduplicated()
     print("commercial_metrics: OK")

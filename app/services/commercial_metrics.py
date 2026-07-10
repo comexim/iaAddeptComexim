@@ -151,6 +151,34 @@ def aggregate_sales_by_branch(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, 
     return result
 
 
+def aggregate_sales_totals(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Agrega totais de vendas por contrato, com valorTotal em USD."""
+    unique: Dict[str, Dict[str, Any]] = {}
+    for index, row in enumerate(rows):
+        contract = str(row.get("contrato") or index).strip()
+        branch = sales_branch_code(row.get("filial"))
+        client = str(row.get("cliente") or "").strip()
+        key = f"{contract}|{branch}|{client}"
+        unique.setdefault(key, row)
+
+    total_sacas = Decimal("0")
+    total_value_usd = Decimal("0")
+    clients = set()
+
+    for row in unique.values():
+        total_sacas += _decimal(row.get("sacas"))
+        total_value_usd += _decimal(row.get("valorTotal"))
+        if row.get("cliente"):
+            clients.add(str(row["cliente"]).strip())
+
+    return {
+        "contratos": len(unique),
+        "sacas": float(total_sacas),
+        "valor_usd": float(total_value_usd),
+        "clientes": len(clients),
+    }
+
+
 def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     """Agrega somente campos do esquema de compras."""
     unique: Dict[str, Dict[str, Any]] = {}
