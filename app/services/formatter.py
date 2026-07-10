@@ -8,6 +8,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import settings
 from app.prompts.system_prompt import FORMATTER_SYSTEM_PROMPT
+from app.services.number_formatting import normalize_numbers_pt_br
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +80,7 @@ class ResponseFormatter:
         text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
         # URLs soltas (http://... ou https://...) → remove
         text = re.sub(r'https?://\S+', '', text)
-        return text
+        return normalize_numbers_pt_br(text)
 
     def _simple_split(self, text: str) -> List[str]:
         """Split simples por parágrafos"""
