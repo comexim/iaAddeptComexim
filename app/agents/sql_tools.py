@@ -1515,14 +1515,12 @@ class SQLTools:
 
             if function_name == "IA_Vendas" and any(term in query_lower for term in ["mercado interno", "mercado nacional", "mercado externo", "mercado internacional"]):
                 market_label = "mercado interno" if any(term in query_lower for term in ["mercado interno", "mercado nacional"]) else "mercado externo"
-                market_value = "INTERNO" if market_label == "mercado interno" else "EXTERNO"
                 totals = aggregate_sales_totals(results)
                 return (
-                    f"Em vendas, considerando {market_label} em que a coluna MERCADO = {market_value}, "
-                    f"encontrei {totals['contratos']} contrato(s), totalizando "
+                    f"No período consultado, vendemos no {market_label} "
                     f"{format_pt_br(totals['sacas'])} sacas, no valor total de "
-                    f"USD {format_pt_br(totals['valor_usd'])}. "
-                    f"Clientes envolvidos: {totals['clientes']}."
+                    f"USD {format_pt_br(totals['valor_usd'])}, em "
+                    f"{totals['contratos']} contrato(s)."
                 )
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega

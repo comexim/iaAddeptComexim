@@ -9,16 +9,19 @@ def test_sales_market_uses_mercado_column_not_pais():
 
     assert "MERCADO=INTERNO" in source
     assert "MERCADO=EXTERNO" in source
-    assert "coluna MERCADO = {market_value}" in source
+    assert "filter_sales_by_market(results, \"interno\")" in source
+    assert "filter_sales_by_market(results, \"externo\")" in source
 
 
 def test_sales_market_direct_response_is_user_facing():
     source = SQL_TOOLS.read_text(encoding="utf-8")
     market_block = source[
-        source.index("market_value ="):
-        source.index("# ESTRAT", source.index("market_value ="))
+        source.index("No período consultado"):
+        source.index("# ESTRAT", source.index("No período consultado"))
     ]
 
+    assert "coluna MERCADO" not in market_block
+    assert "MERCADO =" not in market_block
     assert "RESULTADO DETERMIN" not in market_block
     assert "REGRAS OBRIGAT" not in market_block
 
