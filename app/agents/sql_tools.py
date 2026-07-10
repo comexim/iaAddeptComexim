@@ -1311,13 +1311,13 @@ class SQLTools:
                 if any(term in query_lower for term in ["mercado interno", "mercado nacional"]):
                     results_antes = len(results)
                     results = filter_sales_by_market(results, "interno")
-                    filtros_aplicados.append(f"mercado interno/pais=BRASIL ({results_antes} → {len(results)})")
+                    filtros_aplicados.append(f"mercado interno/MERCADO=INTERNO ({results_antes} → {len(results)})")
                     logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado interno: {results_antes} → {len(results)}")
 
                 if any(term in query_lower for term in ["mercado externo", "mercado internacional"]):
                     results_antes = len(results)
                     results = filter_sales_by_market(results, "externo")
-                    filtros_aplicados.append(f"mercado externo/pais!=BRASIL ({results_antes} → {len(results)})")
+                    filtros_aplicados.append(f"mercado externo/MERCADO=EXTERNO ({results_antes} → {len(results)})")
                     logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado externo: {results_antes} → {len(results)}")
 
                 # Filtro: sem valor fixado / preço a fixar
@@ -1515,23 +1515,15 @@ class SQLTools:
 
             if function_name == "IA_Vendas" and any(term in query_lower for term in ["mercado interno", "mercado nacional", "mercado externo", "mercado internacional"]):
                 market_label = "mercado interno" if any(term in query_lower for term in ["mercado interno", "mercado nacional"]) else "mercado externo"
-                market_rule = "pais = BRASIL" if market_label == "mercado interno" else "pais diferente de BRASIL"
+                market_value = "INTERNO" if market_label == "mercado interno" else "EXTERNO"
                 totals = aggregate_sales_totals(results)
-                return f"""RESULTADO DETERMINÍSTICO DE VENDAS - {market_label.upper()}
-
-Filtro aplicado: {market_rule}
-
-Total de contratos: {totals['contratos']}
-Total de sacas: {format_pt_br(totals['sacas'])}
-Valor total: USD {format_pt_br(totals['valor_usd'])}
-Total de clientes: {totals['clientes']}
-
-REGRAS OBRIGATÓRIAS:
-- Mercado interno em vendas significa somente registros com pais = BRASIL.
-- Mercado externo em vendas significa registros com pais diferente de BRASIL.
-- A coluna valorTotal da usp_IA_Vendas está SEMPRE em USD.
-- Nunca apresente valorTotal de vendas como R$.
-- Se o usuário pedir em reais, converta explicitamente com cotação antes."""
+                return (
+                    f"Em vendas, considerando {market_label} em que a coluna MERCADO = {market_value}, "
+                    f"encontrei {totals['contratos']} contrato(s), totalizando "
+                    f"{format_pt_br(totals['sacas'])} sacas, no valor total de "
+                    f"USD {format_pt_br(totals['valor_usd'])}. "
+                    f"Clientes envolvidos: {totals['clientes']}."
+                )
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
@@ -2205,9 +2197,9 @@ IMPORTANTE - REGRAS CRÍTICAS:
    - Os valores dessa seção estão em USD, pois vêm de valorTotal da usp_IA_Vendas.
 
 4. ⚠️ PARA PERGUNTAS SOBRE MERCADO INTERNO/EXTERNO:
-   - "Mercado interno" = pais exatamente BRASIL.
-   - "Mercado externo" = pais diferente de BRASIL.
-   - Não use filial para inferir mercado; use apenas a coluna pais.
+   - "Mercado interno" = coluna MERCADO igual a INTERNO.
+   - "Mercado externo" = coluna MERCADO igual a EXTERNO.
+   - Não use filial nem país para inferir mercado; use apenas a coluna MERCADO.
 
 5. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
 6. NÃO tente recalcular médias manualmente.

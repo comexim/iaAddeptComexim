@@ -60,11 +60,11 @@ def test_sales_branch_detection_from_query():
     assert detect_sales_branch_from_query("Quero apenas a filial 61") == "61"
 
 
-def test_sales_market_filters_use_pais_column():
+def test_sales_market_filters_use_mercado_column():
     rows = [
-        {"contrato": "1", "pais": "BRASIL"},
-        {"contrato": "2", "pais": "ALEMANHA"},
-        {"contrato": "3", "pais": "Estados Unidos"},
+        {"contrato": "1", "MERCADO": "INTERNO", "pais": "ALEMANHA"},
+        {"contrato": "2", "MERCADO": "EXTERNO", "pais": "BRASIL"},
+        {"contrato": "3", "mercado": "Externo", "pais": "BRASIL"},
     ]
 
     assert [row["contrato"] for row in filter_sales_by_market(rows, "interno")] == ["1"]
@@ -91,6 +91,6 @@ if __name__ == "__main__":
     test_pt_br_number_format_is_stable()
     test_sales_branch_mapping_and_aggregation()
     test_sales_branch_detection_from_query()
-    test_sales_market_filters_use_pais_column()
+    test_sales_market_filters_use_mercado_column()
     test_sales_totals_are_in_usd_and_deduplicated()
     print("commercial_metrics: OK")

@@ -95,17 +95,24 @@ def filter_sales_by_branch(rows: Iterable[Dict[str, Any]], branch_code: str) -> 
     return [row for row in rows if sales_branch_code(row.get("filial")) == normalized_code]
 
 
+def row_market(row: Dict[str, Any]) -> str:
+    for field in ("MERCADO", "mercado", "Mercado"):
+        if row.get(field) not in (None, ""):
+            return normalize_text(row[field]).upper()
+    return ""
+
+
 def filter_sales_by_market(rows: Iterable[Dict[str, Any]], market: str) -> List[Dict[str, Any]]:
-    market_normalized = normalize_text(market)
-    if market_normalized == "interno":
+    market_normalized = normalize_text(market).upper()
+    if market_normalized == "INTERNO":
         return [
             row for row in rows
-            if normalize_text(row.get("pais")).upper() == "BRASIL"
+            if row_market(row) == "INTERNO"
         ]
-    if market_normalized == "externo":
+    if market_normalized == "EXTERNO":
         return [
             row for row in rows
-            if normalize_text(row.get("pais")).upper() != "BRASIL"
+            if row_market(row) == "EXTERNO"
         ]
     return list(rows)
 
