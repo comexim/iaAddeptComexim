@@ -1733,6 +1733,8 @@ IMPORTANTE - REGRAS CRÍTICAS:
    - "Quanto café PVA temos?" → Procure {criterio} "PVA", use campo "sacas_total"
    - "Café Rainforest?" → Procure certificado "RF", use campo "sacas_total"
    - Use os campos apropriados do tipo específico
+   - Ao separar por certificado, mantenha o código exato do grupo retornado (ex: "RF", "4C", "GCP").
+   - Não junte certificados parecidos e não renomeie "RF" para "RF (Rainforest)" sem o usuário pedir descrição.
 
 4. CONVERSÃO PESO/SACAS:
    - 1 saca de café ≈ 60 kg
@@ -2494,7 +2496,7 @@ IDENTIFICAÇÃO E LOCALIZAÇÃO:
 
 CLASSIFICAÇÃO DO CAFÉ:
 - linha: tipo de café (ex: "PVA", "GRD", "LN1", "LN2", "LN3", "CD", "FUNDI")
-- certificado: certificação (ex: "RF"=Rainforest, "4C", "GC", "GT", "CP")
+- certificado: código de certificação exatamente como vem no banco (ex: "RF", "4C", "GC", "GT", "CP")
 
 MÉTRICAS DE QUALIDADE (percentuais %):
 - impureza: percentual de impureza
@@ -2521,7 +2523,8 @@ IMPORTANTE - REGRAS:
 
 VALORES COMUNS:
 - Linhas mais comuns: PVA, GRD, LN1, LN2, LN3
-- Certificados mais comuns: RF (Rainforest), 4C, GC
+- Certificados mais comuns: RF, 4C, GC
+- Ao responder agrupamentos por certificado, use o código exato do certificado; não acrescente descrições entre parênteses sem o usuário pedir.
 - Sacas: valores típicos entre 1,96 a 975,58 sacas por lote
 - Peso: valores típicos entre 115 kg a 57.559 kg por lote""",
 

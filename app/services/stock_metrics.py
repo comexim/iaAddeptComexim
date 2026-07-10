@@ -4,7 +4,6 @@ from typing import Any
 
 
 CERTIFICATE_ALIASES = {
-    "RAINFOREST": "RF",
     "RF": "RF",
     "4 C": "4C",
     "4C": "4C",

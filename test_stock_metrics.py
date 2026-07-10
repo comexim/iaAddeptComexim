@@ -8,8 +8,8 @@ from app.services.stock_metrics import (
 def test_certificate_filter_uses_exact_normalized_match():
     assert certificate_matches("RF", "RF")
     assert certificate_matches(" RF ", "RF")
-    assert certificate_matches("Rainforest", "RF")
 
+    assert not certificate_matches("Rainforest", "RF")
     assert not certificate_matches("4C", "RF")
     assert not certificate_matches("GCP", "GC")
     assert not certificate_matches("FT", "RF")
@@ -26,6 +26,7 @@ def test_certificate_detection_from_query():
 def test_certificate_normalization():
     assert normalize_certificate(" rf ") == "RF"
     assert normalize_certificate("4 c") == "4C"
+    assert normalize_certificate("Rainforest") == "RAINFOREST"
     assert normalize_certificate("") == "SEM CERTIFICADO"
 
 
