@@ -200,6 +200,10 @@ class SQLTools:
         # NÃO tenta extrair cliente se a query menciona TERMOS TÉCNICOS do sistema
         # (módulos, funcionalidades, conceitos) que NÃO são nomes de clientes
         termos_tecnicos = [
+            r'\bmercado\s+interno\b',  # filtro por pais = BRASIL, não é cliente
+            r'\bmercado\s+nacional\b',  # filtro por pais = BRASIL, não é cliente
+            r'\bmercado\s+externo\b',  # filtro por pais != BRASIL, não é cliente
+            r'\bmercado\s+internacional\b',  # filtro por pais != BRASIL, não é cliente
             r'\bcontas\s+a\s+receber',  # "contas a receber"
             r'\bcontas\s+a\s+pagar',  # "contas a pagar"
             r'\bcontas\s+pagas',  # "contas pagas"
