@@ -23,6 +23,11 @@ from app.services.commercial_metrics import (
     format_pt_br,
     sales_branch_name,
 )
+from app.services.stock_metrics import (
+    certificate_matches,
+    detect_certificate_from_query,
+    normalize_certificate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1137,7 +1142,10 @@ class SQLTools:
         agregar_por = "linha"  # default
         if hasattr(self, 'user_query_original') and self.user_query_original:
             query_lower = self.user_query_original.lower()
-            if any(termo in query_lower for termo in ["certificado", "certificação", "rainforest", "4c"]):
+            if (
+                any(termo in query_lower for termo in ["certificado", "certificação", "rainforest", "4c"])
+                or detect_certificate_from_query(self.user_query_original)
+            ):
                 agregar_por = "certificado"
                 logger.info(f"[AGREGAÇÃO ESTOQUE] Detectado menção a certificado - agregando por certificado")
 
@@ -1159,7 +1167,7 @@ class SQLTools:
             if agregar_por == "linha":
                 key = row.get("linha", "SEM LINHA").strip() or "SEM LINHA"
             else:
-                key = row.get("certificado", "SEM CERTIFICADO").strip() or "SEM CERTIFICADO"
+                key = normalize_certificate(row.get("certificado"))
 
             # Agrega valores
             aggregated[key]["sacas_total"] += row.get("sacas", 0) or 0
@@ -1439,26 +1447,23 @@ class SQLTools:
                                 logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro linha '{nome_filtro.upper()}': {results_antes} → {len(results)}")
                                 break
 
-                    # Filtro: certificado específico (RF/Rainforest, 4C, GC, etc.)
-                    certificados_conhecidos = [
-                        ("rainforest", ["rainforest", "rf"]),
-                        ("4c", ["4c", "4 c"]),
-                        ("gc", ["gc"]),
-                        ("gt", ["gt"]),
-                        ("cp", ["cp"]),
-                    ]
-
-                    for nome_filtro, termos in certificados_conhecidos:
-                        if any(termo in query_lower for termo in termos):
-                            results_antes = len(results)
-                            results = [
-                                r for r in results
-                                if any(termo in str(r.get("certificado", "")).lower() for termo in termos)
-                            ]
-                            if len(results) < results_antes and len(results) > 0:
-                                filtros_aplicados.append(f"certificado '{nome_filtro.upper()}' ({results_antes} → {len(results)})")
-                                logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado '{nome_filtro.upper()}': {results_antes} → {len(results)}")
-                                break
+                    # Filtro: certificado específico. Usa igualdade normalizada, nunca substring.
+                    # Ex.: pedido "RF" deve casar apenas certificado RF, não qualquer texto contendo "rf".
+                    certificado_solicitado = detect_certificate_from_query(self.user_query_original or "")
+                    if certificado_solicitado:
+                        results_antes = len(results)
+                        results = [
+                            r for r in results
+                            if certificate_matches(r.get("certificado"), certificado_solicitado)
+                        ]
+                        if len(results) < results_antes and len(results) > 0:
+                            filtros_aplicados.append(
+                                f"certificado '{certificado_solicitado}' ({results_antes} → {len(results)})"
+                            )
+                            logger.info(
+                                f"[FILTRO AUTOMÁTICO] Aplicado filtro certificado "
+                                f"'{certificado_solicitado}': {results_antes} → {len(results)}"
+                            )
 
                 # Detectar se é uma query COMPARATIVA (não aplicar filtros específicos)
                 palavras_comparativas = ["mais", "menos", " ou ", " vs ", " versus ", "comparar", "comparação", "comparacao", "diferença", "diferenca"]
