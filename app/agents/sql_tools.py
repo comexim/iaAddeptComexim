@@ -13,7 +13,15 @@ from app.utils.sql_validator import sql_validator
 from app.utils.date_parser import date_parser
 from app.models.user import UserPermissions
 from app.core.redis_client import redis_client
-from app.services.commercial_metrics import aggregate_purchases, format_pt_br
+from app.services.commercial_metrics import (
+    aggregate_purchases,
+    aggregate_sales_by_branch,
+    detect_sales_branch_from_query,
+    filter_sales_by_branch,
+    filter_sales_by_market,
+    format_pt_br,
+    sales_branch_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1281,6 +1289,32 @@ class SQLTools:
 
             # FILTROS PARA VENDAS
             if function_name == "IA_Vendas":
+                filial_detectada = detect_sales_branch_from_query(self.user_query_original)
+                if filial_detectada:
+                    results_antes = len(results)
+                    results = filter_sales_by_branch(results, filial_detectada)
+                    filtros_aplicados.append(
+                        f"filial {filial_detectada}/{sales_branch_name(filial_detectada)} "
+                        f"({results_antes} → {len(results)})"
+                    )
+                    logger.info(
+                        f"[FILTRO AUTOMÁTICO] Aplicado filtro filial "
+                        f"{filial_detectada}/{sales_branch_name(filial_detectada)}: "
+                        f"{results_antes} → {len(results)}"
+                    )
+
+                if any(term in query_lower for term in ["mercado interno", "mercado nacional"]):
+                    results_antes = len(results)
+                    results = filter_sales_by_market(results, "interno")
+                    filtros_aplicados.append(f"mercado interno/pais=BRASIL ({results_antes} → {len(results)})")
+                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado interno: {results_antes} → {len(results)}")
+
+                if any(term in query_lower for term in ["mercado externo", "mercado internacional"]):
+                    results_antes = len(results)
+                    results = filter_sales_by_market(results, "externo")
+                    filtros_aplicados.append(f"mercado externo/pais!=BRASIL ({results_antes} → {len(results)})")
+                    logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado externo: {results_antes} → {len(results)}")
+
                 # Filtro: sem valor fixado / preço a fixar
                 # IMPORTANTE: "preço a fixar" significa que valorFixado = 0 ou null (preço ainda não foi fixado)
                 if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
@@ -1471,6 +1505,8 @@ class SQLTools:
             if filtros_aplicados:
                 total_records = len(results)
                 logger.info(f"[FILTROS APLICADOS] {', '.join(filtros_aplicados)}")
+                if not results:
+                    return "Nenhum resultado encontrado após aplicar os filtros solicitados."
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
@@ -1798,7 +1834,7 @@ REGRAS OBRIGATÓRIAS:
                     tabela_por_contrato.append(
                         f"{c}{filial_label} | {contraparte} | "
                         f"{_fmt_decimal(qtd)} sacas | "
-                        f"R$ {_fmt_decimal(valor)} | "
+                        f"USD {_fmt_decimal(valor)} | "
                         f"{data}"
                     )
                 # Paginação: 50 contratos por página
@@ -1808,6 +1844,47 @@ REGRAS OBRIGATÓRIAS:
                 tabela_exibida = tabela_por_contrato[idx_inicio:idx_fim]
                 tabela_por_contrato_str = "\n".join(tabela_exibida)
                 logger.info(f"[TABELA CONTRATOS] {len(tabela_por_contrato)} contratos total, exibindo página {pagina} ({idx_inicio+1}-{min(idx_fim, len(tabela_por_contrato))})")
+
+                branch_terms_query = self.user_query_original.lower() if self.user_query_original else ""
+                pediu_agrupamento_filial = bool(
+                    re.search(
+                        r'\b(por|separad[ao]s?\s+por|separar\s+por|agrupad[ao]s?\s+por)\s+'
+                        r'(filiai?s?|empresa?s?)\b',
+                        branch_terms_query
+                    )
+                )
+                if pediu_agrupamento_filial:
+                    branch_metrics = aggregate_sales_by_branch(results)
+                    total_contratos_filiais = sum(item["contratos"] for item in branch_metrics)
+                    total_sacas_filiais = sum(item["sacas"] for item in branch_metrics)
+                    total_valor_filiais = sum(item["valor_usd"] for item in branch_metrics)
+                    branch_lines = [
+                        f"- {item['empresa']} (filial {item['filial']}): "
+                        f"{item['contratos']} contrato(s) | "
+                        f"{format_pt_br(item['sacas'])} sacas | "
+                        f"USD {format_pt_br(item['valor_usd'])} | "
+                        f"{item['clientes']} cliente(s)"
+                        for item in branch_metrics
+                    ]
+
+                    return f"""RESULTADO DETERMINÍSTICO DE VENDAS POR EMPRESA/FILIAL
+
+Total geral: {total_contratos_filiais} contrato(s) | {format_pt_br(total_sacas_filiais)} sacas | USD {format_pt_br(total_valor_filiais)}
+
+TOTAIS POR EMPRESA/FILIAL:
+{chr(10).join(branch_lines)}
+
+MAPEAMENTO OBRIGATÓRIO:
+- filial 05 = COBRA
+- filial 60 = CUSA
+- filial 61 = CEU
+
+REGRAS OBRIGATÓRIAS:
+- Estes dados são exclusivamente de VENDAS.
+- A coluna valorTotal da usp_IA_Vendas está SEMPRE em USD.
+- Não apresente valorTotal como R$.
+- Se o usuário pedir em real ou comparar com valores em BRL, converta explicitamente com cotação antes.
+- Se o usuário pedir uma empresa específica, use apenas a filial correspondente."""
 
                 aggregated = self._aggregate_by_client(results)
 
@@ -1871,6 +1948,17 @@ REGRAS OBRIGATÓRIAS:
                         contratos_str += f" (e mais {len(dados['contratos']) - 20})"
 
                     contratos_pais_str += f"\n  • {pais}: {qtd_contratos} contrato(s), {dados['sacas']:,.2f} sacas, {qtd_clientes} cliente(s)\n    Contratos: {contratos_str}"
+
+                vendas_por_filial = aggregate_sales_by_branch(results)
+                vendas_filial_str = ""
+                for item in vendas_por_filial:
+                    vendas_filial_str += (
+                        f"\n  • {item['empresa']} (filial {item['filial']}): "
+                        f"{item['contratos']} contrato(s), "
+                        f"{format_pt_br(item['sacas'])} sacas, "
+                        f"USD {format_pt_br(item['valor_usd'])}, "
+                        f"{item['clientes']} cliente(s)"
+                    )
 
                 formatted = json.dumps(aggregated, ensure_ascii=False, indent=2, default=convert_decimals)
 
@@ -1937,8 +2025,10 @@ Distribuição por cliente (top 5):"""
                 if ha_mais_paginas:
                     aviso_paginacao = f"\n⚠️ HÁ MAIS CONTRATOS: Esta é a página {pagina} de {total_paginas}. Chame pesquisa_vendas(periodo=..., pagina={pagina+1}) para ver os próximos contratos."
 
-                return f"""⚠️ TOTAL_EXATO: {total_contratos} contratos | {total_sacas:,.2f} sacas | R$ {total_valor:,.2f}
+                return f"""⚠️ TOTAL_EXATO: {total_contratos} contratos | {total_sacas:,.2f} sacas | USD {total_valor:,.2f}
 REGRA OBRIGATÓRIA: Use SEMPRE o número {total_contratos} ao responder sobre quantidade total de contratos.{aviso_paginacao}
+REGRA OBRIGATÓRIA DE MOEDA: Em IA_Vendas/usp_IA_Vendas, a coluna valorTotal SEMPRE está em USD. Nunca rotule valorTotal como R$.
+Se o usuário pedir em real, ou pedir comparação com valores em BRL, informe que é necessário converter usando uma cotação de câmbio antes de somar ou comparar.
 
 Resultados da consulta {function_name} (AGREGADOS POR CLIENTE):{sumario_embarcados_nao_baixados}
 
@@ -1949,7 +2039,7 @@ Página: {pagina}/{total_paginas} (contratos {(pagina-1)*PAGE_SIZE+1}–{min(pag
 TOTAIS GERAIS (PRÉ-CALCULADOS):
 - Total de Contratos: {total_contratos}
 - Total de Sacas: {total_sacas:,.2f}
-- Valor Total: R$ {total_valor:,.2f}
+- Valor Total: USD {total_valor:,.2f}
 - Diferencial Médio: {f'{diferencial_global:,.4f}' if diferencial_global is not None else 'N/A'}
 
 ⚠️ TABELA INDIVIDUAL POR CONTRATO - página {pagina}/{total_paginas} (contrato | cliente | sacas | valorTotal | mesEmbarque):
@@ -1957,11 +2047,20 @@ TOTAIS GERAIS (PRÉ-CALCULADOS):
 
 ⚠️ CRÍTICO - REGRA ANTI-ALUCINAÇÃO:
 - Use SOMENTE os contratos da tabela acima. NUNCA invente contratos inexistentes.
-- Para valor de cada contrato, use a coluna "valorTotal" da tabela acima.
+- Para valor de cada contrato, use a coluna "valorTotal" da tabela acima, SEMPRE em USD.
+- NUNCA apresente valorTotal de IA_Vendas como R$. Se precisar responder em reais, converta explicitamente com uma cotação informada/disponível.
+- NUNCA compare ou some valorTotal de vendas com campos em BRL sem converter primeiro para a mesma moeda.
 - NUNCA use o total do cliente para representar o valor de um contrato individual.
 - Se um cliente tem 4 contratos com valores diferentes, cada contrato tem seu próprio valor.
 
 CONTRATOS POR PAÍS (use esta seção para perguntas sobre países específicos):{contratos_pais_str}
+
+TOTAIS POR EMPRESA/FILIAL (use esta seção quando o usuário pedir por filial, por empresa, COBRA, CUSA ou CEU):{vendas_filial_str}
+
+MAPEAMENTO DE FILIAIS:
+- filial 05 = COBRA
+- filial 60 = CUSA
+- filial 61 = CEU
 
 Dados agregados:
 {formatted}
@@ -1971,7 +2070,7 @@ Instruções: Os dados acima estão AGREGADOS por cliente. Cada linha mostra:
 TOTAIS (PRÉ-CALCULADOS):
 - total_contratos: quantidade de contratos daquele cliente
 - total_sacas: soma de sacas de todos os contratos
-- total_valor: soma do valor total de todos os contratos (em R$)
+- total_valor: soma do valor total de todos os contratos (em USD; vem de valorTotal)
 
 MÉDIAS (PRÉ-CALCULADAS):
 - valor_unitario_medio: preço unitário médio (R$/saca)
@@ -2073,11 +2172,23 @@ IMPORTANTE - REGRAS CRÍTICAS:
    - NÃO procure país por país nos dados agregados por cliente!
    - A seção CONTRATOS POR PAÍS mostra TODOS os contratos de cada país, mesmo que estejam em clientes diferentes!
 
-3. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
-4. NÃO tente recalcular médias manualmente.
-5. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
-6. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
-7. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
+3. ⚠️ PARA PERGUNTAS POR FILIAL/EMPRESA, USE A SEÇÃO "TOTAIS POR EMPRESA/FILIAL"!
+   - "COBRA" = filial 05
+   - "CUSA" = filial 60
+   - "CEU" = filial 61
+   - Se o usuário pedir uma dessas empresas, responda apenas com a filial correspondente.
+   - Os valores dessa seção estão em USD, pois vêm de valorTotal da usp_IA_Vendas.
+
+4. ⚠️ PARA PERGUNTAS SOBRE MERCADO INTERNO/EXTERNO:
+   - "Mercado interno" = pais exatamente BRASIL.
+   - "Mercado externo" = pais diferente de BRASIL.
+   - Não use filial para inferir mercado; use apenas a coluna pais.
+
+5. TODAS as médias acima estão PRÉ-CALCULADAS. USE OS VALORES DIRETAMENTE.
+6. NÃO tente recalcular médias manualmente.
+7. Cada campo de média (ex: diferencial_medio) já considera TODOS os contratos daquele cliente.
+8. Para perguntas sobre médias, use SEMPRE os campos _medio/_media fornecidos.
+9. PENEIRAS: Use apenas peneira_mtgb_media, peneira_grauda_media, peneira_grinder_media.
    NÃO extraia tamanhos de peneira das descrições de qualidade (ex: "13 UP", "17/18").
 
 Exemplos corretos de uso:
@@ -2110,7 +2221,7 @@ O usuário quer ver TODOS os {len(tabela_por_contrato)} contratos listados na TA
 ❌ NÃO agrupe por cliente - liste cada contrato individualmente!
 ❌ NÃO invente valores - use SOMENTE o valorTotal da TABELA INDIVIDUAL!
 
-Formato: "N. [contrato] ([cliente]) - R$ [valorTotal]" para cada um dos {len(tabela_por_contrato)} contratos."""}"""
+Formato: "N. [contrato] ([cliente]) - USD [valorTotal]" para cada um dos {len(tabela_por_contrato)} contratos."""}"""
 
         # ESTRATÉGIA 3: Poucos registros (<= 50), envia completo
         warning = ""
@@ -2173,6 +2284,47 @@ Formato: "N. [contrato] ([cliente]) - R$ [valorTotal]" para cada um dos {len(tab
                 results = results_dedup
                 total_records = len(results_dedup)
 
+            branch_terms_query = self.user_query_original.lower() if self.user_query_original else ""
+            pediu_agrupamento_filial = bool(
+                re.search(
+                    r'\b(por|separad[ao]s?\s+por|separar\s+por|agrupad[ao]s?\s+por)\s+'
+                    r'(filiai?s?|empresa?s?)\b',
+                    branch_terms_query
+                )
+            )
+            if pediu_agrupamento_filial:
+                branch_metrics = aggregate_sales_by_branch(results)
+                total_contratos_filiais = sum(item["contratos"] for item in branch_metrics)
+                total_sacas_filiais = sum(item["sacas"] for item in branch_metrics)
+                total_valor_filiais = sum(item["valor_usd"] for item in branch_metrics)
+                branch_lines = [
+                    f"- {item['empresa']} (filial {item['filial']}): "
+                    f"{item['contratos']} contrato(s) | "
+                    f"{format_pt_br(item['sacas'])} sacas | "
+                    f"USD {format_pt_br(item['valor_usd'])} | "
+                    f"{item['clientes']} cliente(s)"
+                    for item in branch_metrics
+                ]
+
+                return f"""RESULTADO DETERMINÍSTICO DE VENDAS POR EMPRESA/FILIAL
+
+Total geral: {total_contratos_filiais} contrato(s) | {format_pt_br(total_sacas_filiais)} sacas | USD {format_pt_br(total_valor_filiais)}
+
+TOTAIS POR EMPRESA/FILIAL:
+{chr(10).join(branch_lines)}
+
+MAPEAMENTO OBRIGATÓRIO:
+- filial 05 = COBRA
+- filial 60 = CUSA
+- filial 61 = CEU
+
+REGRAS OBRIGATÓRIAS:
+- Estes dados são exclusivamente de VENDAS.
+- A coluna valorTotal da usp_IA_Vendas está SEMPRE em USD.
+- Não apresente valorTotal como R$.
+- Se o usuário pedir em real ou comparar com valores em BRL, converta explicitamente com cotação antes.
+- Se o usuário pedir uma empresa específica, use apenas a filial correspondente."""
+
         def convert_decimals(obj):
             if isinstance(obj, Decimal):
                 return float(obj)
@@ -2231,7 +2383,8 @@ QUANTIDADES E VOLUMES:
 
 VALORES FINANCEIROS:
 - valorUnitario: preço por saca em R$/saca (ex: 280.5)
-- valorTotal: valor total do contrato em R$ (valorUnitario * sacas)
+- valorTotal: valor total do contrato em USD. Esta coluna SEMPRE vem em dólar na usp_IA_Vendas.
+  Se o usuário pedir em R$ ou comparar com valores em BRL, converta explicitamente com cotação antes de somar/comparar.
 - valorFixado: preço fixado por saca em R$/saca (ex: 315.5)
 - diferencial: diferencial de preço em relação ao mercado (pode ser negativo)
 

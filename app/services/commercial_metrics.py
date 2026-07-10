@@ -8,6 +8,12 @@ from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List
 
+SALES_BRANCHES = {
+    "05": "COBRA",
+    "60": "CUSA",
+    "61": "CEU",
+}
+
 
 def _decimal(value: Any) -> Decimal:
     if value in (None, ""):
@@ -47,6 +53,102 @@ def row_currency(row: Dict[str, Any]) -> str:
         if row.get(field) not in (None, ""):
             return normalize_currency(row[field])
     return "N/I"
+
+
+def normalize_text(value: Any) -> str:
+    import unicodedata
+
+    text = unicodedata.normalize("NFKD", str(value or "").lower())
+    return "".join(char for char in text if not unicodedata.combining(char)).strip()
+
+
+def sales_branch_code(value: Any) -> str:
+    text = str(value or "").strip().upper()
+    digits = "".join(char for char in text if char.isdigit())
+    if digits:
+        return digits.zfill(2)[-2:]
+
+    normalized = normalize_text(text)
+    for code, name in SALES_BRANCHES.items():
+        if normalized == normalize_text(name):
+            return code
+    return text or "N/I"
+
+
+def sales_branch_name(value: Any) -> str:
+    code = sales_branch_code(value)
+    return SALES_BRANCHES.get(code, f"FILIAL {code}" if code != "N/I" else "SEM FILIAL")
+
+
+def detect_sales_branch_from_query(query: str) -> str | None:
+    normalized = f" {normalize_text(query)} "
+    for code, name in SALES_BRANCHES.items():
+        if normalize_text(name) in normalized:
+            return code
+        if f" filial {int(code)} " in normalized or f" filial {code} " in normalized:
+            return code
+    return None
+
+
+def filter_sales_by_branch(rows: Iterable[Dict[str, Any]], branch_code: str) -> List[Dict[str, Any]]:
+    normalized_code = sales_branch_code(branch_code)
+    return [row for row in rows if sales_branch_code(row.get("filial")) == normalized_code]
+
+
+def filter_sales_by_market(rows: Iterable[Dict[str, Any]], market: str) -> List[Dict[str, Any]]:
+    market_normalized = normalize_text(market)
+    if market_normalized == "interno":
+        return [
+            row for row in rows
+            if normalize_text(row.get("pais")).upper() == "BRASIL"
+        ]
+    if market_normalized == "externo":
+        return [
+            row for row in rows
+            if normalize_text(row.get("pais")).upper() != "BRASIL"
+        ]
+    return list(rows)
+
+
+def aggregate_sales_by_branch(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Agrega vendas por filial/empresa usando linhas de contrato, com valorTotal em USD."""
+    unique: Dict[str, Dict[str, Any]] = {}
+    for index, row in enumerate(rows):
+        contract = str(row.get("contrato") or index).strip()
+        branch = sales_branch_code(row.get("filial"))
+        client = str(row.get("cliente") or "").strip()
+        key = f"{contract}|{branch}|{client}"
+        unique.setdefault(key, row)
+
+    totals = defaultdict(lambda: {
+        "contratos": 0,
+        "sacas": Decimal("0"),
+        "valor_usd": Decimal("0"),
+        "clientes": set(),
+    })
+
+    for row in unique.values():
+        code = sales_branch_code(row.get("filial"))
+        item = totals[code]
+        item["contratos"] += 1
+        item["sacas"] += _decimal(row.get("sacas"))
+        item["valor_usd"] += _decimal(row.get("valorTotal"))
+        if row.get("cliente"):
+            item["clientes"].add(str(row["cliente"]).strip())
+
+    result = []
+    for code, values in totals.items():
+        result.append({
+            "filial": code,
+            "empresa": SALES_BRANCHES.get(code, f"FILIAL {code}" if code != "N/I" else "SEM FILIAL"),
+            "contratos": values["contratos"],
+            "sacas": float(values["sacas"]),
+            "valor_usd": float(values["valor_usd"]),
+            "clientes": len(values["clientes"]),
+        })
+
+    result.sort(key=lambda item: item["sacas"], reverse=True)
+    return result
 
 
 def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
@@ -104,4 +206,3 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
         "totais_por_moeda": currency_totals,
         "fornecedores": supplier_totals,
     }
-
