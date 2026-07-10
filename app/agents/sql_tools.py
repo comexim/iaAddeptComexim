@@ -264,12 +264,24 @@ class SQLTools:
             rf'do\s+{_NOME}(?:\s+em|\s+no|\s+para|\s+de\b|$)',
         ]
 
+        termos_metricas = [
+            r'\bm[eé]dia\b',
+            r'\bmedia\b',
+            r'\bpor\s+saca\b',
+            r'\bsacas?\b',
+            r'\bvalor\s+total\b',
+            r'\bmoeda\b',
+            r'\bcontratos?\b',
+            r'\bdividid[oa]\s+por\b',
+            r'\btotal\s+de\b',
+        ]
+
         for pattern in patterns:
             match = re.search(pattern, query_lower)
             if match:
                 client_name = match.group(1).strip()
                 # Remove palavras muito curtas (< 3 chars) que podem ser artigos
-                if len(client_name) >= 3:
+                if len(client_name) >= 3 and not any(re.search(padrao, client_name) for padrao in termos_metricas):
                     logger.info(f"Cliente identificado na pergunta: '{client_name}'")
                     return client_name
 
@@ -2657,11 +2669,39 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         texto = unicodedata.normalize("NFKD", str(periodo).lower().strip()).encode("ascii", "ignore").decode("ascii")
         agora = date_parser.get_current_date()
+        meses_nomeados = {
+            "janeiro": "01", "jan": "01",
+            "fevereiro": "02", "fev": "02",
+            "marco": "03", "mar": "03",
+            "abril": "04", "abr": "04",
+            "maio": "05", "mai": "05",
+            "junho": "06", "jun": "06",
+            "julho": "07", "jul": "07",
+            "agosto": "08", "ago": "08",
+            "setembro": "09", "set": "09",
+            "outubro": "10", "out": "10",
+            "novembro": "11", "nov": "11",
+            "dezembro": "12", "dez": "12",
+        }
         numeros = {
             "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3,
             "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,
             "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
         }
+
+        nomes_meses_regex = "|".join(sorted(meses_nomeados, key=len, reverse=True))
+        match_intervalo_meses = re.search(
+            rf"\b({nomes_meses_regex})\b\s+(?:a|ate|at[eé]|para|-)\s+\b({nomes_meses_regex})\b(?:\s+(?:de|do|em))?\s+(\d{{4}})",
+            texto,
+        )
+        if match_intervalo_meses:
+            mes_inicio = meses_nomeados[match_intervalo_meses.group(1)]
+            mes_fim = meses_nomeados[match_intervalo_meses.group(2)]
+            ano = match_intervalo_meses.group(3)
+            return {
+                "mes_inicio": f"{ano}/{mes_inicio}",
+                "mes_fim": f"{ano}/{mes_fim}",
+            }
 
         if any(expressao in texto for expressao in ("este ano", "esse ano", "ano atual")):
             return {
