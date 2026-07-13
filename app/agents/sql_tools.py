@@ -4239,6 +4239,31 @@ IMPORTANTE:
             _tipo_label = "VENCIDAS (vencimentoReal já passou)" if _eh_vencidas else "PENDENTES (a receber)"
             _aviso_vencidas = "\n⚠️ ATENÇÃO: Estes títulos estão VENCIDOS — o vencimentoReal já passou. Informe ao usuário quais clientes têm contas em atraso." if _eh_vencidas else ""
 
+            if _eh_vencidas and re.search(r'\b(total|quanto|valor)\b', _q):
+                clientes_por_saldo = sorted(
+                    (
+                        (cliente_nome, dados)
+                        for cliente_nome, dados in por_cliente.items()
+                        if abs(dados["saldo_total"]) > 0
+                    ),
+                    key=lambda item: abs(item[1]["saldo_total"]),
+                    reverse=True,
+                )
+                principais = clientes_por_saldo[:3]
+                linhas_clientes = [
+                    f"- {cliente_nome}: R$ {format_pt_br(dados['saldo_total'])}"
+                    for cliente_nome, dados in principais
+                ]
+                clientes_texto = ""
+                if linhas_clientes:
+                    clientes_texto = "\n\nPrincipais clientes em atraso:\n" + "\n".join(linhas_clientes)
+
+                return (
+                    f"O total de contas a receber vencidas é de "
+                    f"R$ {format_pt_br(total_saldo)}."
+                    f"{clientes_texto}"
+                )
+
             return f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
 
 Total de registros SQL: {len(result_list)}

@@ -712,7 +712,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         confirmations.append(f"{fb.tipo} → {fb.valor}")
 
                 if confirmations:
-                    output += f"\n\n_[Preferência atualizada: {', '.join(confirmations)}]_"
+                    logger.info(f"[PREFERÊNCIA] Atualizada internamente: {', '.join(confirmations)}")
 
             logger.info(f"Resposta gerada: {output[:100]}...")
             logger.info(f"[DEBUG] Retornando output com {len(output)} caracteres")

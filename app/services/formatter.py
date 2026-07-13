@@ -76,6 +76,13 @@ class ResponseFormatter:
         """Remove elementos markdown que não renderizam bem no WhatsApp."""
         import re
         text = text.replace("\\n\\n", "\n\n")
+        # Remove confirmações internas de aprendizado/preferência que não
+        # devem aparecer como mensagem normal no WhatsApp.
+        text = re.sub(
+            r'(?im)^\s*_?\[Prefer[êe]ncia\s+atualizada:[^\]]+\]_?\s*$',
+            '',
+            text,
+        )
         # [texto](url) → texto
         text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
         # URLs soltas (http://... ou https://...) → remove

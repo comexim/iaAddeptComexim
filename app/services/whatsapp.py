@@ -3,6 +3,7 @@ Serviço de integração com Evolution API (WhatsApp)
 """
 import httpx
 import logging
+import re
 from typing import List
 from app.core.config import settings
 
@@ -16,6 +17,15 @@ class WhatsAppService:
         self.base_url = settings.evolution_api_url
         self.token = settings.evolution_api_token
 
+    def _sanitize_outbound_text(self, text: str) -> str:
+        """Remove mensagens internas que nunca devem ser enviadas ao usuário."""
+        text = str(text or "").replace("\\n\\n", "\n\n")
+        return re.sub(
+            r'(?im)^\s*_?\[Prefer[êe]ncia\s+atualizada:[^\]]+\]_?\s*$',
+            '',
+            text,
+        ).strip()
+
     async def send_text_message(self, phone: str, text: str) -> bool:
         """
         Envia mensagem de texto para WhatsApp
@@ -27,6 +37,11 @@ class WhatsAppService:
         Returns:
             True se enviou com sucesso, False caso contrário
         """
+        text = self._sanitize_outbound_text(text)
+        if not text:
+            logger.info("[WHATSAPP] Mensagem vazia/interna ignorada, nada a enviar")
+            return True
+
         # Garante formato correto do telefone
         if not phone.endswith("@s.whatsapp.net"):
             phone = f"{phone}@s.whatsapp.net"
