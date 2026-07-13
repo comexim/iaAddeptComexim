@@ -3,6 +3,8 @@ import types
 
 
 def _load_sql_tools_with_stubs(rows):
+    sys.modules.pop("app.agents.sql_tools", None)
+
     langchain_core = types.ModuleType("langchain_core")
     tools_mod = types.ModuleType("langchain_core.tools")
 
@@ -65,6 +67,7 @@ def test_overdue_receivables_total_and_clients_use_same_balance_field():
         {"cliente": "Cardiff Coffee", "valor": 169470.34, "saldo": 100000.00, "contrato": "1/26", "vencimentoReal": "20260101"},
         {"cliente": "Cafe Jandaia MG", "valor": 114359.46, "saldo": 80000.00, "contrato": "2/26", "vencimentoReal": "20260102"},
         {"cliente": "Kraft", "valor": 13493.90, "saldo": 20000.00, "contrato": "3/26", "vencimentoReal": "20260103"},
+        {"cliente": "Rothfos Corporation", "valor": -22888.74, "saldo": -22888.74, "contrato": "4/26", "vencimentoReal": "20260104"},
     ]
     SQLTools, user = _load_sql_tools_with_stubs(rows)
     sql_tools = SQLTools.__new__(SQLTools)
@@ -77,7 +80,30 @@ def test_overdue_receivables_total_and_clients_use_same_balance_field():
     response = sql_tools._pesquisa_contas_a_receber(data_vencimento="vencidas")
 
     assert "R$ 200.000,00" in response
+    assert "Cardiff Coffee" not in response
+    assert "Rothfos Corporation" not in response
+    assert "169.470,34" not in response
+    assert "-22.888,74" not in response
+
+
+def test_overdue_receivables_by_client_excludes_negative_balances():
+    rows = [
+        {"cliente": "Cardiff Coffee", "valor": 169470.34, "saldo": 100000.00, "contrato": "1/26", "vencimentoReal": "20260101"},
+        {"cliente": "Cafe Jandaia MG", "valor": 114359.46, "saldo": 80000.00, "contrato": "2/26", "vencimentoReal": "20260102"},
+        {"cliente": "Rothfos Corporation", "valor": -22888.74, "saldo": -22888.74, "contrato": "3/26", "vencimentoReal": "20260103"},
+    ]
+    SQLTools, user = _load_sql_tools_with_stubs(rows)
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user = user
+    sql_tools.session_id = None
+    sql_tools.user_query_original = "Qual o total de contas a receber vencidas por cliente?"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._salvar_resultado_scheduler = lambda _results: None
+
+    response = sql_tools._pesquisa_contas_a_receber(data_vencimento="vencidas")
+
+    assert "R$ 180.000,00" in response
     assert "Cardiff Coffee: R$ 100.000,00" in response
     assert "Cafe Jandaia MG: R$ 80.000,00" in response
-    assert "Kraft: R$ 20.000,00" in response
-    assert "169.470,34" not in response
+    assert "Rothfos Corporation" not in response
+    assert "-22.888,74" not in response

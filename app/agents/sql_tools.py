@@ -4240,27 +4240,33 @@ IMPORTANTE:
             _aviso_vencidas = "\n⚠️ ATENÇÃO: Estes títulos estão VENCIDOS — o vencimentoReal já passou. Informe ao usuário quais clientes têm contas em atraso." if _eh_vencidas else ""
 
             if _eh_vencidas and re.search(r'\b(total|quanto|valor)\b', _q):
+                total_vencido_positivo = sum(
+                    dados["saldo_total"]
+                    for dados in por_cliente.values()
+                    if dados["saldo_total"] > 0
+                )
                 clientes_por_saldo = sorted(
                     (
                         (cliente_nome, dados)
                         for cliente_nome, dados in por_cliente.items()
-                        if abs(dados["saldo_total"]) > 0
+                        if dados["saldo_total"] > 0
                     ),
-                    key=lambda item: abs(item[1]["saldo_total"]),
+                    key=lambda item: item[1]["saldo_total"],
                     reverse=True,
                 )
-                principais = clientes_por_saldo[:3]
-                linhas_clientes = [
-                    f"- {cliente_nome}: R$ {format_pt_br(dados['saldo_total'])}"
-                    for cliente_nome, dados in principais
-                ]
+                pede_clientes = bool(re.search(r'\b(cliente|clientes|por cliente|quais|quem)\b', _q))
                 clientes_texto = ""
-                if linhas_clientes:
-                    clientes_texto = "\n\nPrincipais clientes em atraso:\n" + "\n".join(linhas_clientes)
+                if pede_clientes:
+                    linhas_clientes = [
+                        f"- {cliente_nome}: R$ {format_pt_br(dados['saldo_total'])}"
+                        for cliente_nome, dados in clientes_por_saldo
+                    ]
+                    if linhas_clientes:
+                        clientes_texto = "\n\nClientes em atraso:\n" + "\n".join(linhas_clientes)
 
                 return (
-                    f"O total de contas a receber vencidas é de "
-                    f"R$ {format_pt_br(total_saldo)}."
+                    f"O total de contas a receber vencidas: "
+                    f"R$ {format_pt_br(total_vencido_positivo)}."
                     f"{clientes_texto}"
                 )
 
