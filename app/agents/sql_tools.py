@@ -177,6 +177,63 @@ class SQLTools:
 
         return contrato.lstrip("0") or "0"
 
+    def _extract_safra_code(self, query: Optional[str]) -> Optional[str]:
+        """Extrai codigo de safra em perguntas como 'safra 25/26'."""
+        if not query:
+            return None
+        texto = unicodedata.normalize("NFKD", str(query).lower()).encode("ascii", "ignore").decode("ascii")
+        match = re.search(r'\bsafra\s+(\d{2,4})\s*[/-]\s*(\d{2,4})\b', texto)
+        if not match:
+            return None
+
+        inicio, fim = match.group(1), match.group(2)
+        return f"{inicio[-2:]}/{fim[-2:]}"
+
+    def _row_matches_safra(self, row: Dict[str, Any], safra_code: str) -> bool:
+        """Compara safra da linha aceitando formatos 25/26, 2025/2026, 25-26."""
+        valor = row.get("SAFRA")
+        if valor is None:
+            valor = row.get("safra")
+        if valor is None:
+            valor = row.get("Safra")
+        if valor is None:
+            return False
+
+        texto = unicodedata.normalize("NFKD", str(valor).lower()).encode("ascii", "ignore").decode("ascii")
+        numeros = re.findall(r'\d+', texto)
+        if len(numeros) >= 2:
+            linha_code = f"{numeros[0][-2:]}/{numeros[1][-2:]}"
+            return linha_code == safra_code
+
+        somente_digitos = re.sub(r'\D', '', texto)
+        return somente_digitos.endswith(safra_code.replace("/", ""))
+
+    def _filter_purchases_by_safra(self, rows: list[Dict[str, Any]], safra_code: str) -> list[Dict[str, Any]]:
+        return [row for row in rows if self._row_matches_safra(row, safra_code)]
+
+    def _format_purchase_total_summary(self, rows: list[Dict[str, Any]], safra_code: Optional[str] = None) -> str:
+        metrics = aggregate_purchases(rows)
+        if not metrics["totais_por_moeda"]:
+            return "Nenhum resultado encontrado para esta consulta."
+
+        linhas = []
+        for total in metrics["totais_por_moeda"]:
+            currency = total["moeda"]
+            currency_label = currency if currency != "N/I" else "moeda nÃ£o informada"
+            media = total["media_ponderada"]
+            media_label = format_pt_br(media) if media is not None else "N/A"
+            linhas.append(
+                f"- {currency_label}: {format_pt_br(total['quantidade_total'])} sacas, "
+                f"valor {format_pt_br(total['valor_total'])}, "
+                f"mÃ©dia ponderada {media_label}"
+            )
+
+        prefixo = f"Volume total da safra {safra_code}" if safra_code else "Volume total de compras"
+        return (
+            f"{prefixo}: {metrics['total_contratos']} contrato(s)/pedido(s).\n"
+            + "\n".join(linhas)
+        )
+
     def _extract_client_name(self, query: str) -> Optional[str]:
         """
         Extrai nome do cliente da pergunta do usuário
@@ -1312,6 +1369,17 @@ class SQLTools:
             query_lower = self.user_query_original.lower()
             filtros_aplicados = []
 
+            if function_name in ("IA_Compras", "IA_ComprasPar"):
+                safra_detectada = self._extract_safra_code(self.user_query_original)
+                if safra_detectada:
+                    results_antes = len(results)
+                    results = self._filter_purchases_by_safra(results, safra_detectada)
+                    filtros_aplicados.append(f"safra {safra_detectada} ({results_antes} â†’ {len(results)})")
+                    logger.info(
+                        f"[FILTRO AUTOMÃTICO] Aplicado filtro safra "
+                        f"{safra_detectada}: {results_antes} â†’ {len(results)}"
+                    )
+
             # FILTROS PARA VENDAS
             if function_name == "IA_Vendas":
                 filial_detectada = detect_sales_branch_from_query(self.user_query_original)
@@ -1540,6 +1608,11 @@ class SQLTools:
                     f"{totals['contratos']} contrato(s)."
                 )
 
+            if function_name in ("IA_Compras", "IA_ComprasPar"):
+                safra_detectada = self._extract_safra_code(self.user_query_original)
+                if safra_detectada and any(term in query_lower for term in ["volume total", "total da safra", "quanto compr", "quantas sacas"]):
+                    return self._format_purchase_total_summary(results, safra_detectada)
+
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
         # MAS: Se pergunta menciona critério específico que resulta em poucos registros (<= 10), NÃO agrega
@@ -1554,7 +1627,7 @@ class SQLTools:
 
             # Padrão: número/ano (ex: 488/25, 453/25A, 513/25)
             # IMPORTANTE: (?!\d) evita casar datas como "02/2026" (após "02/20" vem "2", não letra/fim)
-            if re.search(r'\d{2,4}/\d{2}(?!\d)[A-Z]?', self.user_query_original):
+            if re.search(r'\d{2,4}/\d{2}(?!\d)[A-Z]?', self.user_query_original) and not self._extract_safra_code(self.user_query_original):
                 menciona_contrato = True
                 logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
 
