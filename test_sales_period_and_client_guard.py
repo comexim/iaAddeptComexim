@@ -4,6 +4,8 @@ from datetime import date
 
 
 def _load_sql_tools_with_stubs():
+    sys.modules.pop("app.agents.sql_tools", None)
+
     langchain_core = types.ModuleType("langchain_core")
     tools_mod = types.ModuleType("langchain_core.tools")
 
@@ -80,5 +82,13 @@ def test_sales_metric_request_is_not_detected_as_client():
         "total de sacas, valor total, moeda e média por saca. "
         "A média deve ser valor total dividido por sacas."
     )
+
+    assert sql_tools._extract_client_name(query) is None
+
+
+def test_sales_purchase_volume_comparison_is_not_detected_as_client():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    query = "Compare o volume comprado com o volume vendido em junho de 2026."
 
     assert sql_tools._extract_client_name(query) is None

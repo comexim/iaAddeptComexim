@@ -309,6 +309,10 @@ class SQLTools:
 
         # Padrões comuns para identificar nome de cliente
         # Terminadores: palavras que encerram o nome do cliente
+        if re.search(r'\bcompar(e|ar|ativo|aÃ§Ã£o|acao)?\b', query_lower) and re.search(r'\b(comprad[oa]|vendid[oa]|vendas?|compras?)\b', query_lower):
+            logger.info("[PROTEÃ‡ÃƒO] Query comparativa de compra/venda - NÃƒO vai extrair cliente")
+            return None
+
         _T = r'(?:\s+temos|\s+tem|\s+para|\s+no|\s+em|\s+na|\s+do|\s+da|\s+de\b|\?|$)'
         _NOME = r'([a-záàâãéèêíïóôõöúçñ\s&\.\-/]+?)'
 
@@ -327,6 +331,12 @@ class SQLTools:
             r'\bpor\s+saca\b',
             r'\bsacas?\b',
             r'\bvalor\s+total\b',
+            r'\bvolume\b',
+            r'\bvolume\s+(comprado|vendido)\b',
+            r'\bcomprad[oa]\b',
+            r'\bvendid[oa]\b',
+            r'\bcom\s+o\s+volume\b',
+            r'\bcompar(e|ar|ativo|aÃ§Ã£o|acao)?\b',
             r'\bmoeda\b',
             r'\bcontratos?\b',
             r'\bdividid[oa]\s+por\b',
