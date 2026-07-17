@@ -32,12 +32,9 @@ class FixacaoToolsTest(unittest.TestCase):
     def test_coleta_todos_campos_e_exige_confirmacao(self):
         send = AsyncMock(return_value={"ok": True})
         with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
-            incomplete = self.tool.cadastrar_valor_contrato(contratode_venda="011706", valor_fixacao=321.321)
-            self.assertTrue(incomplete.startswith("PRECISA_PERGUNTAR:"))
-            self.assertEqual(send.await_count, 0)
-
-            summary = self.tool.cadastrar_valor_contrato(diferencial=-10, tipo_valor="5", fixador_preco="E")
+            summary = self.tool.cadastrar_valor_contrato(contratode_venda="011706", valor_fixacao=321.321)
             self.assertTrue(summary.startswith("AGUARDANDO_CONFIRMACAO:"))
+            self.assertEqual(send.await_count, 0)
             self.assertIn("011706", summary)
             self.assertEqual(send.await_count, 0)
 
@@ -46,7 +43,7 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertEqual(send.await_count, 1)
             self.assertEqual(send.await_args.args[0], {
                 "contratodeVenda": "011706",
-                "fixacaoContrato": [{"valorFixacao": 321.321, "diferencial": -10.0, "tipoValor": "5", "fixadorPreco": "E"}],
+                "fixacaoContrato": [{"valorFixacao": 321.321}],
             })
 
     def test_correcao_exige_novo_resumo_e_nova_confirmacao(self):

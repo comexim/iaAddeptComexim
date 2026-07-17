@@ -12,7 +12,7 @@ from app.core.fixacao_api_client import fixacao_api_client
 
 
 class FixacaoTools:
-    REQUIRED = ("contratodeVenda", "valorFixacao", "diferencial", "tipoValor", "fixadorPreco")
+    REQUIRED = ("contratodeVenda", "valorFixacao")
     LABELS = {"contratodeVenda": "contrato de venda", "valorFixacao": "valor da fixacao", "diferencial": "diferencial", "tipoValor": "tipo do valor", "fixadorPreco": "fixador do preco"}
 
     def __init__(self, session_id: str):
@@ -29,7 +29,16 @@ class FixacaoTools:
         self._redis().setex(self.key, 3600, json.dumps(data, ensure_ascii=False))
 
     def _summary(self, data: Dict[str, Any]) -> str:
-        return ("RESUMO PARA CONFIRMACAO:\n" f"Contrato de venda: {data['contratodeVenda']}\n" f"Valor da fixacao: {data['valorFixacao']}\n" f"Diferencial: {data['diferencial']}\n" f"Tipo do valor: {data['tipoValor']}\n" f"Fixador do preco: {data['fixadorPreco']}\n\n" "Pergunte se o usuario confirma explicitamente o envio destes dados para a API.")
+        lines = [
+            "RESUMO PARA CONFIRMACAO:",
+            f"Contrato de venda: {data['contratodeVenda']}",
+            f"Valor da fixacao: {data['valorFixacao']}",
+        ]
+        for key in ("diferencial", "tipoValor", "fixadorPreco"):
+            if key in data:
+                lines.append(f"{self.LABELS[key].capitalize()}: {data[key]}")
+        lines.extend(["", "Pergunte se o usuario confirma explicitamente o envio destes dados para a API."])
+        return "\n".join(lines)
 
     def cadastrar_valor_contrato(self, contratode_venda: Optional[str] = None, valor_fixacao: Optional[float] = None, diferencial: Optional[float] = None, tipo_valor: Optional[str] = None, fixador_preco: Optional[str] = None, confirmar_envio: bool = False) -> str:
         """Coleta, confirma e envia uma fixacao de contrato para a API CMX."""
@@ -56,7 +65,14 @@ class FixacaoTools:
             if changed or not data.get("aguardando_confirmacao"):
                 self._save(data)
                 return "CONFIRMACAO_INVALIDA: exiba os dados novamente antes de pedir nova confirmacao. " + self._summary(data)
-            body = {"contratodeVenda": str(data["contratodeVenda"]), "fixacaoContrato": [{"valorFixacao": float(data["valorFixacao"]), "diferencial": float(data["diferencial"]), "tipoValor": str(data["tipoValor"]), "fixadorPreco": str(data["fixadorPreco"])}]}
+            fixacao = {"valorFixacao": float(data["valorFixacao"])}
+            if "diferencial" in data:
+                fixacao["diferencial"] = float(data["diferencial"])
+            if "tipoValor" in data:
+                fixacao["tipoValor"] = str(data["tipoValor"])
+            if "fixadorPreco" in data:
+                fixacao["fixadorPreco"] = str(data["fixadorPreco"])
+            body = {"contratodeVenda": str(data["contratodeVenda"]), "fixacaoContrato": [fixacao]}
             try:
                 result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
             except Exception as exc:
@@ -68,7 +84,7 @@ class FixacaoTools:
         return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Colete contratode_venda, valor_fixacao, diferencial, tipo_valor e fixador_preco. Nunca invente dados. Mostre o resumo retornado e, somente depois de confirmacao explicita, chame novamente com confirmar_envio=True. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais: inclua-os apenas se o usuario informar e nao pergunte por eles automaticamente. Nunca invente dados. Mostre o resumo retornado e, somente depois de confirmacao explicita, chame novamente com confirmar_envio=True. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
 def create_fixacao_tool(session_id: str) -> StructuredTool:
