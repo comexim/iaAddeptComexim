@@ -35,6 +35,12 @@ _CRIAR_CONTRATO_KEYWORDS = re.compile(
     re.IGNORECASE
 )
 
+_PURE_CONFIRMATION = re.compile(
+    r'^\s*(?:sim|s|ok|confirmo|confirmar|sim[,.]?\s*confirmo|pode\s+enviar|'
+    r'pode\s+mandar|envie|manda|est[aá]\s+correto|correto|certo)\s*[.!]?\s*$',
+    re.IGNORECASE,
+)
+
 # System prompt enxuto para o fluxo de criação de contrato
 _CONTRATO_SYSTEM_PROMPT = """Você cria contratos de venda/exportação da Comexim.
 
@@ -569,6 +575,29 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             Resposta do agente
         """
         try:
+            # Confirmacao de fixacao e deterministica: nao depende de o LLM
+            # preencher confirmar_envio=True ao chamar a ferramenta.
+            if _PURE_CONFIRMATION.match(message):
+                import asyncio
+                from app.agents.fixacao_tools import FixacaoTools
+
+                fixacao = FixacaoTools(self.session_id or "default")
+                if fixacao.is_awaiting_confirmation():
+                    logger.info("[FIXACAO FLOW] Confirmacao explicita detectada; enviando para API CMX")
+                    result = await asyncio.to_thread(
+                        fixacao.cadastrar_valor_contrato,
+                        confirmar_envio=True,
+                    )
+                    if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
+                        output = "Valor do contrato cadastrado com sucesso."
+                    elif result.startswith("ERRO_API:"):
+                        output = result.replace("ERRO_API:", "Não foi possível concluir o cadastro:", 1).strip()
+                    else:
+                        output = result
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+
             # ═══ FLUXO LEVE: Criação de contrato (só ADA tool) ═══
             if self._is_contrato_flow(message):
                 logger.info(f"[CONTRATO FLOW] Usando agente leve para: {message[:80]}")

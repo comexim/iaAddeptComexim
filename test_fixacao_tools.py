@@ -36,6 +36,7 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertTrue(summary.startswith("AGUARDANDO_CONFIRMACAO:"))
             self.assertEqual(send.await_count, 0)
             self.assertIn("011706", summary)
+            self.assertTrue(self.tool.is_awaiting_confirmation())
             self.assertEqual(send.await_count, 0)
 
             success = self.tool.cadastrar_valor_contrato(confirmar_envio=True)

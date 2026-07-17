@@ -28,6 +28,11 @@ class FixacaoTools:
     def _save(self, data: Dict[str, Any]):
         self._redis().setex(self.key, 3600, json.dumps(data, ensure_ascii=False))
 
+    def is_awaiting_confirmation(self) -> bool:
+        """Indica se os dados ja foram exibidos e aguardam confirmacao."""
+        data = self._load()
+        return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
+
     def _summary(self, data: Dict[str, Any]) -> str:
         lines = [
             "RESUMO PARA CONFIRMACAO:",
