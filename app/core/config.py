@@ -82,6 +82,15 @@ class Settings(BaseSettings):
     ada_username: str = ""
     ada_password: str = ""
 
+    # API CMX Z24 (cadastro de valor/fixacao em contrato existente)
+    cmx_api_url: str = "https://200.221.173.187:8085"
+    cmx_token_path: str = "/rest/cmx/api/oauth2/v1/token"
+    cmx_fixacao_path: str = "/rest/cmx/api/v1/postZ24"
+    cmx_username: str = ""
+    cmx_password: str = ""
+    cmx_tenant_id: str = "01,05"
+    cmx_verify_ssl: bool = True
+
     # Email SMTP
     smtp_host: str = "smtp.gmail.com"
     smtp_port: int = 587
