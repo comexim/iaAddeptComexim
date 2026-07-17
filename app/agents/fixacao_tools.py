@@ -66,7 +66,11 @@ class FixacaoTools:
         if missing:
             self._save(data)
             return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores."
-        if confirmar_envio:
+        # Fallback para modelos que, após o usuário confirmar, chamam a tool
+        # sem preencher confirmar_envio=True. Uma chamada sem novos campos só
+        # confirma quando o resumo já foi exibido e o estado está aguardando.
+        confirmar_por_estado = bool(data.get("aguardando_confirmacao")) and not changed
+        if confirmar_envio or confirmar_por_estado:
             if changed or not data.get("aguardando_confirmacao"):
                 self._save(data)
                 return "CONFIRMACAO_INVALIDA: exiba os dados novamente antes de pedir nova confirmacao. " + self._summary(data)
@@ -89,7 +93,7 @@ class FixacaoTools:
         return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais: inclua-os apenas se o usuario informar e nao pergunte por eles automaticamente. Nunca invente dados. Mostre o resumo retornado e, somente depois de confirmacao explicita, chame novamente com confirmar_envio=True. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais: inclua-os apenas se o usuario informar e nao pergunte por eles automaticamente. Nunca invente dados. Mostre o resumo retornado. Depois de confirmacao explicita do usuario, chame com confirmar_envio=True; se o modelo omitir esse parametro, chame sem repetir os dados, pois a tool reconhece o estado aguardando confirmacao. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
 def create_fixacao_tool(session_id: str) -> StructuredTool:

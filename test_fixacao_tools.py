@@ -76,6 +76,17 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertIn("Contrato ja fixado em 17/07/2026", result)
             self.assertIsNotNone(self.fake.get(self.tool.key))
 
+    def test_chamada_sem_parametros_confirma_depois_do_resumo(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "012325", "valorFixacao": 124.50,
+            "aguardando_confirmacao": True,
+        })
+        send = AsyncMock(return_value={"success": True})
+        with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
+            result = self.tool.cadastrar_valor_contrato()
+            self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
+            self.assertEqual(send.await_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
