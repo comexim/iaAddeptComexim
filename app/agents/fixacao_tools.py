@@ -58,8 +58,14 @@ class FixacaoTools:
                         return f"VALOR_INVALIDO: {self.LABELS[key]} nao pode ser vazio."
                 if key in ("valorFixacao", "diferencial") and not math.isfinite(float(value)):
                     return f"VALOR_INVALIDO: {self.LABELS[key]} deve ser numerico e finito."
+                if key in ("valorFixacao", "diferencial"):
+                    value = float(value)
+                previous = data.get(key)
                 data[key] = value
-                changed = True
+                # O LLM pode repetir contrato e valor junto com a confirmacao.
+                # Repetir exatamente o mesmo dado nao e uma alteracao.
+                if previous != value:
+                    changed = True
         if changed:
             data["aguardando_confirmacao"] = False
         missing = [self.LABELS[key] for key in self.REQUIRED if key not in data]

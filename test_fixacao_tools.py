@@ -87,6 +87,21 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
             self.assertEqual(send.await_count, 1)
 
+    def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "012325", "valorFixacao": 125.42,
+            "aguardando_confirmacao": True,
+        })
+        send = AsyncMock(return_value={"success": True})
+        with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
+            result = self.tool.cadastrar_valor_contrato(
+                contratode_venda="012325",
+                valor_fixacao=125.42,
+                confirmar_envio=True,
+            )
+            self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
+            self.assertEqual(send.await_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
