@@ -81,7 +81,7 @@ class FixacaoTools:
             try:
                 result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
             except Exception as exc:
-                return f"ERRO_API: o cadastro nao foi confirmado pela API CMX: {exc}"
+                return f"ERRO_API: {exc}"
             self._redis().delete(self.key)
             return "FIXACAO_CADASTRADA_SUCESSO: " + json.dumps(result, ensure_ascii=False)
         data["aguardando_confirmacao"] = True

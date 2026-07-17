@@ -62,6 +62,20 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
             self.assertEqual(send.await_count, 1)
 
+    def test_erro_funcional_da_api_nao_vira_sucesso(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "012324", "valorFixacao": 150.20,
+            "aguardando_confirmacao": True,
+        })
+        send = AsyncMock(side_effect=RuntimeError(
+            "Nao sera possivel fixar o contrato. Contrato ja fixado em 17/07/2026"
+        ))
+        with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
+            result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
+            self.assertTrue(result.startswith("ERRO_API:"))
+            self.assertIn("Contrato ja fixado em 17/07/2026", result)
+            self.assertIsNotNone(self.fake.get(self.tool.key))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,7 +24,13 @@ class FixacaoApiClient:
         params = {"grant_type": "password", "username": settings.cmx_username, "password": settings.cmx_password}
         async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
             response = await client.post(url, params=params)
-            response.raise_for_status()
+            if not 200 <= response.status_code < 300:
+                logger.error(
+                    "[CMX AUTH] POST do token recusado: HTTP %s: %s",
+                    response.status_code,
+                    response.text[:500],
+                )
+                raise RuntimeError(f"Autenticacao CMX recusada (HTTP {response.status_code})")
             result = response.json()
         token = result.get("access_token")
         if not token:
@@ -44,9 +50,29 @@ class FixacaoApiClient:
             logger.error("[CMX Z24] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
         try:
-            return response.json()
+            result = response.json()
         except ValueError:
             return {"status_code": response.status_code, "message": response.text}
+
+        # A CMX pode responder HTTP 200 e informar falha funcional no JSON.
+        if isinstance(result, dict):
+            error_code = result.get("errorCode")
+            try:
+                has_error = error_code not in (None, "") and int(error_code) >= 400
+            except (TypeError, ValueError):
+                has_error = bool(error_code)
+
+            if has_error:
+                error_message = str(result.get("errorMessage") or "Operacao recusada pela API CMX").strip()
+                errors = result.get("erros") or []
+                if isinstance(errors, str):
+                    errors = [errors]
+                details = "; ".join(str(item).strip() for item in errors if str(item).strip())
+                full_message = f"{error_message} {details}".strip()
+                logger.warning("[CMX Z24] Erro funcional %s: %s", error_code, full_message)
+                raise RuntimeError(full_message)
+
+        return result
 
 
 fixacao_api_client = FixacaoApiClient()
