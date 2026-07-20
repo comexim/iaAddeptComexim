@@ -123,6 +123,23 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
             self.assertEqual(send.await_count, 1)
 
+    def test_confirmacao_prematura_com_dados_novos_prepara_proximo_sim(self):
+        send = AsyncMock(return_value={"success": True})
+        with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
+            result = self.tool.cadastrar_valor_contrato(
+                contratode_venda="012305",
+                valor_fixacao=211.11,
+                tipo_valor="K",
+                confirmar_envio=True,
+            )
+            self.assertTrue(result.startswith("AGUARDANDO_CONFIRMACAO:"))
+            self.assertEqual(send.await_count, 0)
+            self.assertTrue(self.tool.is_awaiting_confirmation())
+
+            result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
+            self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
+            self.assertEqual(send.await_count, 1)
+
 
 if __name__ == "__main__":
     unittest.main()

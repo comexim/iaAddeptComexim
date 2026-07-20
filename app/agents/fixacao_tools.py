@@ -116,8 +116,12 @@ class FixacaoTools:
             return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores." + optional_hint
         if confirmar_envio:
             if changed or not data.get("aguardando_confirmacao"):
+                # O modelo pode marcar confirmar_envio no mesmo turno em que
+                # recebeu dados novos. Nunca envie nesse caso: exiba o resumo
+                # e prepare o estado para uma confirmacao posterior do usuario.
+                data["aguardando_confirmacao"] = True
                 self._save(data)
-                return "CONFIRMACAO_INVALIDA: exiba os dados novamente antes de pedir nova confirmacao. " + self._summary(data)
+                return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
             fixacao = {"valorFixacao": float(data["valorFixacao"])}
             if "diferencial" in data:
                 fixacao["diferencial"] = float(data["diferencial"])
