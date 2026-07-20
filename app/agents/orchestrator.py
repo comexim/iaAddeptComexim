@@ -593,6 +593,16 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             Resposta do agente
         """
         try:
+            normalized_user_message = _normalize_query_text(message)
+            new_fixacao_request = re.search(
+                r'\b(?:cadastrar|inserir|registrar|lancar|fixar|adicionar)\b.*\bvalor\b.*\bcontrato\b',
+                normalized_user_message,
+            )
+            if new_fixacao_request:
+                from app.agents.fixacao_tools import FixacaoTools
+                logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
+                FixacaoTools(self.session_id or "default").clear_pending()
+
             # Confirmacao de fixacao e deterministica: nao depende de o LLM
             # preencher confirmar_envio=True ao chamar a ferramenta.
             confirmation_text = _normalize_query_text(message).strip().rstrip(".! ")

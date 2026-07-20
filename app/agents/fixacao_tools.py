@@ -33,6 +33,10 @@ class FixacaoTools:
         data = self._load()
         return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
 
+    def clear_pending(self) -> None:
+        """Descarta os dados da operacao pendente desta conversa."""
+        self._redis().delete(self.key)
+
     def format_pending_summary(self) -> str:
         """Formata o cadastro pendente para resposta direta ao usuario."""
         data = self._load()

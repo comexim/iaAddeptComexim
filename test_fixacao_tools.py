@@ -99,6 +99,15 @@ class FixacaoToolsTest(unittest.TestCase):
         self.assertIn("Fixador do preço: Importador (I)", summary)
         self.assertIn("Você confirma o envio", summary)
 
+    def test_novo_cadastro_pode_limpar_estado_anterior(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "012302", "valorFixacao": 214.30,
+            "diferencial": -23, "fixadorPreco": "I",
+            "aguardando_confirmacao": True,
+        })
+        self.tool.clear_pending()
+        self.assertIsNone(self.fake.get(self.tool.key))
+
     def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
         self.fake.data[self.tool.key] = json.dumps({
             "contratodeVenda": "012325", "valorFixacao": 125.42,
