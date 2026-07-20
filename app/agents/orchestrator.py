@@ -27,6 +27,24 @@ def _normalize_query_text(text: str) -> str:
     normalized = unicodedata.normalize("NFKD", str(text or "").lower())
     return "".join(char for char in normalized if not unicodedata.combining(char))
 
+
+def _ensure_fixacao_optional_hint(output: str) -> str:
+    """Garante o aviso dos campos opcionais ao solicitar o valor obrigatorio."""
+    normalized = _normalize_query_text(output)
+    asking_value = (
+        "valor da fixacao" in normalized
+        and "confirma" not in normalized
+        and "resumo" not in normalized
+        and any(term in normalized for term in ("preciso", "informe", "qual", "poderia"))
+    )
+    if asking_value and "diferencial" not in normalized:
+        return (
+            output.rstrip()
+            + "\n\nSe desejar, você também pode informar o diferencial, o tipo do valor e o fixador do preço. "
+              "Esses dados são opcionais; somente o valor da fixação é necessário para continuar."
+        )
+    return output
+
 # Palavras-chave que indicam intenção de criar contrato
 _CRIAR_CONTRATO_KEYWORDS = re.compile(
     r'criar\s+contrato|novo\s+contrato|adicionar\s+contrato|registrar\s+venda|'
@@ -577,12 +595,22 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         try:
             # Confirmacao de fixacao e deterministica: nao depende de o LLM
             # preencher confirmar_envio=True ao chamar a ferramenta.
-            if _PURE_CONFIRMATION.match(message):
+            confirmation_text = _normalize_query_text(message).strip().rstrip(".! ")
+            confirmation_phrases = {
+                "sim", "s", "ok", "confirmo", "confirmar", "sim, confirmo", "sim confirmo",
+                "pode enviar", "pode mandar", "envie", "manda", "esta correto", "correto", "certo",
+            }
+            if confirmation_text in confirmation_phrases:
                 import asyncio
                 from app.agents.fixacao_tools import FixacaoTools
 
                 fixacao = FixacaoTools(self.session_id or "default")
-                if fixacao.is_awaiting_confirmation():
+                awaiting_fixacao = fixacao.is_awaiting_confirmation()
+                logger.info(
+                    "[FIXACAO FLOW] Mensagem de confirmacao detectada; aguardando_confirmacao=%s",
+                    awaiting_fixacao,
+                )
+                if awaiting_fixacao:
                     logger.info("[FIXACAO FLOW] Confirmacao explicita detectada; enviando para API CMX")
                     result = await asyncio.to_thread(
                         fixacao.cadastrar_valor_contrato,
@@ -723,6 +751,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             elif not isinstance(output, str):
                 # Converte qualquer outro tipo para string
                 output = str(output) if output else "Desculpe, não consegui gerar uma resposta."
+
+            output = _ensure_fixacao_optional_hint(output)
 
             # 7. Salva mensagens no histórico do Redis
             self.message_history.add_user_message(message)
