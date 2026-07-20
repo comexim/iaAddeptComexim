@@ -49,6 +49,8 @@ Nunca invente, deduza ou use valor padrão. Zero e diferencial negativo são vá
 Com todos os campos preenchidos, chame a tool sem confirmar_envio e apresente o resumo completo retornado.
 Somente confirmação explícita posterior ao resumo autoriza nova chamada com confirmar_envio=True.
 Se o usuário corrigir qualquer campo, envie a correção, apresente novo resumo e solicite nova confirmação.
+Se a mensagem contiver adicionar, adicione, incluir, inclua, alterar, altere, mudar ou corrigir junto do nome de um campo opcional, ela é uma alteração — nunca uma confirmação. Chame cadastrar_valor_contrato passando obrigatoriamente o campo mencionado e deixe confirmar_envio=False.
+Para fixador do preço, normalize: F ou Fixador = "F"; I ou Importador = "I"; E ou Exportador = "E". Mostre a forma informada pelo usuário quando conversar, mas envie o código normalizado à tool.
 Nunca trate resposta a uma pergunta de campo como confirmação de envio.
 Nunca anuncie sucesso antes de FIXACAO_CADASTRADA_SUCESSO.
 </contract-value-registration-protocol>

@@ -60,6 +60,16 @@ class FixacaoTools:
                     return f"VALOR_INVALIDO: {self.LABELS[key]} deve ser numerico e finito."
                 if key in ("valorFixacao", "diferencial"):
                     value = float(value)
+                if key == "fixadorPreco":
+                    fixador_normalizado = str(value).strip().lower()
+                    fixadores = {
+                        "f": "F", "fixador": "F",
+                        "i": "I", "importador": "I",
+                        "e": "E", "exportador": "E",
+                    }
+                    if fixador_normalizado not in fixadores:
+                        return "VALOR_INVALIDO: fixador do preco deve ser F (Fixador), I (Importador) ou E (Exportador)."
+                    value = fixadores[fixador_normalizado]
                 previous = data.get(key)
                 data[key] = value
                 # O LLM pode repetir contrato e valor junto com a confirmacao.
@@ -79,11 +89,7 @@ class FixacaoTools:
                     "Deixe claro que sao opcionais e nao os apresente como pendencias."
                 )
             return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores." + optional_hint
-        # Fallback para modelos que, após o usuário confirmar, chamam a tool
-        # sem preencher confirmar_envio=True. Uma chamada sem novos campos só
-        # confirma quando o resumo já foi exibido e o estado está aguardando.
-        confirmar_por_estado = bool(data.get("aguardando_confirmacao")) and not changed
-        if confirmar_envio or confirmar_por_estado:
+        if confirmar_envio:
             if changed or not data.get("aguardando_confirmacao"):
                 self._save(data)
                 return "CONFIRMACAO_INVALIDA: exiba os dados novamente antes de pedir nova confirmacao. " + self._summary(data)
@@ -106,7 +112,7 @@ class FixacaoTools:
         return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais: inclua-os apenas se o usuario informar e nao pergunte por eles automaticamente. Nunca invente dados. Mostre o resumo retornado. Depois de confirmacao explicita do usuario, chame com confirmar_envio=True; se o modelo omitir esse parametro, chame sem repetir os dados, pois a tool reconhece o estado aguardando confirmacao. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
 def create_fixacao_tool(session_id: str) -> StructuredTool:

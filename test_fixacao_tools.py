@@ -76,7 +76,7 @@ class FixacaoToolsTest(unittest.TestCase):
             self.assertIn("Contrato ja fixado em 17/07/2026", result)
             self.assertIsNotNone(self.fake.get(self.tool.key))
 
-    def test_chamada_sem_parametros_confirma_depois_do_resumo(self):
+    def test_chamada_sem_parametros_nao_confirma(self):
         self.fake.data[self.tool.key] = json.dumps({
             "contratodeVenda": "012325", "valorFixacao": 124.50,
             "aguardando_confirmacao": True,
@@ -84,8 +84,17 @@ class FixacaoToolsTest(unittest.TestCase):
         send = AsyncMock(return_value={"success": True})
         with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
             result = self.tool.cadastrar_valor_contrato()
-            self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
-            self.assertEqual(send.await_count, 1)
+            self.assertTrue(result.startswith("AGUARDANDO_CONFIRMACAO:"))
+            self.assertEqual(send.await_count, 0)
+
+    def test_normaliza_fixador_por_codigo_ou_descricao(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "012302", "valorFixacao": 214.30,
+            "aguardando_confirmacao": True,
+        })
+        result = self.tool.cadastrar_valor_contrato(fixador_preco="Importador")
+        self.assertTrue(result.startswith("AGUARDANDO_CONFIRMACAO:"))
+        self.assertEqual(json.loads(self.fake.get(self.tool.key))["fixadorPreco"], "I")
 
     def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
         self.fake.data[self.tool.key] = json.dumps({
