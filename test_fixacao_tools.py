@@ -95,6 +95,9 @@ class FixacaoToolsTest(unittest.TestCase):
         result = self.tool.cadastrar_valor_contrato(fixador_preco="Importador")
         self.assertTrue(result.startswith("AGUARDANDO_CONFIRMACAO:"))
         self.assertEqual(json.loads(self.fake.get(self.tool.key))["fixadorPreco"], "I")
+        summary = self.tool.format_pending_summary()
+        self.assertIn("Fixador do preço: Importador (I)", summary)
+        self.assertIn("Você confirma o envio", summary)
 
     def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
         self.fake.data[self.tool.key] = json.dumps({

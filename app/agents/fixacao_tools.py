@@ -33,6 +33,27 @@ class FixacaoTools:
         data = self._load()
         return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
 
+    def format_pending_summary(self) -> str:
+        """Formata o cadastro pendente para resposta direta ao usuario."""
+        data = self._load()
+        valor = f"{float(data['valorFixacao']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        lines = [
+            "Aqui está o resumo atualizado dos dados:",
+            "",
+            f"Contrato de venda: {data['contratodeVenda']}",
+            f"Valor da fixação: R$ {valor}",
+        ]
+        if "diferencial" in data:
+            lines.append(f"Diferencial: {data['diferencial']:g}")
+        if "tipoValor" in data:
+            lines.append(f"Tipo do valor: {data['tipoValor']}")
+        if "fixadorPreco" in data:
+            descriptions = {"F": "Fixador", "I": "Importador", "E": "Exportador"}
+            code = data["fixadorPreco"]
+            lines.append(f"Fixador do preço: {descriptions.get(code, code)} ({code})")
+        lines.extend(["", "Você confirma o envio desses dados para registro?"])
+        return "\n".join(lines)
+
     def _summary(self, data: Dict[str, Any]) -> str:
         lines = [
             "RESUMO PARA CONFIRMACAO:",

@@ -626,6 +626,51 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     self.message_history.add_ai_message(output)
                     return output
 
+            # Atualizacoes opcionais de uma fixacao pendente sao processadas
+            # diretamente, sem permitir chamada da API neste mesmo turno.
+            from app.agents.fixacao_tools import FixacaoTools
+            fixacao_pending = FixacaoTools(self.session_id or "default")
+            if fixacao_pending.is_awaiting_confirmation():
+                normalized_message = _normalize_query_text(message)
+                optional_updates = {}
+
+                diferencial_match = re.search(
+                    r'diferencial(?:\s+(?:de|como|e))?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)',
+                    normalized_message,
+                )
+                if diferencial_match:
+                    optional_updates["diferencial"] = float(diferencial_match.group(1).replace(",", "."))
+
+                if "fixador" in normalized_message and "preco" in normalized_message:
+                    if re.search(r'\bimportador\b|\bcomo\s+i\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*i\b', normalized_message):
+                        optional_updates["fixador_preco"] = "I"
+                    elif re.search(r'\bexportador\b|\bcomo\s+e\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*e\b', normalized_message):
+                        optional_updates["fixador_preco"] = "E"
+                    elif re.search(r'\bcomo\s+f\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*f\b', normalized_message):
+                        optional_updates["fixador_preco"] = "F"
+
+                tipo_valor_match = re.search(
+                    r'tipo\s+(?:do|de)\s+valor(?:\s+(?:como|e))?\s*[:=]?\s*([\w$./-]+)',
+                    normalized_message,
+                )
+                if tipo_valor_match:
+                    optional_updates["tipo_valor"] = tipo_valor_match.group(1)
+
+                if optional_updates:
+                    import asyncio
+                    logger.info("[FIXACAO FLOW] Atualizando campos opcionais sem envio: %s", list(optional_updates))
+                    result = await asyncio.to_thread(
+                        fixacao_pending.cadastrar_valor_contrato,
+                        **optional_updates,
+                    )
+                    if result.startswith("VALOR_INVALIDO:"):
+                        output = result.replace("VALOR_INVALIDO:", "Não foi possível atualizar:", 1).strip()
+                    else:
+                        output = fixacao_pending.format_pending_summary()
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+
             # ═══ FLUXO LEVE: Criação de contrato (só ADA tool) ═══
             if self._is_contrato_flow(message):
                 logger.info(f"[CONTRATO FLOW] Usando agente leve para: {message[:80]}")
