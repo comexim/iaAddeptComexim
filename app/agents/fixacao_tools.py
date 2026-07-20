@@ -71,7 +71,14 @@ class FixacaoTools:
         missing = [self.LABELS[key] for key in self.REQUIRED if key not in data]
         if missing:
             self._save(data)
-            return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores."
+            optional_hint = ""
+            if "valor da fixacao" in missing and "contratodeVenda" in data:
+                optional_hint = (
+                    " Ao pedir o valor da fixacao, avise brevemente que, se quiser, o usuario pode informar "
+                    "tambem diferencial, tipo do valor e fixador do preco na mesma resposta. "
+                    "Deixe claro que sao opcionais e nao os apresente como pendencias."
+                )
+            return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores." + optional_hint
         # Fallback para modelos que, após o usuário confirmar, chamam a tool
         # sem preencher confirmar_envio=True. Uma chamada sem novos campos só
         # confirma quando o resumo já foi exibido e o estado está aguardando.
