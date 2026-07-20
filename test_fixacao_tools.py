@@ -108,6 +108,19 @@ class FixacaoToolsTest(unittest.TestCase):
         self.tool.clear_pending()
         self.assertIsNone(self.fake.get(self.tool.key))
 
+    def test_normaliza_tipos_de_valor(self):
+        cases = {
+            "C": "C", "cts/lb": "C", "centavos por libra": "C",
+            "K": "K", "em kg": "K", "quilogramas": "K",
+            "5": "5", "saca de 50 kg": "5", "US$ 50KG": "5",
+            "6": "6", "tipo 59 kg": "6", "US$ 59KG": "6",
+            "T": "T", "em toneladas": "T", "valor por tonelada": "T",
+        }
+        for informed, expected in cases.items():
+            with self.subTest(informed=informed):
+                self.assertEqual(self.tool.normalize_tipo_valor(informed), expected)
+        self.assertIsNone(self.tool.normalize_tipo_valor("tipo desconhecido"))
+
     def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
         self.fake.data[self.tool.key] = json.dumps({
             "contratodeVenda": "012325", "valorFixacao": 125.42,

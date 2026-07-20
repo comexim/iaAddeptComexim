@@ -2,6 +2,8 @@
 import asyncio
 import json
 import math
+import re
+import unicodedata
 from typing import Any, Dict, Optional
 
 import redis
@@ -36,6 +38,30 @@ class FixacaoTools:
     def clear_pending(self) -> None:
         """Descarta os dados da operacao pendente desta conversa."""
         self._redis().delete(self.key)
+
+    @staticmethod
+    def normalize_tipo_valor(value: Any) -> Optional[str]:
+        """Converte descricoes do tipo de valor para o codigo interno CMX."""
+        if value is None:
+            return None
+        text = unicodedata.normalize("NFKD", str(value).strip().lower())
+        text = "".join(char for char in text if not unicodedata.combining(char))
+        text = re.sub(r'\s+', ' ', text)
+
+        if text.upper() in {"C", "K", "5", "6", "T"}:
+            return text.upper()
+        # Verifique pesos especificos antes do kg generico.
+        if re.search(r'\b50\s*kg\b|\bus\$?\s*50\s*kg\b|\bsaca\s+de\s+50\s*kg\b', text):
+            return "5"
+        if re.search(r'\b59\s*kg\b|\bus\$?\s*59\s*kg\b|\bsaca\s+de\s+59\s*kg\b', text):
+            return "6"
+        if re.search(r'cts\s*/\s*lb|centavos?\s+(?:de\s+dolar\s+)?por\s+libra|cents?\s+per\s+pound', text):
+            return "C"
+        if re.search(r'\btoneladas?\b|\btons?\b|us\$?\s*ton\b|valor\s+por\s+tonelada', text):
+            return "T"
+        if re.search(r'\bquilos?\b|\bkg\b|\bquilogramas?\b|us\$?\s*kg\b', text):
+            return "K"
+        return None
 
     def format_pending_summary(self) -> str:
         """Formata o cadastro pendente para resposta direta ao usuario."""
@@ -85,6 +111,14 @@ class FixacaoTools:
                     return f"VALOR_INVALIDO: {self.LABELS[key]} deve ser numerico e finito."
                 if key in ("valorFixacao", "diferencial"):
                     value = float(value)
+                if key == "tipoValor":
+                    normalized_tipo = self.normalize_tipo_valor(value)
+                    if normalized_tipo is None:
+                        if "tipoValor" in data:
+                            data.pop("tipoValor")
+                            changed = True
+                        continue
+                    value = normalized_tipo
                 if key == "fixadorPreco":
                     fixador_normalizado = str(value).strip().lower()
                     fixadores = {

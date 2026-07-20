@@ -659,12 +659,9 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     elif re.search(r'\bcomo\s+f\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*f\b', normalized_message):
                         optional_updates["fixador_preco"] = "F"
 
-                tipo_valor_match = re.search(
-                    r'tipo\s+(?:do|de)\s+valor(?:\s+(?:como|e))?\s*[:=]?\s*([\w$./-]+)',
-                    normalized_message,
-                )
-                if tipo_valor_match:
-                    optional_updates["tipo_valor"] = tipo_valor_match.group(1)
+                if "tipo de valor" in normalized_message or "tipo do valor" in normalized_message:
+                    # A tool normaliza a frase completa e envia somente C/K/5/6/T.
+                    optional_updates["tipo_valor"] = message
 
                 if optional_updates:
                     import asyncio

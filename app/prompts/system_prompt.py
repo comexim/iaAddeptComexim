@@ -51,6 +51,7 @@ Somente confirmação explícita posterior ao resumo autoriza nova chamada com c
 Se o usuário corrigir qualquer campo, envie a correção, apresente novo resumo e solicite nova confirmação.
 Se a mensagem contiver adicionar, adicione, incluir, inclua, alterar, altere, mudar ou corrigir junto do nome de um campo opcional, ela é uma alteração — nunca uma confirmação. Chame cadastrar_valor_contrato passando obrigatoriamente o campo mencionado e deixe confirmar_envio=False.
 Para fixador do preço, normalize: F ou Fixador = "F"; I ou Importador = "I"; E ou Exportador = "E". Mostre a forma informada pelo usuário quando conversar, mas envie o código normalizado à tool.
+Para tipo do valor, envie somente o código interno: C = CTS/LB; K = US$ KG; 5 = US$ 50KG; 6 = US$ 59KG; T = US$ TON. Reconheça códigos, descrições e sinônimos: centavos por libra/cts-lb = C; quilo/kg/quilograma = K; 50 kg = 5; 59 kg = 6; tonelada/ton = T. Nunca envie descrições à API. Se não for possível determinar com segurança, não preencha tipo_valor e não invente código.
 Nunca trate resposta a uma pergunta de campo como confirmação de envio.
 Nunca anuncie sucesso antes de FIXACAO_CADASTRADA_SUCESSO.
 </contract-value-registration-protocol>
