@@ -121,6 +121,26 @@ class FixacaoToolsTest(unittest.TestCase):
                 self.assertEqual(self.tool.normalize_tipo_valor(informed), expected)
         self.assertIsNone(self.tool.normalize_tipo_valor("tipo desconhecido"))
 
+    def test_monta_identificador_do_contrato_para_api(self):
+        self.assertEqual(
+            self.tool.build_contract_identifier("012276"),
+            {"contratodeVenda": "012276"},
+        )
+        self.assertEqual(
+            self.tool.build_contract_identifier("352/26"),
+            {"numeroVenda": "352/26"},
+        )
+        self.assertEqual(
+            self.tool.build_contract_identifier("352/26a"),
+            {"numeroVenda": "352/26", "letraVenda": "A"},
+        )
+
+    def test_identifica_estado_aguardando_valor(self):
+        self.fake.data[self.tool.key] = json.dumps({"contratodeVenda": "352/26"})
+        self.assertTrue(self.tool.is_waiting_for_value())
+        self.tool.cadastrar_valor_contrato(valor_fixacao=200.32, diferencial=12)
+        self.assertFalse(self.tool.is_waiting_for_value())
+
     def test_confirmacao_com_dados_repetidos_nao_e_alteracao(self):
         self.fake.data[self.tool.key] = json.dumps({
             "contratodeVenda": "012325", "valorFixacao": 125.42,

@@ -595,13 +595,43 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         try:
             normalized_user_message = _normalize_query_text(message)
             new_fixacao_request = re.search(
-                r'\b(?:cadastrar|inserir|registrar|lancar|fixar|adicionar)\b.*\bvalor\b.*\bcontrato\b',
+                r'\b(?:cadastrar|inserir|registrar|lancar|adicionar)\b.*\bvalor\b.*\bcontrato\b|'
+                r'\bfixar\b.*\bcontrato\b',
                 normalized_user_message,
             )
             if new_fixacao_request:
                 from app.agents.fixacao_tools import FixacaoTools
                 logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
                 FixacaoTools(self.session_id or "default").clear_pending()
+
+            # Atalho comum dos corretores: "200,32 com -12" significa
+            # valor da fixacao 200,32 e diferencial -12. O diferencial pode
+            # ser negativo, positivo com sinal, ou positivo sem sinal.
+            from app.agents.fixacao_tools import FixacaoTools
+            fixacao_collecting = FixacaoTools(self.session_id or "default")
+            if fixacao_collecting.is_waiting_for_value():
+                value_with_differential = re.fullmatch(
+                    r'\s*([+-]?\d+(?:[.,]\d+)?)\s+com\s+([+-]?\d+(?:[.,]\d+)?)\s*[.!]?\s*',
+                    normalized_user_message,
+                )
+                if value_with_differential:
+                    import asyncio
+                    valor = float(value_with_differential.group(1).replace(",", "."))
+                    diferencial = float(value_with_differential.group(2).replace(",", "."))
+                    logger.info(
+                        "[FIXACAO FLOW] Coleta abreviada detectada: valor=%s, diferencial=%s",
+                        valor,
+                        diferencial,
+                    )
+                    await asyncio.to_thread(
+                        fixacao_collecting.cadastrar_valor_contrato,
+                        valor_fixacao=valor,
+                        diferencial=diferencial,
+                    )
+                    output = fixacao_collecting.format_pending_summary()
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
 
             # Confirmacao de fixacao e deterministica: nao depende de o LLM
             # preencher confirmar_envio=True ao chamar a ferramenta.

@@ -35,6 +35,11 @@ class FixacaoTools:
         data = self._load()
         return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
 
+    def is_waiting_for_value(self) -> bool:
+        """Indica contrato coletado que ainda aguarda o valor da fixacao."""
+        data = self._load()
+        return "contratodeVenda" in data and "valorFixacao" not in data
+
     def clear_pending(self) -> None:
         """Descarta os dados da operacao pendente desta conversa."""
         self._redis().delete(self.key)
@@ -62,6 +67,20 @@ class FixacaoTools:
         if re.search(r'\bquilos?\b|\bkg\b|\bquilogramas?\b|us\$?\s*kg\b', text):
             return "K"
         return None
+
+    @staticmethod
+    def build_contract_identifier(value: Any) -> Dict[str, str]:
+        """Monta o identificador exigido pela API conforme o formato informado."""
+        contract = str(value).strip()
+        sale_match = re.fullmatch(r'(\d+\s*/\s*\d+)\s*([A-Za-z])?', contract)
+        if not sale_match:
+            return {"contratodeVenda": contract}
+
+        sale_number = re.sub(r'\s+', '', sale_match.group(1))
+        identifier = {"numeroVenda": sale_number}
+        if sale_match.group(2):
+            identifier["letraVenda"] = sale_match.group(2).upper()
+        return identifier
 
     def format_pending_summary(self) -> str:
         """Formata o cadastro pendente para resposta direta ao usuario."""
@@ -163,7 +182,10 @@ class FixacaoTools:
                 fixacao["tipoValor"] = str(data["tipoValor"])
             if "fixadorPreco" in data:
                 fixacao["fixadorPreco"] = str(data["fixadorPreco"])
-            body = {"contratodeVenda": str(data["contratodeVenda"]), "fixacaoContrato": [fixacao]}
+            body = {
+                **self.build_contract_identifier(data["contratodeVenda"]),
+                "fixacaoContrato": [fixacao],
+            }
             try:
                 result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
             except Exception as exc:
@@ -175,7 +197,7 @@ class FixacaoTools:
         return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. Preserve exatamente o identificador informado: formatos sem barra, como 012276, serao enviados como contratodeVenda; formatos com barra, como 352/26, serao enviados como numeroVenda; se houver letra final, como 352/26A, a tool separa numeroVenda=352/26 e letraVenda=A. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
 def create_fixacao_tool(session_id: str) -> StructuredTool:
