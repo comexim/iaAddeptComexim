@@ -775,6 +775,32 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             contextualized_query = message
             logger.info(f"[CONTEXTO] Tamanho da mensagem: {len(message)} chars: '{message}'")
 
+            # Resolve referências como "desse contrato" usando o contrato mais
+            # recente da conversa. Isso evita reutilizar apenas a resposta
+            # anterior quando o usuário passa de status para valor fixado.
+            normalized_current = _normalize_query_text(message)
+            references_previous_contract = any(
+                expression in normalized_current
+                for expression in ("desse contrato", "deste contrato", "nesse contrato", "neste contrato")
+            )
+            explicit_contract = re.search(r'\b\d+\s*/\s*\d+\s*[A-Za-z]?\b|\b\d{5,}\b', message)
+            if references_previous_contract and not explicit_contract:
+                history_messages = self.message_history.messages
+                for previous_message in reversed(history_messages):
+                    previous_content = str(getattr(previous_message, "content", ""))
+                    previous_contract = re.search(
+                        r'\b\d+\s*/\s*\d+\s*[A-Za-z]?\b|\b\d{5,}\b',
+                        previous_content,
+                    )
+                    if previous_contract:
+                        resolved_contract = re.sub(r'\s+', '', previous_contract.group(0)).upper()
+                        contextualized_query = f"{message} Contrato referido: {resolved_contract}"
+                        logger.info(
+                            "[CONTEXTO] Referencia de contrato resolvida: %s",
+                            resolved_contract,
+                        )
+                        break
+
             if len(message) < 40:  # Aumentado para 40 para pegar respostas curtas
                 # Recupera histórico
                 history_messages = self.message_history.messages
@@ -782,7 +808,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 for msg in reversed(history_messages):
                     if isinstance(msg, HumanMessage) and len(msg.content) > 40:
                         # Encontrou pergunta anterior completa
-                        contextualized_query = f"{msg.content} {message}"
+                        if not references_previous_contract:
+                            contextualized_query = f"{msg.content} {message}"
                         logger.info(f"[CONTEXTO] Mensagem curta detectada! Contextualizando com pergunta anterior...")
                         logger.info(f"[CONTEXTO] Resultado: '{contextualized_query[:200]}'")
                         break
