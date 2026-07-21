@@ -600,9 +600,63 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 normalized_user_message,
             )
             if new_fixacao_request:
+                import asyncio
                 from app.agents.fixacao_tools import FixacaoTools
                 logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
-                FixacaoTools(self.session_id or "default").clear_pending()
+                new_fixacao = FixacaoTools(self.session_id or "default")
+                new_fixacao.clear_pending()
+
+                contract_match = re.search(
+                    r'\b(?:\d+\s*/\s*\d+\s*[a-z]?|\d{5,})\b',
+                    normalized_user_message,
+                )
+                if contract_match:
+                    contract = re.sub(r'\s+', '', contract_match.group(0)).upper()
+                    initial_data = {"contratode_venda": contract}
+
+                    value_match = re.search(
+                        r'(?:valor\s+(?:da|de)\s+fixacao|fixacao)\s*(?:e|eh|de|como|:|=)*\s*'
+                        r'([+-]?\d+(?:[.,]\d+)?)',
+                        normalized_user_message,
+                    )
+                    if not value_match:
+                        value_match = re.search(
+                            r'([+-]?\d+(?:[.,]\d+)?)\s*(?:de\s+)?fixacao\b',
+                            normalized_user_message,
+                        )
+                    if value_match:
+                        initial_data["valor_fixacao"] = float(value_match.group(1).replace(",", "."))
+
+                    diferencial_match = re.search(
+                        r'diferencial(?:\s+(?:de|como|e|eh))?\s*[:=]?\s*([+-]?\d+(?:[.,]\d+)?)',
+                        normalized_user_message,
+                    )
+                    if diferencial_match:
+                        initial_data["diferencial"] = float(diferencial_match.group(1).replace(",", "."))
+
+                    if "tipo de valor" in normalized_user_message or "tipo do valor" in normalized_user_message:
+                        initial_data["tipo_valor"] = message
+
+                    if "fixador" in normalized_user_message and "preco" in normalized_user_message:
+                        if re.search(r'\bimportador\b|\bimportacao\b|\bcomo\s+i\b', normalized_user_message):
+                            initial_data["fixador_preco"] = "I"
+                        elif re.search(r'\bexportador\b|\bexportacao\b|\bcomo\s+e\b', normalized_user_message):
+                            initial_data["fixador_preco"] = "E"
+                        elif re.search(r'\bcomo\s+f\b', normalized_user_message):
+                            initial_data["fixador_preco"] = "F"
+
+                    await asyncio.to_thread(new_fixacao.cadastrar_valor_contrato, **initial_data)
+                    if "valor_fixacao" not in initial_data:
+                        output = (
+                            f"Para fixar o contrato {contract}, informe o valor da fixação. "
+                            "Se desejar, você também pode incluir o diferencial, o tipo do valor e o fixador do preço; "
+                            "esses dados são opcionais."
+                        )
+                    else:
+                        output = new_fixacao.format_pending_summary()
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
 
             # Atalho comum dos corretores: "200,32 com -12" significa
             # valor da fixacao 200,32 e diferencial -12. O diferencial pode
