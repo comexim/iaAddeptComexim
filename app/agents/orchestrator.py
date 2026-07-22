@@ -478,6 +478,115 @@ class AgentOrchestrator:
         
         return False
 
+    async def _process_hedge_flow(self, message: str) -> Optional[str]:
+        """Processa oferta, coleta, confirmação e envio do Hedge Z03."""
+        import asyncio
+        from app.agents.hedge_tools import HedgeTools
+        from app.core.fixacao_api_client import fixacao_api_client
+
+        hedge = HedgeTools(self.session_id or "default")
+        data = hedge.load()
+        if not data:
+            return None
+
+        normalized = _normalize_query_text(message).strip().rstrip(".! ")
+        yes = normalized in {"sim", "s", "ok", "confirmo", "sim, confirmo", "sim confirmo", "pode enviar"}
+        no = normalized in {"nao", "n", "não", "agora nao", "nao quero"}
+        stage = data.get("stage")
+
+        if stage == "offered":
+            offered_yes = yes or bool(re.match(r'^(?:sim|s|ok)\b', normalized))
+            if offered_yes:
+                hedge.start_collecting()
+                data = hedge.load()
+                stage = "collecting"
+                if yes:
+                    return hedge.question_for("mesfix")
+            if no:
+                hedge.clear()
+                return "Tudo bem. O Hedge da bolsa não será realizado."
+            if not offered_yes:
+                return None
+
+        if stage == "awaiting_confirmation":
+            if yes:
+                try:
+                    result = await fixacao_api_client.cadastrar_hedge(hedge.build_body(data))
+                except Exception as exc:
+                    return f"Não foi possível concluir o Hedge: {exc}"
+                hedge.clear()
+                return "Hedge da bolsa cadastrado com sucesso."
+            if no:
+                data["stage"] = "collecting"
+                hedge.save(data)
+                return "Tudo bem. Informe o campo do Hedge que deseja alterar."
+            # Alterações após o resumo voltam para coleta.
+            data["stage"] = "collecting"
+
+        next_field = hedge.next_missing(data)
+
+        month = hedge.parse_month(message)
+        if month:
+            data["mesfix"] = month
+        elif next_field == "mesfix":
+            mentioned_month = bool(re.search(r'\b(?:mes|janeiro|fevereiro|abril|junho|agosto|outubro|novembro)\b', normalized))
+            if mentioned_month or len(normalized.split()) <= 3:
+                hedge.save(data)
+                return "Esse mês não é aceito. Escolha março, maio, julho, setembro ou dezembro."
+
+        year_match = re.search(r'\b(20\d{2})\b', normalized)
+        if year_match:
+            data["anofix"] = year_match.group(1)
+
+        lots_match = re.search(r'\b(\d+)\s*lotes?\b', normalized)
+        if lots_match:
+            data["lotes"] = int(lots_match.group(1))
+        elif next_field == "lotes" and re.fullmatch(r'\d+', normalized):
+            data["lotes"] = int(normalized)
+
+        account = hedge.parse_account(message, allow_descriptions=next_field == "account")
+        if account:
+            data["account"], data["accountDescricao"] = account
+
+        if "aa" in normalized:
+            if re.search(r'\b(?:sim|com|s)\b', normalized):
+                data["lancaa"] = "Sim"
+            elif re.search(r'\b(?:nao|sem|n)\b', normalized):
+                data["lancaa"] = "Nao"
+        elif next_field == "lancaa" and (yes or no):
+            data["lancaa"] = "Sim" if yes else "Nao"
+
+        broker_text = None
+        broker_match = re.search(r'\bcorret(?:ora)?\b\s*(?:e|eh|:|=|como)?\s*(.+)', normalized)
+        if broker_match:
+            broker_text = broker_match.group(1).strip()
+        elif hedge.next_missing(data) == "corret" and normalized:
+            broker_text = message.strip()
+        if broker_text:
+            try:
+                broker_result = await fixacao_api_client.consultar_corretoras_bolsa()
+                records = broker_result.get("registros", [])
+                broker = hedge.resolve_broker_from_message(broker_text, records)
+                if not broker and broker_match:
+                    broker = hedge.resolve_broker(broker_text, records)
+            except Exception as exc:
+                hedge.save(data)
+                return f"Não foi possível consultar as corretoras: {exc}"
+            if broker:
+                data["corret"], data["corretDescricao"] = broker
+            elif next_field == "corret" or broker_match:
+                hedge.save(data)
+                return "Não encontrei uma corretora suficientemente parecida. Informe o nome novamente."
+
+        hedge.save(data)
+        missing = hedge.next_missing(data)
+        if missing:
+            return hedge.question_for(missing)
+
+        data["stage"] = "awaiting_confirmation"
+        hedge.save(data)
+        return hedge.format_summary(data)
+
     def _get_contrato_agent(self):
         """Retorna agente leve só com a ADA tool (cria sob demanda)"""
         if self._contrato_agent is None:
@@ -602,7 +711,9 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             if new_fixacao_request:
                 import asyncio
                 from app.agents.fixacao_tools import FixacaoTools
+                from app.agents.hedge_tools import HedgeTools
                 logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
+                HedgeTools(self.session_id or "default").clear()
                 new_fixacao = FixacaoTools(self.session_id or "default")
                 new_fixacao.clear_pending()
 
@@ -658,6 +769,12 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     self.message_history.add_ai_message(output)
                     return output
 
+            hedge_output = await self._process_hedge_flow(message)
+            if hedge_output is not None:
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(hedge_output)
+                return hedge_output
+
             # Atalho comum dos corretores: "200,32 com -12" significa
             # valor da fixacao 200,32 e diferencial -12. O diferencial pode
             # ser negativo, positivo com sinal, ou positivo sem sinal.
@@ -711,7 +828,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         confirmar_envio=True,
                     )
                     if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
-                        output = "Valor do contrato cadastrado com sucesso."
+                        output = "Valor do contrato cadastrado com sucesso.\n\nGostaria que eu fizesse o Hedge da bolsa?"
                     elif result.startswith("ERRO_API:"):
                         output = result.replace("ERRO_API:", "Não foi possível concluir o cadastro:", 1).strip()
                     else:

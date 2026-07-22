@@ -190,6 +190,11 @@ class FixacaoTools:
                 result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
             except Exception as exc:
                 return f"ERRO_API: {exc}"
+            from app.agents.hedge_tools import HedgeTools
+            HedgeTools(self.key.split(":", 1)[1]).prepare_offer(
+                contract=str(data["contratodeVenda"]),
+                value=float(data["valorFixacao"]),
+            )
             self._redis().delete(self.key)
             return "FIXACAO_CADASTRADA_SUCESSO: " + json.dumps(result, ensure_ascii=False)
         data["aguardando_confirmacao"] = True

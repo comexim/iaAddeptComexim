@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     cmx_api_url: str = "https://200.221.173.187:8085"
     cmx_token_path: str = "/rest/cmx/api/oauth2/v1/token"
     cmx_fixacao_path: str = "/rest/cmx/api/v1/postZ24"
+    cmx_hedge_path: str = "/rest/cmx/api/v1/postZ03"
+    cmx_f3_path: str = "/rest/cmx/api/wsgetF3/v1/consulta"
     cmx_username: str = ""
     cmx_password: str = ""
     cmx_tenant_id: str = "01,05"

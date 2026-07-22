@@ -56,7 +56,7 @@ class FixacaoApiClient:
 
         # A CMX pode responder HTTP 200 e informar falha funcional no JSON.
         if isinstance(result, dict):
-            error_code = result.get("errorCode")
+            error_code = result.get("errorCode", result.get("code"))
             try:
                 has_error = error_code not in (None, "") and int(error_code) >= 400
             except (TypeError, ValueError):
@@ -72,6 +72,62 @@ class FixacaoApiClient:
                 logger.warning("[CMX Z24] Erro funcional %s: %s", error_code, full_message)
                 raise RuntimeError(full_message)
 
+        return result
+
+    async def consultar_corretoras_bolsa(self) -> Dict[str, Any]:
+        """Consulta códigos e descrições de corretoras disponíveis no F3."""
+        token = await self.get_token()
+        url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_f3_path}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "tenantid": settings.cmx_tenant_id,
+        }
+        body = {"consulta": "CORRETORABOLSA", "filtro": ""}
+        async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
+            response = await client.request("GET", url, json=body, headers=headers)
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError(f"Consulta de corretoras retornou HTTP {response.status_code}")
+        result = response.json()
+        if not isinstance(result, dict) or not isinstance(result.get("registros"), list):
+            raise RuntimeError("Consulta de corretoras retornou formato inesperado")
+        return result
+
+    async def cadastrar_hedge(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Envia o Hedge confirmado ao endpoint Z03."""
+        token = await self.get_token()
+        url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_hedge_path}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "tenantid": settings.cmx_tenant_id,
+        }
+        async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+            response = await client.post(url, json=body, headers=headers)
+        if not 200 <= response.status_code < 300:
+            logger.error("[CMX Z03] Falha HTTP %s: %s", response.status_code, response.text[:500])
+            raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
+        try:
+            result = response.json()
+        except ValueError:
+            return {"status_code": response.status_code, "message": response.text}
+        if isinstance(result, dict):
+            error_code = result.get("errorCode", result.get("code"))
+            try:
+                has_error = error_code not in (None, "") and int(error_code) >= 400
+            except (TypeError, ValueError):
+                has_error = bool(error_code)
+            if has_error:
+                message = str(
+                    result.get("errorMessage")
+                    or result.get("message")
+                    or "Não foi possível cadastrar o Hedge"
+                ).strip()
+                errors = result.get("erros") or []
+                if isinstance(errors, str):
+                    errors = [errors]
+                details = "; ".join(str(item).strip() for item in errors if str(item).strip())
+                raise RuntimeError(f"{message} {details}".strip())
         return result
 
 
