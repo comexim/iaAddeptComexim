@@ -25,8 +25,11 @@ class FixacaoToolsTest(unittest.TestCase):
         self.tool = FixacaoTools("teste")
         self.redis_patch = patch.object(self.tool, "_redis", return_value=self.fake)
         self.redis_patch.start()
+        self.hedge_offer_patch = patch("app.agents.hedge_tools.HedgeTools.prepare_offer")
+        self.hedge_offer_patch.start()
 
     def tearDown(self):
+        self.hedge_offer_patch.stop()
         self.redis_patch.stop()
 
     def test_coleta_todos_campos_e_exige_confirmacao(self):
@@ -74,7 +77,9 @@ class FixacaoToolsTest(unittest.TestCase):
             result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
             self.assertTrue(result.startswith("ERRO_API:"))
             self.assertIn("Contrato ja fixado em 17/07/2026", result)
-            self.assertIsNotNone(self.fake.get(self.tool.key))
+            # Regra temporaria: apos falha, a fixacao e encerrada para que um
+            # "sim" subsequente pertença exclusivamente à oferta do Hedge.
+            self.assertIsNone(self.fake.get(self.tool.key))
 
     def test_chamada_sem_parametros_nao_confirma(self):
         self.fake.data[self.tool.key] = json.dumps({

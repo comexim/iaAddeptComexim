@@ -189,6 +189,15 @@ class FixacaoTools:
             try:
                 result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
             except Exception as exc:
+                # REGRA TEMPORARIA DE TESTE: permite exercitar o fluxo de Hedge
+                # mesmo quando a fixacao for recusada pela CMX. Remover quando
+                # o Hedge voltar a depender obrigatoriamente do sucesso da Z24.
+                from app.agents.hedge_tools import HedgeTools
+                HedgeTools(self.key.split(":", 1)[1]).prepare_offer(
+                    contract=str(data["contratodeVenda"]),
+                    value=float(data["valorFixacao"]),
+                )
+                self._redis().delete(self.key)
                 return f"ERRO_API: {exc}"
             from app.agents.hedge_tools import HedgeTools
             HedgeTools(self.key.split(":", 1)[1]).prepare_offer(

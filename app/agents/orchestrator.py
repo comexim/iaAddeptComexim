@@ -830,7 +830,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
                         output = "Valor do contrato cadastrado com sucesso.\n\nGostaria que eu fizesse o Hedge da bolsa?"
                     elif result.startswith("ERRO_API:"):
-                        output = result.replace("ERRO_API:", "Não foi possível concluir o cadastro:", 1).strip()
+                        output = (
+                            result.replace("ERRO_API:", "Não foi possível concluir o cadastro:", 1).strip()
+                            + "\n\nGostaria que eu fizesse o Hedge da bolsa?"
+                        )
                     else:
                         output = result
                     self.message_history.add_user_message(message)
