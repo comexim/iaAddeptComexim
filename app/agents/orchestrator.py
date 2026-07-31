@@ -958,6 +958,33 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 logger.info(f"Resposta Long/Short gerada via tool forçada: {output[:100]}...")
                 return output
 
+            # O status de fixação é uma regra objetiva de banco: somente
+            # valorFixado > 0 significa contrato fixado. Evita interpretação
+            # indevida do campo precoFix pelo modelo.
+            contrato_fixacao = re.search(
+                r'\b(\d{2,4}/\d{2}(?!\d)[A-Za-z]?)\b',
+                contextualized_query,
+                re.IGNORECASE,
+            )
+            pergunta_status_fixacao = (
+                contrato_fixacao is not None
+                and "fixad" in normalized_current
+                and any(
+                    term in normalized_current
+                    for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada")
+                )
+            )
+            if pergunta_status_fixacao:
+                contrato = contrato_fixacao.group(1).upper()
+                logger.info(
+                    "[FORCE TOOL] Status de fixação do contrato %s; usando valorFixado",
+                    contrato,
+                )
+                output = sql_tools._pesquisa_vendas(contrato=contrato)
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                return output
+
             if self._should_force_vendas_market_query(message):
                 periodo_forcado = self._extract_sales_period_from_message(message)
                 if not periodo_forcado:

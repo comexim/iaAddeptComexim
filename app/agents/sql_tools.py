@@ -2831,7 +2831,14 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return None
 
-    def _pesquisa_vendas(self, periodo: Optional[str] = None, cliente: Optional[str] = None, limite: Optional[int] = None, pagina: int = 1) -> str:
+    def _pesquisa_vendas(
+        self,
+        periodo: Optional[str] = None,
+        cliente: Optional[str] = None,
+        contrato: Optional[str] = None,
+        limite: Optional[int] = None,
+        pagina: int = 1,
+    ) -> str:
         """
         Consulta dados de vendas e embarques da empresa.
 
@@ -2839,6 +2846,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             periodo: Período desejado (ex: "dezembro 2025", "hoje", "sexta-feira passada")
                     Aceita mês/ano ou datas específicas
             cliente: Nome do cliente
+            contrato: Número do contrato de venda (ex: "032/26A")
             limite: Quantidade máxima de registros em consultas somente por cliente
             pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
                    Se a resposta indicar "HÁ MAIS CONTRATOS", chame com pagina=2, pagina=3, etc.
@@ -2846,10 +2854,13 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         Returns:
             Dados de vendas formatados
         """
-        logger.info(f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, limite={limite}, pagina={pagina}")
+        logger.info(
+            f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, "
+            f"contrato={contrato}, limite={limite}, pagina={pagina}"
+        )
 
         # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
-        contrato_na_query = None
+        contrato_na_query = contrato.upper().strip() if contrato else None
         if self.user_query_original:
             # Tenta extrair contrato da pergunta atual
             match_contrato = re.search(r'(\d{2,4}/\d{2}(?!\d)[A-Z]?)', self.user_query_original, re.IGNORECASE)
@@ -2878,6 +2889,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 eh_pergunta_seguimento = any(re.search(padrao, query_lower) for padrao in palavras_seguimento)
 
                 if eh_pergunta_seguimento and self.ultimo_contrato_consultado:
+                    contrato_na_query = self.ultimo_contrato_consultado
                     logger.info(f"[CONTEXTO CONTRATO] Pergunta de seguimento detectada! Usando contrato anterior: {self.ultimo_contrato_consultado}")
                     # Injeta contrato na query para que o filtro funcione
                     self.user_query_original = f"{self.user_query_original} (contrato {self.ultimo_contrato_consultado})"
@@ -2917,6 +2929,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         if client_filter:
             procedure_params["Cliente"] = client_filter
 
+        if contrato_na_query:
+            procedure_params["Contrato"] = contrato_na_query
+
         has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:
             logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
@@ -2927,6 +2942,41 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         try:
             results = sql_client.execute_procedure(procedure_name, procedure_params or None)
             self._salvar_resultado_scheduler(results)
+
+            query_fixacao = self._remove_accents((self.user_query_original or "").lower())
+            pergunta_status_fixacao = (
+                bool(contrato_na_query)
+                and "fixad" in query_fixacao
+                and any(term in query_fixacao for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada"))
+            )
+            if pergunta_status_fixacao:
+                if not results:
+                    return f"Não encontrei o contrato {contrato_na_query}."
+
+                valores_fixados = []
+                for row in results:
+                    valor = row.get("valorFixado")
+                    try:
+                        valores_fixados.append(float(valor or 0))
+                    except (TypeError, ValueError):
+                        logger.warning(
+                            "[FIXAÇÃO] valorFixado inválido no contrato %s: %r",
+                            contrato_na_query,
+                            valor,
+                        )
+
+                valor_positivo = next((valor for valor in valores_fixados if valor > 0), None)
+                if valor_positivo is not None:
+                    valor_formatado = f"{valor_positivo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    return (
+                        f"Sim. O contrato {contrato_na_query} já foi fixado, "
+                        f"pois o valorFixado é {valor_formatado}."
+                    )
+
+                return (
+                    f"Não. O contrato {contrato_na_query} ainda não foi fixado, "
+                    "pois o valorFixado está zerado."
+                )
 
             if client_filter and not periodo:
                 if limite is None:
@@ -4039,6 +4089,7 @@ IMPORTANTE:
         bolsa_sacas = get_value("bolsaSacas", "sacasBolsa", "totalSacasBolsa")
 
         return (
+            "Claro! Segue a posição Long/Short atual:\n\n"
             f"Posição Net LS = {number(net_position)} sacas\n"
             f"Estoque Total Exportação: {number(total_estoque)}\n"
             f"Vendas Totais Exportação: {number(vendas_exportacao)}\n\n"
@@ -4046,7 +4097,8 @@ IMPORTANTE:
             f"Vendas Mercado A fixar: {number(vendas_mercado_a_fixar)}\n"
             f"Vendas Fixadas: {number(vendas_fixadas)}\n"
             f"Vendas A Fixar Embarcadas: {number(vendas_a_fixar_embarcadas)}\n"
-            f"Bolsa Lotes: {number(bolsa_lotes)} lotes / {number(bolsa_sacas)} Sacas"
+            f"Bolsa Lotes: {number(bolsa_lotes)} lotes / {number(bolsa_sacas)} Sacas\n\n"
+            "Se quiser, também posso detalhar essa posição por filial: COBRA, CUSA ou CEU."
         )
 
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
@@ -4837,6 +4889,16 @@ Para CRIAR/REGISTRAR novos contratos, use: criar_contrato_venda_exportacao
 Para CONSULTAR dados de vendas existentes, use: pesquisa_vendas (esta ferramenta)
 
 Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
+
+Argumentos específicos:
+- contrato (opcional): número exato do contrato. Quando informado, é enviado à
+  usp_IA_Vendas como @Contrato (ex.: contrato="032/26A").
+
+REGRA DE FIXAÇÃO:
+- Para saber se o contrato foi fixado, use somente valorFixado.
+- valorFixado nulo ou igual a zero = não fixado.
+- valorFixado acima de zero = já fixado.
+- Nunca use precoFix para determinar o status de fixação.
 
 🔄 REGRA DE CONTEXTO DE CONTRATO (NOVA!) 🔄
 Se o usuário já mencionou um número de contrato anteriormente (ex: "228/25", "031/25") e agora faz perguntas de seguimento sem mencionar o contrato novamente (ex: "Qual o total de sacas?", "Qual o vendedor?", "Preciso dos dados completos"), você DEVE entender que ele está se referindo ao mesmo contrato.

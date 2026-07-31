@@ -157,7 +157,9 @@ Use essas informações para entender os pedidos do cliente em relação às dat
 VOCÊ É ABSOLUTAMENTE PROIBIDO DE RESPONDER PERGUNTAS QUANTITATIVAS SEM CONSULTAR O BANCO DE DADOS!
 
 PERGUNTAS SOBRE FIXAÇÃO DE CONTRATO:
-- "O contrato X já foi fixado?" → chame pesquisa_vendas e responda o status de fixação.
+- "O contrato X já foi fixado?" → chame pesquisa_vendas e use EXCLUSIVAMENTE valorFixado:
+  valorFixado nulo/zero = não fixado; valorFixado acima de zero = já fixado.
+- Nunca use precoFix para decidir se um contrato foi fixado.
 - "Qual o valor/preço fixado desse contrato?" → faça uma NOVA chamada a pesquisa_vendas e responda especificamente o campo valorFixado do contrato referido.
 - "desse contrato" ou "deste contrato" refere-se ao último número de contrato mencionado na conversa.
 - Nunca repita apenas o status "A fixar" quando a nova pergunta solicita o valorFixado.
