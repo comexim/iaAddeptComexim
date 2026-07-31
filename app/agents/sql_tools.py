@@ -3967,6 +3967,11 @@ IMPORTANTE:
         try:
             logger.info(f"Executando usp_LS_FILIAIS com parâmetros: {params}")
             results = sql_client.execute_procedure("usp_LS_FILIAIS", params)
+            if results:
+                logger.info(
+                    "[LONGSHORT] Colunas retornadas por usp_LS_FILIAIS: %s",
+                    sorted(str(key) for key in results[0].keys()),
+                )
             return self._format_longshort_results(results)
         except Exception as e:
             import traceback

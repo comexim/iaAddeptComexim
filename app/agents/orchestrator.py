@@ -940,6 +940,24 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
             logger.info(f"Processando mensagem do usuário {self.user.nome}: {message[:100]}...")
 
+            # Long/Short tem um quadro comercial obrigatório. Retorna diretamente
+            # a saída determinística da tool para impedir que o LLM omita linhas.
+            longshort_query = (
+                "long short" in normalized_current
+                or "long/short" in normalized_current
+                or "long-short" in normalized_current
+                or "longshort" in normalized_current
+                or "posicao ls" in normalized_current
+                or "posicao net ls" in normalized_current
+            )
+            if longshort_query:
+                logger.info("[FORCE TOOL] Consulta Long/Short detectada; usando quadro oficial")
+                output = sql_tools._pesquisa_longshort()
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                logger.info(f"Resposta Long/Short gerada via tool forçada: {output[:100]}...")
+                return output
+
             if self._should_force_vendas_market_query(message):
                 periodo_forcado = self._extract_sales_period_from_message(message)
                 if not periodo_forcado:
