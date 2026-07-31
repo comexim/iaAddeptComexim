@@ -3967,12 +3967,71 @@ IMPORTANTE:
         try:
             logger.info(f"Executando usp_LS_FILIAIS com parâmetros: {params}")
             results = sql_client.execute_procedure("usp_LS_FILIAIS", params)
-            return self._format_results(results, "usp_LS_FILIAIS", None)
+            return self._format_longshort_results(results)
         except Exception as e:
             import traceback
             logger.error(f"Erro ao executar usp_LS_FILIAIS: {e}")
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
+
+    @staticmethod
+    def _format_longshort_results(results: list[Dict[str, Any]]) -> str:
+        """Formata a posicao Long/Short sempre no modelo comercial oficial."""
+        if not results:
+            return "Nenhum dado de posição Long/Short foi encontrado."
+
+        row = results[0]
+
+        def normalize(value: str) -> str:
+            value = unicodedata.normalize("NFD", value.lower())
+            value = "".join(char for char in value if unicodedata.category(char) != "Mn")
+            return re.sub(r"[^a-z0-9]", "", value)
+
+        normalized = {normalize(str(key)): value for key, value in row.items()}
+
+        def get_value(*aliases: str, default: Any = None) -> Any:
+            for alias in aliases:
+                key = normalize(alias)
+                if key in normalized and normalized[key] is not None:
+                    return normalized[key]
+            return default
+
+        def number(value: Any, decimals: int = 0) -> str:
+            if value is None:
+                return "Não informado"
+            try:
+                numeric = float(value)
+            except (TypeError, ValueError):
+                return str(value)
+
+            formatted = f"{numeric:,.{decimals}f}"
+            formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+            return formatted
+
+        net_position = get_value("netPosition", "posicaoNetLS", "posicaoNet", "netLS")
+        total_estoque = get_value("totalEstoque", "estoqueTotalExportacao", "estoqueExportacao")
+        vendas_exportacao = get_value("vendasExportacao", "vendasTotaisExportacao", "totalVendasExportacao")
+        basis_saldo = get_value("basisSaldoSacas", "basisSaldo", "saldoBasisSacas", "basisSacas")
+        vendas_mercado_a_fixar = get_value(
+            "vendasMercadoAFixar", "vendasMercadoFixar", "vendaMercadoAFixar"
+        )
+        vendas_fixadas = get_value("vendasFixadas", "totalVendasFixadas", "vendaFixada")
+        vendas_a_fixar_embarcadas = get_value(
+            "vendasAFixarEmbarcadas", "vendasFixarEmbarcadas", "vendaAFixarEmbarcada"
+        )
+        bolsa_lotes = get_value("bolsaLotes", "lotesBolsa", "totalLotesBolsa")
+        bolsa_sacas = get_value("bolsaSacas", "sacasBolsa", "totalSacasBolsa")
+
+        return (
+            f"Posição Net LS = {number(net_position)} sacas\n"
+            f"Estoque Total Exportação: {number(total_estoque)}\n"
+            f"Vendas Totais Exportação: {number(vendas_exportacao)}\n\n"
+            f"Basis Saldo Sacas: {number(basis_saldo)}\n"
+            f"Vendas Mercado A fixar: {number(vendas_mercado_a_fixar)}\n"
+            f"Vendas Fixadas: {number(vendas_fixadas)}\n"
+            f"Vendas A Fixar Embarcadas: {number(vendas_a_fixar_embarcadas)}\n"
+            f"Bolsa Lotes: {number(bolsa_lotes)} lotes / {number(bolsa_sacas)} Sacas"
+        )
 
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """
@@ -5204,6 +5263,12 @@ Esta ferramenta detecta automaticamente qual filial o usuário quer consultar:
 - totalEstoque: Total do estoque
 - vendasExportacao: Total de vendas para exportação
 - comprasConsumo: Total de compras de mercado interno/consumo
+
+FORMATO OBRIGATÓRIO:
+A ferramenta devolve sempre o quadro completo e pronto para envio, com Posição Net LS,
+Estoque Total Exportação, Vendas Totais Exportação, Basis Saldo Sacas,
+Vendas Mercado A fixar, Vendas Fixadas, Vendas A Fixar Embarcadas e Bolsa em lotes/sacas.
+Reproduza integralmente os valores retornados; não omita linhas e não recalcule os indicadores.
 
 📝 EXEMPLOS DE USO:
 - "Qual a posição do LongShort?" → Retorna netPosition (FILIAIS)
