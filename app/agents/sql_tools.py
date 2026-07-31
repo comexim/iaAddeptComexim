@@ -4013,16 +4013,27 @@ IMPORTANTE:
             formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
             return formatted
 
-        net_position = get_value("netPosition", "posicaoNetLS", "posicaoNet", "netLS")
-        total_estoque = get_value("totalEstoque", "estoqueTotalExportacao", "estoqueExportacao")
-        vendas_exportacao = get_value("vendasExportacao", "vendasTotaisExportacao", "totalVendasExportacao")
-        basis_saldo = get_value("basisSaldoSacas", "basisSaldo", "saldoBasisSacas", "basisSacas")
-        vendas_mercado_a_fixar = get_value(
-            "vendasMercadoAFixar", "vendasMercadoFixar", "vendaMercadoAFixar"
+        net_position = get_value(
+            "posicaoLongShort", "netPosition", "posicaoNetLS", "posicaoNet", "netLS"
         )
-        vendas_fixadas = get_value("vendasFixadas", "totalVendasFixadas", "vendaFixada")
+        total_estoque = get_value(
+            "totalEstoqueExportacao", "totalEstoque", "estoqueTotalExportacao", "estoqueExportacao"
+        )
+        vendas_exportacao = get_value("vendasExportacao", "vendasTotaisExportacao", "totalVendasExportacao")
+        basis_saldo = get_value(
+            "basisExportacao", "basisSaldoSacas", "basisSaldo", "saldoBasisSacas", "basisSacas"
+        )
+        vendas_mercado_a_fixar = get_value(
+            "mercadoAFixar", "vendasMercadoAFixar", "vendasMercadoFixar", "vendaMercadoAFixar"
+        )
+        vendas_fixadas = get_value(
+            "mercadoFixadas", "vendasFixadas", "totalVendasFixadas", "vendaFixada"
+        )
         vendas_a_fixar_embarcadas = get_value(
-            "vendasAFixarEmbarcadas", "vendasFixarEmbarcadas", "vendaAFixarEmbarcada"
+            "mercadoAfixarEmbarcadas",
+            "vendasAFixarEmbarcadas",
+            "vendasFixarEmbarcadas",
+            "vendaAFixarEmbarcada",
         )
         bolsa_lotes = get_value("bolsaLotes", "lotesBolsa", "totalLotesBolsa")
         bolsa_sacas = get_value("bolsaSacas", "sacasBolsa", "totalSacasBolsa")
