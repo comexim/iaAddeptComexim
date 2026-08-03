@@ -966,13 +966,34 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 contextualized_query,
                 re.IGNORECASE,
             )
-            pergunta_status_fixacao = (
-                contrato_fixacao is not None
-                and "fixad" in normalized_current
+            status_fixacao_explicito = (
+                "fixad" in normalized_current
                 and any(
                     term in normalized_current
                     for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada")
                 )
+            )
+            status_fixacao_herdado = False
+            if contrato_fixacao is not None and not status_fixacao_explicito:
+                # Herda somente a intenção da pergunta imediatamente anterior.
+                # Ex.: "O contrato 034/26B está fixado?" → "E o contrato 033/26B?"
+                for previous_message in reversed(self.message_history.messages):
+                    if not isinstance(previous_message, HumanMessage):
+                        continue
+                    previous_query = _normalize_query_text(previous_message.content)
+                    status_fixacao_herdado = (
+                        "fixad" in previous_query
+                        and any(
+                            term in previous_query
+                            for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada")
+                        )
+                    )
+                    if status_fixacao_herdado:
+                        logger.info("[CONTEXTO] Intenção de status de fixação herdada da pergunta anterior")
+                    break
+
+            pergunta_status_fixacao = contrato_fixacao is not None and (
+                status_fixacao_explicito or status_fixacao_herdado
             )
             if pergunta_status_fixacao:
                 contrato = contrato_fixacao.group(1).upper()
@@ -980,7 +1001,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     "[FORCE TOOL] Status de fixação do contrato %s; usando valorFixado",
                     contrato,
                 )
-                output = sql_tools._pesquisa_vendas(contrato=contrato)
+                output = sql_tools._pesquisa_vendas(
+                    contrato=contrato,
+                    verificar_fixacao=True,
+                )
                 self.message_history.add_user_message(message)
                 self.message_history.add_ai_message(output)
                 return output

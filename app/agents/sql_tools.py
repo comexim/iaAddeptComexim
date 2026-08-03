@@ -2836,6 +2836,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         periodo: Optional[str] = None,
         cliente: Optional[str] = None,
         contrato: Optional[str] = None,
+        verificar_fixacao: bool = False,
         limite: Optional[int] = None,
         pagina: int = 1,
     ) -> str:
@@ -2847,6 +2848,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                     Aceita mês/ano ou datas específicas
             cliente: Nome do cliente
             contrato: Número do contrato de venda (ex: "032/26A")
+            verificar_fixacao: Força a resposta determinística baseada em valorFixado
             limite: Quantidade máxima de registros em consultas somente por cliente
             pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
                    Se a resposta indicar "HÁ MAIS CONTRATOS", chame com pagina=2, pagina=3, etc.
@@ -2856,7 +2858,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         logger.info(
             f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, "
-            f"contrato={contrato}, limite={limite}, pagina={pagina}"
+            f"contrato={contrato}, verificar_fixacao={verificar_fixacao}, "
+            f"limite={limite}, pagina={pagina}"
         )
 
         # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
@@ -2944,10 +2947,15 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             self._salvar_resultado_scheduler(results)
 
             query_fixacao = self._remove_accents((self.user_query_original or "").lower())
-            pergunta_status_fixacao = (
-                bool(contrato_na_query)
-                and "fixad" in query_fixacao
-                and any(term in query_fixacao for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada"))
+            pergunta_status_fixacao = bool(contrato_na_query) and (
+                verificar_fixacao
+                or (
+                    "fixad" in query_fixacao
+                    and any(
+                        term in query_fixacao
+                        for term in ("ja foi", "foi fixado", "esta fixado", "esta fixada")
+                    )
+                )
             )
             if pergunta_status_fixacao:
                 if not results:
