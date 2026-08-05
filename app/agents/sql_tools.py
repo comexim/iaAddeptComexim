@@ -4183,9 +4183,9 @@ IMPORTANTE:
             formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
             return formatted
 
-        net_position = get_value(
-            "posicaoLongShort", "netPosition", "posicaoNetLS", "posicaoNet", "netLS"
-        )
+        # A posição líquida oficial vem exclusivamente de netPosition.
+        # Não usar posicaoLongShort: esse campo representa outro indicador.
+        net_position = get_value("netPosition")
         total_estoque = get_value(
             "totalEstoqueExportacao", "totalEstoque", "estoqueTotalExportacao", "estoqueExportacao"
         )
