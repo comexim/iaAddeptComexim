@@ -1422,13 +1422,36 @@ class SQLTools:
                 # IMPORTANTE: "preço a fixar" significa que valorFixado = 0 ou null (preço ainda não foi fixado)
                 if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "não fixados", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
                     results_antes = len(results)
+                    contagem_fixacao = {"nao_fixados": 0, "fixados": 0, "invalidos": 0}
+
+                    def normalizar_valor_fixado(valor):
+                        if valor is None or str(valor).strip() == "":
+                            return 0.0
+                        if isinstance(valor, str):
+                            texto = valor.strip().replace(" ", "")
+                            # Aceita tanto 1.234,56 quanto 1234.56.
+                            if "," in texto:
+                                texto = texto.replace(".", "").replace(",", ".")
+                            valor = texto
+                        return float(valor)
+
                     def valor_nao_fixado(row):
                         try:
-                            return float(row.get("valorFixado") or 0) <= 0
+                            nao_fixado = normalizar_valor_fixado(row.get("valorFixado")) <= 0
+                            contagem_fixacao["nao_fixados" if nao_fixado else "fixados"] += 1
+                            return nao_fixado
                         except (TypeError, ValueError):
+                            contagem_fixacao["invalidos"] += 1
                             return False
 
                     results = [r for r in results if valor_nao_fixado(r)]
+                    logger.info(
+                        "[FIXAÇÃO valorFixado] não fixados=%s, fixados=%s, inválidos=%s, total=%s",
+                        contagem_fixacao["nao_fixados"],
+                        contagem_fixacao["fixados"],
+                        contagem_fixacao["invalidos"],
+                        results_antes,
+                    )
                     if len(results) < results_antes:
                         filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
@@ -1975,8 +1998,9 @@ REGRAS OBRIGATÓRIAS:
                         f"USD {_fmt_decimal(valor)} | "
                         f"{data}"
                     )
-                # Paginação: 50 contratos por página
-                PAGE_SIZE = 50
+                # Até 100 contratos cabem em uma única consulta e são posteriormente
+                # divididos pelo serviço do WhatsApp em mensagens menores.
+                PAGE_SIZE = 100
                 idx_inicio = (pagina - 1) * PAGE_SIZE
                 idx_fim = idx_inicio + PAGE_SIZE
                 tabela_exibida = tabela_por_contrato[idx_inicio:idx_fim]
@@ -2924,7 +2948,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             mes_fixacao: Índice ou mês de fixação (ex: "U26", "setembro/26")
             verificar_fixacao: Força a resposta determinística baseada em valorFixado
             limite: Quantidade máxima de registros em consultas somente por cliente
-            pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
+            pagina: Página de contratos a retornar (default=1, cada página tem 100 contratos)
                    Se a resposta indicar "HÁ MAIS CONTRATOS", chame com pagina=2, pagina=3, etc.
 
         Returns:
