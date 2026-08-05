@@ -1420,12 +1420,32 @@ class SQLTools:
 
                 # Filtro: sem valor fixado / preço a fixar
                 # IMPORTANTE: "preço a fixar" significa que valorFixado = 0 ou null (preço ainda não foi fixado)
-                if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
+                if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "não fixados", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
                     results_antes = len(results)
-                    results = [r for r in results if (r.get("valorFixado") is None or r.get("valorFixado") == 0 or r.get("valorFixado") == 0.0)]
+                    def valor_nao_fixado(row):
+                        try:
+                            return float(row.get("valorFixado") or 0) <= 0
+                        except (TypeError, ValueError):
+                            return False
+
+                    results = [r for r in results if valor_nao_fixado(r)]
                     if len(results) < results_antes:
                         filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
                         logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
+
+                # Filtro: contratos já fixados. O único critério válido é valorFixado > 0.
+                elif any(term in query_lower for term in ["contratos fixados", "contratos já fixados", "vendas fixadas"]):
+                    results_antes = len(results)
+                    def valor_ja_fixado(row):
+                        try:
+                            return float(row.get("valorFixado") or 0) > 0
+                        except (TypeError, ValueError):
+                            return False
+
+                    results = [r for r in results if valor_ja_fixado(r)]
+                    if len(results) < results_antes:
+                        filtros_aplicados.append(f"com valor fixado ({results_antes} → {len(results)})")
+                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'já fixados': {results_antes} → {len(results)}")
 
                 # Filtro: sem BL
                 if any(term in query_lower for term in ["sem bl", "sem numero de bl", "não tem bl", "não têm bl", "nao tem bl", "nao têm bl", "bl null"]):
@@ -1643,7 +1663,8 @@ class SQLTools:
 
             # Critérios que geralmente resultam em poucos registros (VENDAS)
             criterios_especificos = [
-                "sem valor fixado", "não tem valor fixado", "não fixado", "valor fixado null",
+                "sem valor fixado", "não tem valor fixado", "não fixado", "não fixados", "valor fixado null",
+                "contratos fixados", "contratos já fixados", "vendas fixadas",
                 "sem bl", "sem numero de bl", "não embarcado",
                 "amostra pendente", "amostra não aprovada",
                 "desse contrato", "deste contrato", "esse contrato", "este contrato",  # referência anafórica
@@ -2746,6 +2767,57 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             logger.error(f"Traceback completo: {traceback.format_exc()}")
             return f"Desculpe, ocorreu um erro ao consultar os dados. Por favor, tente novamente."
 
+    @staticmethod
+    def _parse_mes_fixacao_vendas(texto_original: str, exigir_contexto: bool = True) -> Optional[Dict[str, str]]:
+        """Converte índices/meses de fixação para o formato YYYY/MM da procedure."""
+        texto = unicodedata.normalize("NFKD", str(texto_original or "").lower())
+        texto = "".join(char for char in texto if not unicodedata.combining(char))
+
+        meses_indices = {"h": "03", "k": "05", "n": "07", "u": "09", "z": "12"}
+        meses_nomes = {
+            "marco": "03", "mar": "03",
+            "maio": "05", "mai": "05",
+            "julho": "07", "jul": "07",
+            "setembro": "09", "set": "09",
+            "dezembro": "12", "dez": "12",
+        }
+
+        def ano_completo(valor: str) -> int:
+            ano = int(valor)
+            return ano if len(valor) == 4 else 2000 + ano
+
+        encontrados = []
+
+        # Índices de bolsa são inequívocos e independem de palavras de contexto.
+        for match in re.finditer(r"\b([hknuz])\s*[-/]?\s*(\d{2}|\d{4})\b", texto):
+            encontrados.append((match.start(), ano_completo(match.group(2)), meses_indices[match.group(1)]))
+
+        tem_contexto_fixacao = any(
+            termo in texto
+            for termo in ("fixacao", "fixado", "fixados", "fixar", "bolsa", "mes fix")
+        )
+        if tem_contexto_fixacao or not exigir_contexto:
+            nomes_regex = "|".join(sorted(meses_nomes, key=len, reverse=True))
+            for match in re.finditer(
+                rf"\b({nomes_regex})\b\s*(?:/|-|de\s+)?\s*(\d{{2}}|\d{{4}})\b",
+                texto,
+            ):
+                encontrados.append((match.start(), ano_completo(match.group(2)), meses_nomes[match.group(1)]))
+
+            for match in re.finditer(r"\b(03|05|07|09|12)\s*/\s*(\d{2}|\d{4})\b", texto):
+                encontrados.append((match.start(), ano_completo(match.group(2)), match.group(1)))
+
+        if not encontrados:
+            return None
+
+        periodos = sorted({(ano, mes) for _, ano, mes in encontrados})
+        ano_inicio, mes_inicio = periodos[0]
+        ano_fim, mes_fim = periodos[-1]
+        return {
+            "mes_inicio": f"{ano_inicio:04d}/{mes_inicio}",
+            "mes_fim": f"{ano_fim:04d}/{mes_fim}",
+        }
+
     def _parse_periodo_vendas(self, periodo: str) -> Optional[Dict[str, str]]:
         """Converte periodos de vendas para meses no formato YYYY/MM."""
         from dateutil.relativedelta import relativedelta
@@ -2836,6 +2908,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         periodo: Optional[str] = None,
         cliente: Optional[str] = None,
         contrato: Optional[str] = None,
+        mes_fixacao: Optional[str] = None,
         verificar_fixacao: bool = False,
         limite: Optional[int] = None,
         pagina: int = 1,
@@ -2848,6 +2921,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                     Aceita mês/ano ou datas específicas
             cliente: Nome do cliente
             contrato: Número do contrato de venda (ex: "032/26A")
+            mes_fixacao: Índice ou mês de fixação (ex: "U26", "setembro/26")
             verificar_fixacao: Força a resposta determinística baseada em valorFixado
             limite: Quantidade máxima de registros em consultas somente por cliente
             pagina: Página de contratos a retornar (default=1, cada página tem 50 contratos)
@@ -2858,7 +2932,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         logger.info(
             f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, "
-            f"contrato={contrato}, verificar_fixacao={verificar_fixacao}, "
+            f"contrato={contrato}, mes_fixacao={mes_fixacao}, verificar_fixacao={verificar_fixacao}, "
             f"limite={limite}, pagina={pagina}"
         )
 
@@ -2920,7 +2994,21 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         procedure_name = "usp_IA_Vendas"
         procedure_params = {}
 
-        if periodo:
+        fonte_mes_fixacao = mes_fixacao or self.user_query_original or self.user_query or ""
+        periodo_fixacao = self._parse_mes_fixacao_vendas(
+            fonte_mes_fixacao,
+            exigir_contexto=mes_fixacao is None,
+        )
+
+        if periodo_fixacao:
+            procedure_params["MesFixIni"] = periodo_fixacao["mes_inicio"]
+            procedure_params["MesFixFim"] = periodo_fixacao["mes_fim"]
+            logger.info(
+                "[VENDAS] Mês de fixação detectado: %s até %s",
+                periodo_fixacao["mes_inicio"],
+                periodo_fixacao["mes_fim"],
+            )
+        elif periodo:
             parsed = self._parse_periodo_vendas(periodo)
             logger.info(f"[VENDAS] Período convertido para meses: {parsed}")
             if parsed:
@@ -4901,6 +4989,20 @@ Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 Argumentos específicos:
 - contrato (opcional): número exato do contrato. Quando informado, é enviado à
   usp_IA_Vendas como @Contrato (ex.: contrato="032/26A").
+- mes_fixacao (opcional): índice ou mês de fixação. Aceita H/K/N/U/Z com dois
+  dígitos de ano e meses por extenso ou numéricos (ex.: U26, K27, julho/26,
+  09/2026). É enviado como @MesFixIni e @MesFixFim.
+
+MESES/ÍNDICES DE FIXAÇÃO:
+- H = março
+- K = maio
+- N = julho
+- U = setembro
+- Z = dezembro
+- K27 → @MesFixIni='2027/05', @MesFixFim='2027/05'
+- N26 → @MesFixIni='2026/07', @MesFixFim='2026/07'
+- "Quais contratos não fixados temos contra bolsa U26?" → pesquisa_vendas(mes_fixacao="U26")
+- Nunca trate esses índices como mês de embarque.
 
 REGRA DE FIXAÇÃO:
 - Para saber se o contrato foi fixado, use somente valorFixado.

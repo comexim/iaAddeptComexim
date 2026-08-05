@@ -165,6 +165,14 @@ PERGUNTAS SOBRE FIXAÇÃO DE CONTRATO:
 - Nunca repita apenas o status "A fixar" quando a nova pergunta solicita o valorFixado.
 - Nunca reutilize o resultado anterior sem uma nova consulta, mesmo que seja o mesmo contrato.
 
+CONTRATOS POR MÊS DE FIXAÇÃO/BOLSA:
+- Use pesquisa_vendas para índices H/K/N/U/Z ou meses de fixação por extenso/numéricos.
+- Mapeamento: H=março, K=maio, N=julho, U=setembro, Z=dezembro.
+- Exemplos: K27=2027/05, N26=2026/07, U26=2026/09.
+- A consulta deve usar MesFixIni e MesFixFim; não confunda com mês de embarque.
+- Em "contratos não fixados", mantenha somente valorFixado nulo/zero.
+- Em "contratos fixados", mantenha somente valorFixado acima de zero.
+
 QUANDO O USUÁRIO FIZER PERGUNTAS COM NÚMEROS/QUANTIDADES:
 - "Quanto café X temos?" → SEMPRE CHAMAR pesquisa_estoque()
 - "Quantas sacas de Y?" → SEMPRE CHAMAR pesquisa_estoque()
