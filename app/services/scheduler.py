@@ -1,6 +1,6 @@
 """
 Scheduler de relatórios agendados.
-Verifica a cada 10 minutos e executa relatórios com next_run <= agora.
+Verifica a cada 15 minutos e executa relatórios com next_run <= agora.
 """
 import logging
 from datetime import datetime, timedelta
@@ -188,7 +188,7 @@ async def _executar_relatorio(relatorio: dict) -> None:
 
 
 async def verificar_e_executar_relatorios() -> None:
-    """Busca relatórios com next_run <= agora e os executa a cada 10 minutos."""
+    """Busca relatórios com next_run <= agora e os executa a cada 15 minutos."""
     logger.info("[SCHEDULER] Verificando relatórios pendentes...")
     relatorios = await supabase_client.buscar_relatorios_pendentes()
 
@@ -206,7 +206,7 @@ def criar_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone=TZ)
     scheduler.add_job(
         verificar_e_executar_relatorios,
-        trigger=CronTrigger(minute="*/10", timezone=TZ),
+        trigger=CronTrigger(minute="*/5", timezone=TZ),
         id="verificar_relatorios",
         replace_existing=True,
         misfire_grace_time=300,  # 5 min de tolerância se o servidor estava down
