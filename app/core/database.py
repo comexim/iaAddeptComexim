@@ -135,6 +135,19 @@ class SQLServerClient:
                     else:
                         where_clauses.append(f"{field_name} {operator} '{value}'")
 
+                # Sufixo _lt representa comparação estritamente menor que.
+                # Ex.: saldo_lt=0 gera "saldo < 0".
+                elif key.endswith("_lt"):
+                    field_name = key[:-3]
+                    operator = "<"
+                    if isinstance(value, str):
+                        escaped_value = value.replace("'", "''")
+                        where_clauses.append(f"{field_name} {operator} '{escaped_value}'")
+                    elif isinstance(value, (int, float)):
+                        where_clauses.append(f"{field_name} {operator} {value}")
+                    else:
+                        where_clauses.append(f"{field_name} {operator} '{value}'")
+
                 else:
                     # Determina o operador: >= para campos de data, = para outros
                     operator = ">=" if key in FIELDS_USING_GTE else "="

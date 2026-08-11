@@ -4221,8 +4221,12 @@ IMPORTANTE:
             "Se quiser, também posso detalhar essa posição por filial: COBRA, CUSA ou CEU."
         )
 
-    def _pesquisa_contas_a_receber_vencidas(self) -> str:
-        """Consulta a posição vencida solicitada usando a regra financeira fixa."""
+    def _pesquisa_contas_a_receber_vencidas(
+        self,
+        cliente: Optional[str] = None,
+        somente_negativas: bool = False,
+    ) -> str:
+        """Consulta a posição vencida, opcionalmente por cliente ou somente créditos."""
         function_name = "IA_ContasAReceberPar"
         hoje = date_parser.get_current_date().strftime("%Y%m%d")
         filters = {
@@ -4230,6 +4234,10 @@ IMPORTANTE:
             "data_fim": hoje,
             "tipo": "Receber",
         }
+        if cliente:
+            filters["cliente"] = cliente.strip()
+        if somente_negativas:
+            filters["saldo_lt"] = 0
 
         has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
         if not has_permission:
@@ -4241,10 +4249,12 @@ IMPORTANTE:
             return error_msg
 
         logger.info(
-            "[CONTAS A PAGAR VENCIDAS] Executando dbo.%s('19990101', '%s') "
-            "com tipo='Receber'",
+            "[CONTAS A RECEBER VENCIDAS] Executando dbo.%s('19990101', '%s') "
+            "com tipo='Receber', cliente=%r e somente_negativas=%s",
             function_name,
             hoje,
+            cliente,
+            somente_negativas,
         )
 
         try:
@@ -4269,54 +4279,71 @@ IMPORTANTE:
                 except (TypeError, ValueError, ArithmeticError):
                     return Decimal("0")
 
-            total_saldo = sum(numero(row.get("saldo")) for row in result_list)
-
-            # Mantém todos os registros disponíveis para a IA em consultas menores.
-            if len(result_list) <= 50:
-                formatted = json.dumps(
-                    result_list,
-                    ensure_ascii=False,
-                    indent=2,
-                    default=lambda obj: float(obj) if isinstance(obj, Decimal) else str(obj),
-                )
-                return f"""Resultados de contas a receber vencidas:
-
-Total de registros: {len(result_list)}
-Saldo total vencido: R$ {format_pt_br(total_saldo)}
-
-Dados completos:
-{formatted}
-
-Some todos os valores do campo saldo, incluindo os negativos, pois eles representam créditos do comprador. Todos os registros possuem tipo Receber."""
-
             from collections import defaultdict
 
-            por_cliente = defaultdict(lambda: {"saldo": Decimal("0"), "quantidade": 0})
+            total_saldo = sum(numero(row.get("saldo")) for row in result_list)
+
+            # Em seguimentos por cliente, detalha todos os contratos encontrados.
+            if cliente:
+                por_contrato = defaultdict(lambda: {"saldo": Decimal("0"), "titulos": 0})
+                for row in result_list:
+                    contrato = str(row.get("contrato") or "SEM CONTRATO").strip()
+                    por_contrato[contrato]["saldo"] += numero(row.get("saldo"))
+                    por_contrato[contrato]["titulos"] += 1
+
+                contratos = sorted(
+                    por_contrato.items(),
+                    key=lambda item: abs(item[1]["saldo"]),
+                    reverse=True,
+                )
+                linhas_contratos = [
+                    f"- {contrato}: R$ {format_pt_br(dados['saldo'])} ({dados['titulos']} título(s))"
+                    for contrato, dados in contratos
+                ]
+                return (
+                    f"Contas a receber vencidas do cliente {cliente}:\n\n"
+                    f"Saldo líquido: R$ {format_pt_br(total_saldo)}\n"
+                    f"Quantidade de contratos: {len(por_contrato)}\n\n"
+                    "Todos os contratos:\n"
+                    + "\n".join(linhas_contratos)
+                )
+
+            por_cliente = defaultdict(
+                lambda: {"saldo": Decimal("0"), "contratos": set(), "titulos": 0}
+            )
             for row in result_list:
                 nome = str(row.get("cliente") or row.get("fornecedor") or "SEM IDENTIFICAÇÃO").strip()
                 por_cliente[nome]["saldo"] += numero(row.get("saldo"))
-                por_cliente[nome]["quantidade"] += 1
+                contrato = str(row.get("contrato") or "").strip()
+                if contrato:
+                    por_cliente[nome]["contratos"].add(contrato)
+                por_cliente[nome]["titulos"] += 1
 
-            maiores = sorted(
+            clientes_ordenados = sorted(
                 por_cliente.items(),
-                key=lambda item: item[1]["saldo"],
+                key=lambda item: abs(item[1]["saldo"]),
                 reverse=True,
-            )[:50]
+            )
             linhas = [
-                f"- {nome}: R$ {format_pt_br(dados['saldo'])} ({dados['quantidade']} título(s))"
-                for nome, dados in maiores
+                f"- {nome}: R$ {format_pt_br(dados['saldo'])} | {len(dados['contratos'])} contrato(s)"
+                for nome, dados in clientes_ordenados
             ]
+            titulo_lista = (
+                "Todos os clientes com contas negativas (créditos):"
+                if somente_negativas
+                else "Todos os clientes:"
+            )
             return (
                 "Resultados de contas a receber vencidas:\n\n"
                 f"Total de registros: {len(result_list)}\n"
                 f"Saldo total vencido: R$ {format_pt_br(total_saldo)}\n"
                 f"Total de clientes: {len(por_cliente)}\n\n"
-                "Maiores saldos vencidos por cliente:\n"
+                f"{titulo_lista}\n"
                 + "\n".join(linhas)
                 + "\n\nO saldo total é líquido: inclui valores positivos e negativos (créditos do comprador). Todos os registros possuem tipo Receber."
             )
         except Exception as e:
-            logger.error("[CONTAS A PAGAR VENCIDAS] Erro na consulta: %s", e, exc_info=True)
+            logger.error("[CONTAS A RECEBER VENCIDAS] Erro na consulta: %s", e, exc_info=True)
             return "Desculpe, ocorreu um erro ao consultar as contas a receber vencidas."
 
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
@@ -5341,6 +5368,23 @@ Exemplos:
 - "Me diga todas as contas a receber em atraso"
 
 A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final e tipo Receber. Ela soma o campo saldo incluindo valores negativos, que representam créditos do comprador. Não passe datas e não use pesquisa_contas_a_receber para essas perguntas.
+
+RESPOSTA E CONTINUIDADE:
+- Na consulta geral, retorne TODOS os clientes fornecidos pela ferramenta, sem limitar aos maiores.
+- Para cada cliente, informe exatamente: nome, saldo total líquido e quantidade de contratos.
+- Se o usuário continuar com "me diga os contratos do cliente X", "e do cliente X?" ou equivalente, preserve o contexto de contas vencidas e chame novamente esta ferramenta com cliente="X".
+- Quando cliente for informado, a consulta adicionará WHERE cliente = 'X' e retornará TODOS os contratos desse cliente, com saldo e quantidade de títulos.
+- Se o usuário pedir "contas negativas", "saldos negativos", "clientes com crédito" ou equivalente, chame com somente_negativas=true.
+- Nesse caso a consulta adicionará saldo < 0 e os valores negativos devem permanecer negativos na soma.
+
+Argumentos:
+- cliente (opcional): nome exato do cliente citado pelo usuário em uma consulta ou pergunta de seguimento.
+- somente_negativas (opcional): use true apenas para contas/saldos negativos ou créditos do comprador.
+
+Exemplos de seguimento:
+- Usuário: "Ok, me diga os contratos do cliente JDE" → pesquisa_contas_a_receber_vencidas(cliente="JDE")
+- Usuário: "Agora mostre todas as contas negativas" → pesquisa_contas_a_receber_vencidas(somente_negativas=true)
+- Usuário: "Quais clientes possuem crédito?" → pesquisa_contas_a_receber_vencidas(somente_negativas=true)
 """
             ),
             StructuredTool.from_function(

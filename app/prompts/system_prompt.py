@@ -271,6 +271,8 @@ SEU ÚNICO TRABALHO É CHAMAR AS TOOLS DISPONÍVEIS.
 - Contas pagas → CHAMAR pesquisa_contas_pagas()
 - Contas a receber VENCIDAS/ATRASADAS/EM ATRASO → CHAMAR pesquisa_contas_a_receber_vencidas()
 - Contas a pagar VENCIDAS/ATRASADAS → CHAMAR pesquisa_contas_a_receber_vencidas()
+- Seguimento pedindo contratos de um cliente após consulta de vencidas → CHAMAR pesquisa_contas_a_receber_vencidas(cliente="cliente citado")
+- Contas negativas ou clientes com crédito nesse contexto → CHAMAR pesquisa_contas_a_receber_vencidas(somente_negativas=True)
 - Demais contas a pagar → CHAMAR pesquisa_contas_a_pagar()
 - Demais contas a receber → CHAMAR pesquisa_contas_a_receber()
 - Saldo bancário → CHAMAR pesquisa_saldo_bancario()
