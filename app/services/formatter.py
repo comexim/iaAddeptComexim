@@ -44,6 +44,15 @@ class ResponseFormatter:
         # Limpa links markdown/URLs antes de qualquer processamento
         text = self._limpar_markdown(text)
 
+        # Este relatório contém uma lista completa calculada no backend.
+        # Não passar por outro LLM, pois ele pode resumir ou omitir clientes.
+        if (
+            text.startswith("Resultados de contas a receber vencidas:")
+            or text.startswith("Contas a receber vencidas do cliente ")
+        ):
+            logger.info("Formatando relatório vencido sem IA para preservar todos os clientes")
+            return self._split_preservando_linhas(text)
+
         if not settings.enable_response_formatter:
             return self._simple_split(text)
 
@@ -93,6 +102,26 @@ class ResponseFormatter:
         """Split simples por parágrafos"""
         messages = [msg.strip() for msg in text.split("\n\n") if msg.strip()]
         return messages if messages else [text]
+
+    def _split_preservando_linhas(self, text: str, limite: int = 3500) -> List[str]:
+        """Divide texto longo sem reescrever, resumir ou perder linhas."""
+        partes: List[str] = []
+        atual: List[str] = []
+        tamanho = 0
+
+        for linha in text.splitlines():
+            acrescimo = len(linha) + (1 if atual else 0)
+            if atual and tamanho + acrescimo > limite:
+                partes.append("\n".join(atual).strip())
+                atual = []
+                tamanho = 0
+            atual.append(linha)
+            tamanho += len(linha) + (1 if len(atual) > 1 else 0)
+
+        if atual:
+            partes.append("\n".join(atual).strip())
+
+        return [parte for parte in partes if parte]
 
 
 # Instância global

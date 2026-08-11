@@ -9,7 +9,7 @@ from typing import Optional, Sequence
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langgraph.prebuilt import create_react_agent
-from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, BaseMessage, AIMessage, ToolMessage
 from langchain_community.chat_message_histories import RedisChatMessageHistory
 from langgraph.checkpoint.memory import MemorySaver
 
@@ -1085,6 +1085,25 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     output = last_message.content
             else:
                 output = "Desculpe, não consegui gerar uma resposta."
+
+            # Relatórios vencidos já vêm formatados e calculados pela tool.
+            # Usa o conteúdo determinístico integral para impedir que a etapa
+            # final do LLM reduza "todos os clientes" a apenas alguns exemplos.
+            for msg in reversed(output_messages):
+                if (
+                    isinstance(msg, ToolMessage)
+                    and (
+                        getattr(msg, "name", None) == "pesquisa_contas_a_receber_vencidas"
+                        or str(msg.content).startswith("Resultados de contas a receber vencidas:")
+                        or str(msg.content).startswith("Contas a receber vencidas do cliente ")
+                    )
+                ):
+                    output = msg.content
+                    logger.info(
+                        "[CONTAS A RECEBER VENCIDAS] Retornando resposta integral da tool, "
+                        "sem resumo do LLM"
+                    )
+                    break
 
             # Garante que output é sempre string
             if isinstance(output, list):
