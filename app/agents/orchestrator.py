@@ -63,14 +63,31 @@ def _message_content_as_text(message: BaseMessage) -> str:
 
 
 def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
-    """Detecta quando a resposta final afirma que um agendamento foi criado."""
+    """Detecta confirmação ou promessa final de agendamento sem pergunta pendente."""
     for message in reversed(messages):
         if isinstance(message, AIMessage):
-            text = _normalize_query_text(_message_content_as_text(message))
-            return "agendad" in text and any(
+            raw_text = _message_content_as_text(message)
+            text = _normalize_query_text(raw_text)
+            confirmed = "agendad" in text and any(
                 expression in text
-                for expression in ("com sucesso", "foi agendad", "agendamento realizado", "agendamento criado")
+                for expression in (
+                    "com sucesso",
+                    "foi agendad",
+                    "agendamento realizado",
+                    "agendamento criado",
+                )
             )
+            # "Vou agendar" sem uma pergunta de esclarecimento também não
+            # pode ser enviado: a ferramenta precisa ser executada primeiro.
+            promised_without_question = (
+                "relatorio" in text
+                and "?" not in raw_text
+                and any(
+                    expression in text
+                    for expression in ("vou agendar", "irei agendar", "sera enviado", "voce recebera")
+                )
+            )
+            return confirmed or promised_without_question
     return False
 
 
@@ -1144,8 +1161,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     "forçando nova tentativa"
                 )
                 retry_instruction = SystemMessage(content=(
-                    "REGRA DE EXECUÇÃO OBRIGATÓRIA: a resposta anterior tentou confirmar um "
-                    "agendamento sem executar criar_relatorio_agendado. Reprocesse a solicitação "
+                    "REGRA DE EXECUÇÃO OBRIGATÓRIA: a resposta anterior tentou confirmar ou prometeu "
+                    "um agendamento sem executar criar_relatorio_agendado. Reprocesse a solicitação "
                     "original agora. Você DEVE chamar criar_relatorio_agendado para criar o registro "
                     "no Supabase. Somente confirme sucesso se a ferramenta retornar explicitamente "
                     "que o relatório foi agendado com sucesso. Se faltar algum dado obrigatório, "
