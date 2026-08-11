@@ -4221,6 +4221,105 @@ IMPORTANTE:
             "Se quiser, também posso detalhar essa posição por filial: COBRA, CUSA ou CEU."
         )
 
+    def _pesquisa_contas_a_pagar_vencidas(self) -> str:
+        """Consulta a posição vencida solicitada usando a regra financeira fixa."""
+        function_name = "IA_ContasAReceberPar"
+        hoje = date_parser.get_current_date().strftime("%Y%m%d")
+        filters = {
+            "data_inicio": "19990101",
+            "data_fim": hoje,
+            "tipo": "Receber",
+            "saldo_gt": 0,
+        }
+
+        has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
+        if not has_permission:
+            logger.warning(
+                "Permissão negada para %s: %s",
+                self.user.telefone,
+                function_name,
+            )
+            return error_msg
+
+        logger.info(
+            "[CONTAS A PAGAR VENCIDAS] Executando dbo.%s('19990101', '%s') "
+            "com tipo='Receber' e saldo>0",
+            function_name,
+            hoje,
+        )
+
+        try:
+            result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            self._salvar_resultado_scheduler(result_list)
+
+            if not result_list:
+                return "Nenhuma conta a pagar vencida encontrada."
+
+            def numero(valor: Any) -> float:
+                if valor is None:
+                    return 0.0
+                if isinstance(valor, Decimal):
+                    return float(valor)
+                if isinstance(valor, (int, float)):
+                    return float(valor)
+                try:
+                    texto = str(valor).replace("R$", "").strip()
+                    if "," in texto:
+                        texto = texto.replace(".", "").replace(",", ".")
+                    return float(texto)
+                except (TypeError, ValueError):
+                    return 0.0
+
+            total_saldo = sum(numero(row.get("saldo")) for row in result_list)
+
+            # Mantém todos os registros disponíveis para a IA em consultas menores.
+            if len(result_list) <= 50:
+                formatted = json.dumps(
+                    result_list,
+                    ensure_ascii=False,
+                    indent=2,
+                    default=lambda obj: float(obj) if isinstance(obj, Decimal) else str(obj),
+                )
+                return f"""Resultados de contas a pagar vencidas:
+
+Total de registros: {len(result_list)}
+Saldo total vencido: R$ {format_pt_br(total_saldo)}
+
+Dados completos:
+{formatted}
+
+Considere somente os registros retornados, todos com tipo Receber e saldo maior que zero."""
+
+            from collections import defaultdict
+
+            por_cliente = defaultdict(lambda: {"saldo": 0.0, "quantidade": 0})
+            for row in result_list:
+                nome = str(row.get("cliente") or row.get("fornecedor") or "SEM IDENTIFICAÇÃO").strip()
+                por_cliente[nome]["saldo"] += numero(row.get("saldo"))
+                por_cliente[nome]["quantidade"] += 1
+
+            maiores = sorted(
+                por_cliente.items(),
+                key=lambda item: item[1]["saldo"],
+                reverse=True,
+            )[:50]
+            linhas = [
+                f"- {nome}: R$ {format_pt_br(dados['saldo'])} ({dados['quantidade']} título(s))"
+                for nome, dados in maiores
+            ]
+            return (
+                "Resultados de contas a pagar vencidas:\n\n"
+                f"Total de registros: {len(result_list)}\n"
+                f"Saldo total vencido: R$ {format_pt_br(total_saldo)}\n"
+                f"Total de clientes: {len(por_cliente)}\n\n"
+                "Maiores saldos vencidos por cliente:\n"
+                + "\n".join(linhas)
+                + "\n\nTodos os registros considerados possuem tipo Receber e saldo maior que zero."
+            )
+        except Exception as e:
+            logger.error("[CONTAS A PAGAR VENCIDAS] Erro na consulta: %s", e, exc_info=True)
+            return "Desculpe, ocorreu um erro ao consultar as contas a pagar vencidas."
+
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """
         Consulta contas a receber (recebimentos futuros/pendentes).
@@ -5230,6 +5329,22 @@ Exemplos de uso:
 """
             ),
             StructuredTool.from_function(
+                func=self._pesquisa_contas_a_pagar_vencidas,
+                name="pesquisa_contas_a_pagar_vencidas",
+                description="""Consulta exclusivamente CONTAS A PAGAR VENCIDAS.
+
+REGRA PRIORITÁRIA: sempre use esta ferramenta quando a pergunta contiver, de forma conjunta, a intenção de "contas a pagar" e "vencidas", "vencidos", "atrasadas" ou "em atraso".
+
+Exemplos:
+- "Quais contas a pagar estão vencidas?"
+- "Temos contas a pagar em atraso?"
+- "Qual o total das contas a pagar vencidas?"
+- "Mostre os títulos vencidos que temos a pagar"
+
+A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final, tipo Receber e saldo maior que zero. Não passe datas e não use pesquisa_contas_a_pagar para essas perguntas.
+"""
+            ),
+            StructuredTool.from_function(
                 func=self._pesquisa_contas_a_pagar,
                 name="pesquisa_contas_a_pagar",
                 description="""Consulta CONTAS A PAGAR pela empresa (pagamentos pendentes/futuros).
@@ -5259,13 +5374,13 @@ Esta ferramenta retorna informações sobre contas pendentes de pagamento, inclu
 - centroCusto: Centro de custo associado
 - natureza: Natureza/tipo da despesa (ex: compra de café, fretes, despesas, etc.)
 
-⚠️ IMPORTANTE: Esta ferramenta é para PAGAMENTOS PENDENTES (contas a pagar no futuro).
+⚠️ IMPORTANTE: Esta ferramenta é somente para PAGAMENTOS PENDENTES/FUTUROS.
+Para contas a pagar vencidas, atrasadas ou em atraso, use obrigatoriamente pesquisa_contas_a_pagar_vencidas.
 Para pagamentos já efetuados, use pesquisa_contas_pagas.
 
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
-  - Formato flexível: "hoje", "vencidas", "próximos 7 dias", "este mês", "próxima semana", "20251212"
-  - "vencidas" ou "vencidos": retorna apenas contas com vencimento até ontem (contas atrasadas)
+  - Formato flexível: "hoje", "próximos 7 dias", "este mês", "próxima semana", "20251212"
   - Se NÃO INFORMADO: retorna todas as contas a pagar (sem filtro de data)
   - Se INFORMADO: filtra contas conforme período especificado
   - Use quando a pergunta menciona "vencimento", "pagar em", "vencer em"
@@ -5293,7 +5408,7 @@ Argumentos:
 
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
-- "Contas vencidas" ou "Contas atrasadas" → pesquisa_contas_a_pagar(data_vencimento="vencidas")
+- "Contas a pagar vencidas" ou "Contas atrasadas" → NÃO use esta ferramenta; use pesquisa_contas_a_pagar_vencidas()
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
 - "Quanto temos de contas a pagar para a ATLAS nesta semana?" → pesquisa_contas_a_pagar(data_vencimento="esta semana", fornecedor="ATLAS")
 - "Quais os próximos pagamentos para o JULIO CESAR?" → pesquisa_contas_a_pagar(fornecedor="JULIO CESAR")
@@ -5307,7 +5422,7 @@ Exemplos de uso:
 - "Quanto tenho a pagar de compra de café?" → pesquisa_contas_a_pagar(natureza="cafe")
 - "Quanto devo de INSS?" → pesquisa_contas_a_pagar(natureza="INSS")
 - "Pagamentos de salário nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias", natureza="salario")
-- "Contas vencidas de fumigação" → pesquisa_contas_a_pagar(data_vencimento="vencidas", natureza="fumigacao")
+- "Contas vencidas de fumigação" → pesquisa_contas_a_pagar_vencidas()
 """
             ),
             StructuredTool.from_function(
