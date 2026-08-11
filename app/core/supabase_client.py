@@ -279,9 +279,14 @@ class SupabaseClient:
         """
         try:
             client = self.get_client()
+            # O ambiente vem exclusivamente do servidor, nunca da IA ou do usuário.
+            dados = {**dados, "ambiente": settings.app_env}
             response = client.table("relatorios_agendados").insert(dados).execute()
             if response.data:
-                logger.info(f"Relatório agendado criado para {dados.get('telefone')}")
+                logger.info(
+                    f"Relatório agendado criado para {dados.get('telefone')} "
+                    f"no ambiente {settings.app_env}"
+                )
                 return response.data[0]
             return None
         except Exception as e:
@@ -304,6 +309,7 @@ class SupabaseClient:
                 client.table("relatorios_agendados")
                 .select("*")
                 .eq("telefone", telefone)
+                .eq("ambiente", settings.app_env)
                 .eq("status", "ativo")
                 .order("created_at", desc=True)
                 .execute()
@@ -331,6 +337,7 @@ class SupabaseClient:
                 .update({"status": "cancelado"})
                 .eq("id", relatorio_id)
                 .eq("telefone", telefone)
+                .eq("ambiente", settings.app_env)
                 .execute()
             )
             if response.data:
@@ -357,6 +364,7 @@ class SupabaseClient:
             response = (
                 client.table("relatorios_agendados")
                 .select("*")
+                .eq("ambiente", settings.app_env)
                 .eq("status", "ativo")
                 .lte("next_run", agora)
                 .execute()
@@ -384,6 +392,7 @@ class SupabaseClient:
                 client.table("relatorios_agendados")
                 .update({"next_run": next_run, "last_run": last_run})
                 .eq("id", relatorio_id)
+                .eq("ambiente", settings.app_env)
                 .execute()
             )
             return bool(response.data)

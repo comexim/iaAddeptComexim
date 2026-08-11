@@ -21,6 +21,9 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "agente-comexim"
+    # Identifica o ambiente nos registros compartilhados do Supabase.
+    # Use APP_ENV=dev no teste e APP_ENV=prod na produção.
+    app_env: Literal["dev", "prod"] = "dev"
     env: Literal["development", "production"] = "development"
     debug: bool = True
     log_level: str = "INFO"
