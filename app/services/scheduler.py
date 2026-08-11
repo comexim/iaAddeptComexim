@@ -249,7 +249,7 @@ def criar_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone=TZ)
     scheduler.add_job(
         verificar_e_executar_relatorios,
-        trigger=CronTrigger(minute="*/5", timezone=TZ),
+        trigger=CronTrigger(minute="*/15", timezone=TZ),
         id="verificar_relatorios",
         replace_existing=True,
         misfire_grace_time=300,  # 5 min de tolerância se o servidor estava down
