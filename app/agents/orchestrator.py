@@ -792,12 +792,75 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 new_fixacao = FixacaoTools(self.session_id or "default")
                 new_fixacao.clear_pending()
 
-                contract_match = re.search(
-                    r'\b(?:\d+\s*/\s*\d+\s*[a-z]?|\d{5,})\b',
-                    normalized_user_message,
+                contract_pattern = re.compile(
+                    r'\b(?:\d{2,4}\s*/\s*\d{2}\s*[a-z]?|\d{5,})\b',
+                    re.IGNORECASE,
                 )
+                contract_match = contract_pattern.search(normalized_user_message)
+                contract = None
                 if contract_match:
-                    contract = re.sub(r'\s+', '', contract_match.group(0)).upper()
+                    candidate = re.sub(r'\s+', '', contract_match.group(0)).upper()
+                    # Uma data curta como 11/08 nunca deve virar contrato.
+                    prefix, separator, suffix = candidate.partition("/")
+                    looks_like_short_date = (
+                        bool(separator)
+                        and candidate[-1:].isdigit()
+                        and len(prefix) <= 2
+                        and prefix.isdigit()
+                        and suffix.isdigit()
+                        and 1 <= int(prefix) <= 31
+                        and 1 <= int(suffix) <= 12
+                    )
+                    if not looks_like_short_date:
+                        contract = candidate
+
+                references_contract = any(
+                    expression in normalized_user_message
+                    for expression in (
+                        "esse contrato",
+                        "este contrato",
+                        "desse contrato",
+                        "deste contrato",
+                        "nesse contrato",
+                        "neste contrato",
+                    )
+                )
+                if not contract and references_contract:
+                    for previous_message in reversed(self.message_history.messages):
+                        if not isinstance(previous_message, HumanMessage):
+                            continue
+                        previous_text = _message_content_as_text(previous_message)
+                        previous_normalized = _normalize_query_text(previous_text)
+                        if "contrato" not in previous_normalized:
+                            continue
+                        previous_match = contract_pattern.search(previous_text)
+                        if previous_match:
+                            previous_candidate = re.sub(
+                                r'\s+', '', previous_match.group(0)
+                            ).upper()
+                            previous_prefix, previous_separator, previous_suffix = (
+                                previous_candidate.partition("/")
+                            )
+                            previous_looks_like_date = (
+                                bool(previous_separator)
+                                and previous_candidate[-1:].isdigit()
+                                and len(previous_prefix) <= 2
+                                and previous_prefix.isdigit()
+                                and previous_suffix.isdigit()
+                                and 1 <= int(previous_prefix) <= 31
+                                and 1 <= int(previous_suffix) <= 12
+                            )
+                            if previous_looks_like_date:
+                                continue
+                            contract = previous_candidate
+                            logger.info(
+                                "[FIXACAO FLOW] Referência '%s' resolvida pelo histórico: %s",
+                                message,
+                                contract,
+                            )
+                            break
+
+                if contract:
                     initial_data = {"contratode_venda": contract}
 
                     value_match = re.search(
@@ -843,6 +906,19 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     self.message_history.add_user_message(message)
                     self.message_history.add_ai_message(output)
                     return output
+
+                # Não devolve uma referência sem número ao LLM: ele pode
+                # confundir a data atual do system prompt com um contrato.
+                output = (
+                    "Não consegui identificar a qual contrato você se refere. "
+                    "Por favor, informe o número do contrato que deseja fixar."
+                )
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                logger.warning(
+                    "[FIXACAO FLOW] Pedido de fixação sem contrato explícito ou resolvido no histórico"
+                )
+                return output
 
             hedge_output = await self._process_hedge_flow(message)
             if hedge_output is not None:
