@@ -45,6 +45,64 @@ def _ensure_fixacao_optional_hint(output: str) -> str:
         )
     return output
 
+
+def _message_content_as_text(message: BaseMessage) -> str:
+    """Extrai conteúdo textual de mensagens LangChain."""
+    content = getattr(message, "content", "")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict) and item.get("type") == "text":
+                parts.append(str(item.get("text", "")))
+            elif isinstance(item, str):
+                parts.append(item)
+        return " ".join(parts)
+    return str(content or "")
+
+
+def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
+    """Detecta quando a resposta final afirma que um agendamento foi criado."""
+    for message in reversed(messages):
+        if isinstance(message, AIMessage):
+            text = _normalize_query_text(_message_content_as_text(message))
+            return "agendad" in text and any(
+                expression in text
+                for expression in ("com sucesso", "foi agendad", "agendamento realizado", "agendamento criado")
+            )
+    return False
+
+
+def _schedule_tool_succeeded(messages: Sequence[BaseMessage]) -> bool:
+    """Confirma sucesso somente a partir do retorno real da ferramenta."""
+    for message in messages:
+        if not isinstance(message, ToolMessage):
+            continue
+        text = _normalize_query_text(_message_content_as_text(message))
+        is_schedule_tool = (
+            getattr(message, "name", None) == "criar_relatorio_agendado"
+            or "relatorio agendado com sucesso" in text
+        )
+        if is_schedule_tool and "relatorio agendado com sucesso" in text:
+            return True
+    return False
+
+
+def _current_turn_messages(
+    messages: Sequence[BaseMessage],
+    user_message: str,
+) -> Sequence[BaseMessage]:
+    """Retorna somente mensagens produzidas após o pedido atual do usuário."""
+    target = _normalize_query_text(user_message).strip()
+    current_index = -1
+    for index, message in enumerate(messages):
+        if isinstance(message, HumanMessage):
+            content = _normalize_query_text(_message_content_as_text(message)).strip()
+            if content == target:
+                current_index = index
+    return messages[current_index + 1:] if current_index >= 0 else messages
+
 # Palavras-chave que indicam intenção de criar contrato
 _CRIAR_CONTRATO_KEYWORDS = re.compile(
     r'criar\s+contrato|novo\s+contrato|adicionar\s+contrato|registrar\s+venda|'
@@ -1070,6 +1128,43 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
             # 6. Extrai resposta
             output_messages = response.get("messages", [])
+            current_turn_messages = _current_turn_messages(output_messages, message)
+
+            # Proteção contra confirmação inventada: se o LLM afirmar que
+            # agendou sem uma ToolMessage de sucesso, descarta a resposta e
+            # repete a solicitação exigindo a execução real da ferramenta.
+            if (
+                _claims_successful_schedule(current_turn_messages)
+                and not _schedule_tool_succeeded(current_turn_messages)
+            ):
+                import uuid
+
+                logger.warning(
+                    "[AGENDAMENTO] Confirmação sem execução da ferramenta detectada; "
+                    "forçando nova tentativa"
+                )
+                retry_instruction = SystemMessage(content=(
+                    "REGRA DE EXECUÇÃO OBRIGATÓRIA: a resposta anterior tentou confirmar um "
+                    "agendamento sem executar criar_relatorio_agendado. Reprocesse a solicitação "
+                    "original agora. Você DEVE chamar criar_relatorio_agendado para criar o registro "
+                    "no Supabase. Somente confirme sucesso se a ferramenta retornar explicitamente "
+                    "que o relatório foi agendado com sucesso. Se faltar algum dado obrigatório, "
+                    "faça a pergunta necessária e não confirme o agendamento. Não copie confirmações "
+                    "existentes no histórico."
+                ))
+                retry_messages = messages[:-1] + [retry_instruction, messages[-1]]
+                retry_config = {
+                    "configurable": {
+                        "thread_id": f"{self.session_id}:schedule-retry:{uuid.uuid4().hex}"
+                    }
+                }
+                response = await self.agent.ainvoke(
+                    {"messages": retry_messages},
+                    config=retry_config,
+                )
+                output_messages = response.get("messages", [])
+                current_turn_messages = _current_turn_messages(output_messages, message)
+
             logger.info(f"[DEBUG] Total de mensagens retornadas: {len(output_messages)}")
 
             for idx, msg in enumerate(output_messages):
@@ -1089,7 +1184,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # Relatórios vencidos já vêm formatados e calculados pela tool.
             # Usa o conteúdo determinístico integral para impedir que a etapa
             # final do LLM reduza "todos os clientes" a apenas alguns exemplos.
-            for msg in reversed(output_messages):
+            for msg in reversed(current_turn_messages):
                 if (
                     isinstance(msg, ToolMessage)
                     and (
@@ -1122,6 +1217,20 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             elif not isinstance(output, str):
                 # Converte qualquer outro tipo para string
                 output = str(output) if output else "Desculpe, não consegui gerar uma resposta."
+
+            # Última barreira: uma confirmação nunca sai para o usuário sem
+            # uma inserção realmente confirmada pela ferramenta.
+            if (
+                _claims_successful_schedule(current_turn_messages)
+                and not _schedule_tool_succeeded(current_turn_messages)
+            ):
+                logger.error(
+                    "[AGENDAMENTO] Bloqueando confirmação falsa após segunda tentativa"
+                )
+                output = (
+                    "Não consegui concluir o agendamento porque a criação não foi confirmada "
+                    "pelo sistema. Por favor, tente novamente em alguns instantes."
+                )
 
             output = _ensure_fixacao_optional_hint(output)
 
