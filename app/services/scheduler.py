@@ -39,7 +39,7 @@ def calcular_next_run(
     Calcula a próxima execução de um relatório agendado.
 
     Args:
-        frequencia: 'diario', 'semanal' ou 'mensal'
+        frequencia: 'diario', 'dias_uteis', 'semanal' ou 'mensal'
         horario: Horário no formato 'HH:MM'
         dia_semana: 0=segunda ... 6=domingo (para semanal)
         dia_mes: 1-31 (para mensal)
@@ -51,10 +51,15 @@ def calcular_next_run(
     agora = a_partir_de or datetime.now(TZ)
     hora, minuto = map(int, horario.split(":"))
 
-    if frequencia in ("diario", "unico"):
+    if frequencia in ("diario", "unico", "dias_uteis"):
         candidato = agora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
         if candidato <= agora:
             candidato += timedelta(days=1)
+
+        # Em dias úteis, sábado (5) e domingo (6) avançam para segunda-feira.
+        if frequencia == "dias_uteis":
+            while candidato.weekday() >= 5:
+                candidato += timedelta(days=1)
         return candidato
 
     elif frequencia == "semanal":

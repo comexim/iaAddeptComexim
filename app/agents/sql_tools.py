@@ -4765,8 +4765,8 @@ IMPORTANTE:
         try:
             # Valida frequência
             frequencia = frequencia.lower().strip()
-            if frequencia not in ("diario", "semanal", "mensal", "unico"):
-                return "Frequência inválida. Use: 'diario', 'semanal', 'mensal' ou 'unico'."
+            if frequencia not in ("diario", "dias_uteis", "semanal", "mensal", "unico"):
+                return "Frequência inválida. Use: 'diario', 'dias_uteis', 'semanal', 'mensal' ou 'unico'."
 
             # Valida canal
             canal = canal.lower().strip()
@@ -4825,7 +4825,8 @@ IMPORTANTE:
 
             if resultado:
                 freq_texto = {
-                    "diario": "todos os dias",
+                    "diario": "todos os dias corridos (incluindo sábado e domingo)",
+                    "dias_uteis": "de segunda a sexta-feira",
                     "semanal": f"toda {dia_semana}",
                     "mensal": f"todo dia {dia_mes} do mês",
                     "unico": "uma única vez",
@@ -4879,7 +4880,9 @@ IMPORTANTE:
                 next_run = r.get("next_run", "")
 
                 if freq == "diario":
-                    freq_texto = f"Diário às {horario}"
+                    freq_texto = f"Todos os dias corridos às {horario}"
+                elif freq == "dias_uteis":
+                    freq_texto = f"De segunda a sexta-feira às {horario}"
                 elif freq == "semanal" and dia_semana is not None:
                     freq_texto = f"Toda {DIAS[dia_semana]} às {horario}"
                 elif freq == "mensal" and dia_mes:
@@ -5569,11 +5572,19 @@ Argumentos:
 
 Use esta ferramenta quando o usuário pedir para receber um relatório — tanto uma única vez em horário específico quanto de forma recorrente.
 
+REGRA OBRIGATÓRIA PARA "TODOS OS DIAS":
+- Se o usuário disser "todos os dias", "todo dia", "diariamente" ou expressão equivalente sem esclarecer os dias da semana, NÃO chame esta ferramenta ainda.
+- Pergunte: "Você quer receber de segunda a sexta-feira ou todos os dias corridos, incluindo sábado e domingo?"
+- Preserve na conversa o relatório, horário e canal já informados. Depois da resposta, crie o agendamento sem perguntar novamente esses dados.
+- Se responder segunda a sexta/dias úteis, use frequencia='dias_uteis'.
+- Se responder todos os dias corridos/incluindo fim de semana, use frequencia='diario'.
+- Não faça essa pergunta quando o usuário já tiver especificado uma dessas duas opções.
+
 Exemplos de intenção:
 - "Me manda um email às 11:40 com as cotações" → unico, horario="11:40", canal="email"
 - "Me encaminha por email às 10:50 as informações do contrato" → unico, horario="10:50", canal="email"
 - "Quero receber o saldo bancário toda sexta às 9h" → semanal
-- "Me manda o estoque todo dia às 8h" → diario
+- "Me manda o estoque todo dia às 8h" → primeiro pergunte se é de segunda a sexta ou todos os dias corridos
 - "Relatório de vendas todo dia 1 do mês" → mensal
 
 Argumentos:
@@ -5581,9 +5592,10 @@ Argumentos:
   Exemplos: "cotações do dia", "informações do contrato 402/25R", "saldo bancário", "contas a pagar"
   ⚠️ A descrição será usada como instrução para gerar o relatório. Seja preciso.
 
-- frequencia (obrigatório): 'unico', 'diario', 'semanal' ou 'mensal'
+- frequencia (obrigatório): 'unico', 'diario', 'dias_uteis', 'semanal' ou 'mensal'
   - 'unico': envia uma única vez no horário informado e cancela automaticamente
-  - 'diario': envia todos os dias no horário informado
+  - 'diario': envia todos os dias corridos, incluindo sábado e domingo
+  - 'dias_uteis': envia de segunda a sexta-feira
   - 'semanal': envia uma vez por semana (requer dia_semana)
   - 'mensal': envia uma vez por mês (requer dia_mes)
 
@@ -5605,7 +5617,8 @@ Argumentos:
 
 Exemplos de chamada:
 - "Me manda por email às 11:40 as cotações" → criar_relatorio_agendado(descricao="cotações do dia", frequencia="unico", horario="11:40", canal="email")
-- "Saldo bancário todo dia às 7h30 por email" → criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
+- Após o usuário confirmar "segunda a sexta": criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="dias_uteis", horario="07:30", canal="email")
+- Após o usuário confirmar "incluindo sábado e domingo": criar_relatorio_agendado(descricao="saldo bancário atual", frequencia="diario", horario="07:30", canal="email")
 - "Relatório financeiro toda segunda às 8h pelo WhatsApp" → criar_relatorio_agendado(descricao="relatório financeiro completo", frequencia="semanal", dia_semana="segunda", horario="08:00", canal="whatsapp")
 - "Estoque todo dia 1 às 9h nos dois" → criar_relatorio_agendado(descricao="estoque atual de sacas", frequencia="mensal", dia_mes=1, horario="09:00", canal="ambos")
 """
