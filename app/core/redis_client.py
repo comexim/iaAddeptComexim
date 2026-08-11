@@ -16,12 +16,12 @@ class RedisClient:
     def __init__(self):
         self.redis_url = settings.redis_url
         self._client: Optional[redis.Redis] = None
-        logger.info(f"[DEBUG] RedisClient.__init__: redis_url = {self.redis_url}")
+        logger.info("[DEBUG] RedisClient inicializado")
 
     async def get_client(self) -> redis.Redis:
         """Obtém cliente Redis (singleton) com reconexão automática"""
         if self._client is None:
-            logger.info(f"[DEBUG] Conectando ao Redis: {self.redis_url}")
+            logger.info("[DEBUG] Conectando ao Redis configurado")
             self._client = await redis.from_url(
                 self.redis_url,
                 encoding="utf-8",

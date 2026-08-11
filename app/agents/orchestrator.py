@@ -981,10 +981,15 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
                         output = "Valor do contrato cadastrado com sucesso.\n\nGostaria que eu fizesse o Hedge da bolsa?"
                     elif result.startswith("ERRO_API:"):
-                        output = (
-                            result.replace("ERRO_API:", "Não foi possível concluir o cadastro:", 1).strip()
-                            + "\n\nGostaria que eu fizesse o Hedge da bolsa?"
-                        )
+                        # Defesa adicional: uma falha na Z24 nunca pode deixar
+                        # uma oferta de Hedge pendente de uma tentativa anterior.
+                        from app.agents.hedge_tools import HedgeTools
+                        HedgeTools(self.session_id or "default").clear()
+                        output = result.replace(
+                            "ERRO_API:",
+                            "Não foi possível concluir o cadastro:",
+                            1,
+                        ).strip()
                     else:
                         output = result
                     self.message_history.add_user_message(message)

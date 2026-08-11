@@ -131,7 +131,12 @@ class Settings(BaseSettings):
             url = f"redis://:{self.redis_password}@{self.redis_host}:{self.redis_port}/{self.redis_db}"
         else:
             url = f"redis://{self.redis_host}:{self.redis_port}/{self.redis_db}"
-        logger.info(f"[DEBUG] redis_url = {url}")
+        logger.info(
+            "[DEBUG] redis_url configurada para host=%s, port=%s, db=%s",
+            self.redis_host,
+            self.redis_port,
+            self.redis_db,
+        )
         return url
 
     @property

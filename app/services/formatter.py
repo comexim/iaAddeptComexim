@@ -44,6 +44,14 @@ class ResponseFormatter:
         # Limpa links markdown/URLs antes de qualquer processamento
         text = self._limpar_markdown(text)
 
+        # Respostas de falha da Z24 sao deterministicas. Nao as envie ao LLM
+        # formatador, pois ele pode acrescentar uma oferta de Hedge que so e
+        # permitida depois da confirmacao de sucesso da fixacao.
+        if self._is_fixacao_error(text):
+            text = self._remove_hedge_offer(text)
+            logger.info("Preservando erro de fixacao sem formatacao por IA")
+            return self._simple_split(text)
+
         # Este relatório contém uma lista completa calculada no backend.
         # Não passar por outro LLM, pois ele pode resumir ou omitir clientes.
         if (
@@ -102,6 +110,22 @@ class ResponseFormatter:
         """Split simples por parágrafos"""
         messages = [msg.strip() for msg in text.split("\n\n") if msg.strip()]
         return messages if messages else [text]
+
+    def _is_fixacao_error(self, text: str) -> bool:
+        """Reconhece a mensagem controlada de falha no cadastro da Z24."""
+        import unicodedata
+        normalized = unicodedata.normalize("NFKD", text)
+        normalized = "".join(char for char in normalized if not unicodedata.combining(char))
+        return "nao foi possivel concluir o cadastro:" in normalized.lower()
+
+    def _remove_hedge_offer(self, text: str) -> str:
+        """Remove defensivamente convites de Hedge de uma resposta de erro."""
+        import re
+        return re.sub(
+            r"(?is)(?:\s*\n+)?[^\n.!?]*\b(?:gostaria|quer|deseja)[^\n.!?]*\bhedge\b[^\n]*[?!.]?",
+            "",
+            text,
+        ).strip()
 
     def _split_preservando_linhas(self, text: str, limite: int = 3500) -> List[str]:
         """Divide texto longo sem reescrever, resumir ou perder linhas."""

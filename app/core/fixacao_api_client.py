@@ -44,8 +44,27 @@ class FixacaoApiClient:
         token = await self.get_token()
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_fixacao_path}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "tenantid": settings.cmx_tenant_id}
+        contract_identifier = {
+            key: body[key]
+            for key in ("contratodeVenda", "numeroVenda", "letraVenda")
+            if body.get(key) not in (None, "")
+        }
+        logger.info(
+            "[CMX Z24] Enviando fixacao: contrato=%s, quantidade_fixacoes=%s",
+            contract_identifier,
+            len(body.get("fixacaoContrato") or []),
+        )
         async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
             response = await client.post(url, json=body, headers=headers)
+            if response.status_code == 401:
+                # O token pode ser invalidado pela CMX antes do prazo informado.
+                # Renova uma unica vez e repete exatamente a mesma operacao.
+                logger.warning("[CMX Z24] Token recusado; renovando e tentando novamente")
+                self._token = None
+                self._token_expiry = None
+                token = await self.get_token()
+                headers["Authorization"] = f"Bearer {token}"
+                response = await client.post(url, json=body, headers=headers)
         if not 200 <= response.status_code < 300:
             logger.error("[CMX Z24] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
