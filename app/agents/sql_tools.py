@@ -4221,7 +4221,7 @@ IMPORTANTE:
             "Se quiser, também posso detalhar essa posição por filial: COBRA, CUSA ou CEU."
         )
 
-    def _pesquisa_contas_a_pagar_vencidas(self) -> str:
+    def _pesquisa_contas_a_receber_vencidas(self) -> str:
         """Consulta a posição vencida solicitada usando a regra financeira fixa."""
         function_name = "IA_ContasAReceberPar"
         hoje = date_parser.get_current_date().strftime("%Y%m%d")
@@ -4229,7 +4229,6 @@ IMPORTANTE:
             "data_inicio": "19990101",
             "data_fim": hoje,
             "tipo": "Receber",
-            "saldo_gt": 0,
         }
 
         has_permission, error_msg = sql_validator.validate_permission(self.user, function_name)
@@ -4243,7 +4242,7 @@ IMPORTANTE:
 
         logger.info(
             "[CONTAS A PAGAR VENCIDAS] Executando dbo.%s('19990101', '%s') "
-            "com tipo='Receber' e saldo>0",
+            "com tipo='Receber'",
             function_name,
             hoje,
         )
@@ -4253,22 +4252,22 @@ IMPORTANTE:
             self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
-                return "Nenhuma conta a pagar vencida encontrada."
+                return "Nenhuma conta a receber vencida encontrada."
 
-            def numero(valor: Any) -> float:
+            def numero(valor: Any) -> Decimal:
                 if valor is None:
-                    return 0.0
+                    return Decimal("0")
                 if isinstance(valor, Decimal):
-                    return float(valor)
+                    return valor
                 if isinstance(valor, (int, float)):
-                    return float(valor)
+                    return Decimal(str(valor))
                 try:
                     texto = str(valor).replace("R$", "").strip()
                     if "," in texto:
                         texto = texto.replace(".", "").replace(",", ".")
-                    return float(texto)
-                except (TypeError, ValueError):
-                    return 0.0
+                    return Decimal(texto)
+                except (TypeError, ValueError, ArithmeticError):
+                    return Decimal("0")
 
             total_saldo = sum(numero(row.get("saldo")) for row in result_list)
 
@@ -4280,7 +4279,7 @@ IMPORTANTE:
                     indent=2,
                     default=lambda obj: float(obj) if isinstance(obj, Decimal) else str(obj),
                 )
-                return f"""Resultados de contas a pagar vencidas:
+                return f"""Resultados de contas a receber vencidas:
 
 Total de registros: {len(result_list)}
 Saldo total vencido: R$ {format_pt_br(total_saldo)}
@@ -4288,11 +4287,11 @@ Saldo total vencido: R$ {format_pt_br(total_saldo)}
 Dados completos:
 {formatted}
 
-Considere somente os registros retornados, todos com tipo Receber e saldo maior que zero."""
+Some todos os valores do campo saldo, incluindo os negativos, pois eles representam créditos do comprador. Todos os registros possuem tipo Receber."""
 
             from collections import defaultdict
 
-            por_cliente = defaultdict(lambda: {"saldo": 0.0, "quantidade": 0})
+            por_cliente = defaultdict(lambda: {"saldo": Decimal("0"), "quantidade": 0})
             for row in result_list:
                 nome = str(row.get("cliente") or row.get("fornecedor") or "SEM IDENTIFICAÇÃO").strip()
                 por_cliente[nome]["saldo"] += numero(row.get("saldo"))
@@ -4308,17 +4307,17 @@ Considere somente os registros retornados, todos com tipo Receber e saldo maior 
                 for nome, dados in maiores
             ]
             return (
-                "Resultados de contas a pagar vencidas:\n\n"
+                "Resultados de contas a receber vencidas:\n\n"
                 f"Total de registros: {len(result_list)}\n"
                 f"Saldo total vencido: R$ {format_pt_br(total_saldo)}\n"
                 f"Total de clientes: {len(por_cliente)}\n\n"
                 "Maiores saldos vencidos por cliente:\n"
                 + "\n".join(linhas)
-                + "\n\nTodos os registros considerados possuem tipo Receber e saldo maior que zero."
+                + "\n\nO saldo total é líquido: inclui valores positivos e negativos (créditos do comprador). Todos os registros possuem tipo Receber."
             )
         except Exception as e:
             logger.error("[CONTAS A PAGAR VENCIDAS] Erro na consulta: %s", e, exc_info=True)
-            return "Desculpe, ocorreu um erro ao consultar as contas a pagar vencidas."
+            return "Desculpe, ocorreu um erro ao consultar as contas a receber vencidas."
 
     def _pesquisa_contas_a_receber(self, data_vencimento: Optional[str] = None, cliente: Optional[str] = None, contrato: Optional[str] = None) -> str:
         """
@@ -5329,19 +5328,19 @@ Exemplos de uso:
 """
             ),
             StructuredTool.from_function(
-                func=self._pesquisa_contas_a_pagar_vencidas,
-                name="pesquisa_contas_a_pagar_vencidas",
-                description="""Consulta exclusivamente CONTAS A PAGAR VENCIDAS.
+                func=self._pesquisa_contas_a_receber_vencidas,
+                name="pesquisa_contas_a_receber_vencidas",
+                description="""Consulta exclusivamente CONTAS A RECEBER VENCIDAS/ATRASADAS.
 
-REGRA PRIORITÁRIA: sempre use esta ferramenta quando a pergunta contiver, de forma conjunta, a intenção de "contas a pagar" e "vencidas", "vencidos", "atrasadas" ou "em atraso".
+REGRA PRIORITÁRIA: sempre use esta ferramenta quando a pergunta contiver, de forma conjunta, a intenção de "contas a receber" e "vencidas", "vencidos", "atrasadas" ou "em atraso". Também use para a expressão "contas a pagar vencidas", conforme a regra financeira específica deste sistema.
 
 Exemplos:
-- "Quais contas a pagar estão vencidas?"
-- "Temos contas a pagar em atraso?"
-- "Qual o total das contas a pagar vencidas?"
-- "Mostre os títulos vencidos que temos a pagar"
+- "Quais contas a receber estão vencidas?"
+- "Temos contas a receber em atraso?"
+- "Qual o total das contas a receber vencidas?"
+- "Me diga todas as contas a receber em atraso"
 
-A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final, tipo Receber e saldo maior que zero. Não passe datas e não use pesquisa_contas_a_pagar para essas perguntas.
+A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final e tipo Receber. Ela soma o campo saldo incluindo valores negativos, que representam créditos do comprador. Não passe datas e não use pesquisa_contas_a_receber para essas perguntas.
 """
             ),
             StructuredTool.from_function(
@@ -5375,7 +5374,7 @@ Esta ferramenta retorna informações sobre contas pendentes de pagamento, inclu
 - natureza: Natureza/tipo da despesa (ex: compra de café, fretes, despesas, etc.)
 
 ⚠️ IMPORTANTE: Esta ferramenta é somente para PAGAMENTOS PENDENTES/FUTUROS.
-Para contas a pagar vencidas, atrasadas ou em atraso, use obrigatoriamente pesquisa_contas_a_pagar_vencidas.
+Para contas vencidas, atrasadas ou em atraso, use obrigatoriamente pesquisa_contas_a_receber_vencidas.
 Para pagamentos já efetuados, use pesquisa_contas_pagas.
 
 Argumentos:
@@ -5408,7 +5407,7 @@ Argumentos:
 
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
-- "Contas a pagar vencidas" ou "Contas atrasadas" → NÃO use esta ferramenta; use pesquisa_contas_a_pagar_vencidas()
+- "Contas a pagar vencidas" ou "Contas atrasadas" → NÃO use esta ferramenta; use pesquisa_contas_a_receber_vencidas()
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
 - "Quanto temos de contas a pagar para a ATLAS nesta semana?" → pesquisa_contas_a_pagar(data_vencimento="esta semana", fornecedor="ATLAS")
 - "Quais os próximos pagamentos para o JULIO CESAR?" → pesquisa_contas_a_pagar(fornecedor="JULIO CESAR")
@@ -5422,7 +5421,7 @@ Exemplos de uso:
 - "Quanto tenho a pagar de compra de café?" → pesquisa_contas_a_pagar(natureza="cafe")
 - "Quanto devo de INSS?" → pesquisa_contas_a_pagar(natureza="INSS")
 - "Pagamentos de salário nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias", natureza="salario")
-- "Contas vencidas de fumigação" → pesquisa_contas_a_pagar_vencidas()
+- "Contas vencidas de fumigação" → pesquisa_contas_a_receber_vencidas()
 """
             ),
             StructuredTool.from_function(
@@ -5472,8 +5471,7 @@ Esta ferramenta retorna informações sobre contas pendentes de recebimento, inc
 - diferencial: Diferencial de preço
 
 ⚠️ IMPORTANTE - QUANDO USAR ESTA FERRAMENTA:
-- "Contas a receber vencidas" → USE ESTA FERRAMENTA (sem passar data_vencimento)
-- "Há algum contas a receber vencido?" → USE ESTA FERRAMENTA
+- Para contas a receber vencidas, atrasadas ou em atraso, NÃO use esta ferramenta; use pesquisa_contas_a_receber_vencidas().
 - "Quanto temos a receber?" → USE ESTA FERRAMENTA
 - "Quanto a NESTLE me deve?" → USE ESTA FERRAMENTA
 ⛔ NÃO USE para contratos de vendas ou embarques → use pesquisa_vendas
@@ -5481,7 +5479,6 @@ Esta ferramenta retorna informações sobre contas pendentes de recebimento, inc
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
   - Formato flexível: "hoje", "próximos 7 dias", "este mês", "20250112"
-  - Se NÃO INFORMADO e query menciona "vencido/vencidas": busca automaticamente últimos 12 meses
   - Se NÃO INFORMADO sem "vencido": retorna todas as contas a receber
 
 - cliente (opcional): Filtro por cliente
@@ -5493,9 +5490,9 @@ Argumentos:
   - Quando INFORMADO: retorna DETALHES COMPLETOS dos títulos (sem agregar)
 
 Exemplos de uso:
-- "Há contas a receber vencidas?" → pesquisa_contas_a_receber()
-- "Algum contas a receber vencido?" → pesquisa_contas_a_receber()
-- "Contas a receber vencidas da NESTLE?" → pesquisa_contas_a_receber(cliente="NESTLE")
+- "Há contas a receber vencidas?" → pesquisa_contas_a_receber_vencidas()
+- "Algum contas a receber vencido?" → pesquisa_contas_a_receber_vencidas()
+- "Contas a receber vencidas da NESTLE?" → pesquisa_contas_a_receber_vencidas()
 - "Quanto tenho a receber hoje?" → pesquisa_contas_a_receber(data_vencimento="hoje")
 - "Contas a receber nos próximos 7 dias" → pesquisa_contas_a_receber(data_vencimento="próximos 7 dias")
 - "Recebimentos deste mês" → pesquisa_contas_a_receber(data_vencimento="este mês")
