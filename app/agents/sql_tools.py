@@ -91,19 +91,30 @@ class SQLTools:
                     return obj.isoformat()
                 return str(obj)
 
+            from redis import Redis
+            from app.core.config import settings
+
             key = f"scheduler_result:{self.session_id}"
             payload = json.dumps(results, default=_serialize, ensure_ascii=False)
-
-            async def _salvar():
-                client = await redis_client.get_client()
-                await client.set(key, payload, ex=300)  # TTL 5 min
-
+            client = Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                password=settings.redis_password or None,
+                db=settings.redis_db,
+                decode_responses=True,
+                socket_connect_timeout=5,
+                socket_keepalive=True,
+            )
             try:
-                self._run_coroutine(_salvar())
-            except Exception:
-                pass
+                client.set(key, payload, ex=900)  # TTL 15 min
+                logger.info(
+                    "[SCHEDULER_RESULT] %s registro(s) salvos para geração do anexo",
+                    len(results),
+                )
+            finally:
+                client.close()
         except Exception as e:
-            logger.debug(f"[SCHEDULER_RESULT] Erro ao salvar resultado: {e}")
+            logger.warning(f"[SCHEDULER_RESULT] Erro ao salvar resultado para o anexo: {e}")
 
     def _remove_accents(self, text: str) -> str:
         """Remove acentos de uma string usando normalização Unicode"""

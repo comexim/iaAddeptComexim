@@ -147,26 +147,64 @@ async def _executar_relatorio(relatorio: dict) -> None:
                 # Tenta gerar planilha xlsx com os dados brutos da consulta
                 xlsx_bytes = None
                 xlsx_nome = "relatorio.xlsx"
+                redis_cache_client = None
+                raw_key = f"scheduler_result:{telefone}"
                 try:
                     from app.core.redis_client import redis_client as _redis
                     import json
-                    raw_key = f"scheduler_result:{telefone}"
-                    raw_json = await (await _redis.get_client()).get(raw_key)
+                    redis_cache_client = await _redis.get_client()
+                    raw_json = await redis_cache_client.get(raw_key)
                     if raw_json:
                         raw_data = json.loads(raw_json)
                         xlsx_bytes = email_service.gerar_xlsx(raw_data)
                         xlsx_nome = f"{descricao[:40].replace(' ', '_')}.xlsx"
+                        if xlsx_bytes:
+                            logger.info(
+                                f"[SCHEDULER] Planilha gerada com {len(raw_data)} registro(s) "
+                                f"para '{descricao}'"
+                            )
+                        else:
+                            logger.warning(
+                                f"[SCHEDULER] Dados encontrados, mas a planilha de '{descricao}' "
+                                "não pôde ser gerada"
+                            )
+                    else:
+                        logger.warning(
+                            f"[SCHEDULER] Nenhum dado bruto encontrado no Redis para anexar "
+                            f"ao relatório '{descricao}'"
+                        )
                 except Exception as e:
                     logger.warning(f"[SCHEDULER] Não foi possível gerar xlsx: {e}")
 
-                await email_service.send_email(
-                    to=email_para,
-                    subject=f"Relatório automático: {descricao}",
-                    body=resposta,
-                    xlsx_bytes=xlsx_bytes,
-                    xlsx_nome=xlsx_nome,
-                )
-                logger.info(f"[SCHEDULER] Relatório '{descricao}' enviado via email para {email_para}")
+                try:
+                    email_enviado = await email_service.send_email(
+                        to=email_para,
+                        subject=f"Relatório automático: {descricao}",
+                        body=resposta,
+                        xlsx_bytes=xlsx_bytes,
+                        xlsx_nome=xlsx_nome,
+                    )
+                    if email_enviado:
+                        logger.info(
+                            f"[SCHEDULER] Relatório '{descricao}' enviado via email para {email_para}"
+                        )
+                    else:
+                        logger.error(
+                            f"[SCHEDULER] Falha no envio por email do relatório '{descricao}' "
+                            f"para {email_para}"
+                        )
+                finally:
+                    if redis_cache_client is not None:
+                        try:
+                            await redis_cache_client.delete(raw_key)
+                            logger.info(
+                                f"[SCHEDULER] Dados temporários do anexo removidos: {raw_key}"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"[SCHEDULER] Não foi possível remover dados temporários "
+                                f"do anexo: {e}"
+                            )
             else:
                 logger.warning(f"[SCHEDULER] Nenhum email configurado para {telefone}, pulando envio por email")
 
