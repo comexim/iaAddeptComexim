@@ -68,6 +68,13 @@ def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
         if isinstance(message, AIMessage):
             raw_text = _message_content_as_text(message)
             text = _normalize_query_text(raw_text)
+            is_cancellation = any(
+                expression in text
+                for expression in (
+                    "cancelad", "cancelar", "excluid", "excluir",
+                    "removid", "remover", "nao recebera mais",
+                )
+            )
             confirmed = "agendad" in text and any(
                 expression in text
                 for expression in (
@@ -76,7 +83,7 @@ def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
                     "agendamento realizado",
                     "agendamento criado",
                 )
-            )
+            ) and not is_cancellation
             # "Vou agendar" sem uma pergunta de esclarecimento também não
             # pode ser enviado: a ferramenta precisa ser executada primeiro.
             promised_without_question = (
@@ -87,7 +94,7 @@ def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
                     for expression in ("vou agendar", "irei agendar", "sera enviado", "voce recebera")
                 )
             )
-            return confirmed or promised_without_question
+            return confirmed or (promised_without_question and not is_cancellation)
     return False
 
 
@@ -1278,6 +1285,23 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     output = last_message.content
             else:
                 output = "Desculpe, não consegui gerar uma resposta."
+
+            # Cancelamentos são operações determinísticas. Preserve o retorno
+            # real da ferramenta para que o LLM não o transforme em criação ou
+            # confirmação de um novo agendamento.
+            for msg in reversed(current_turn_messages):
+                if (
+                    isinstance(msg, ToolMessage)
+                    and getattr(msg, "name", None) in {
+                        "cancelar_relatorio_agendado",
+                        "cancelar_todos_relatorios_agendados",
+                    }
+                ):
+                    output = msg.content
+                    logger.info(
+                        "[AGENDAMENTO] Retornando resultado determinístico do cancelamento"
+                    )
+                    break
 
             # Relatórios vencidos já vêm formatados e calculados pela tool.
             # Usa o conteúdo determinístico integral para impedir que a etapa

@@ -129,6 +129,24 @@ async def _executar_relatorio(relatorio: dict) -> None:
             f"Não agende nada, apenas execute e retorne os dados."
         )
 
+        # Evita reutilizar no anexo os dados deixados por uma consulta anterior
+        # do mesmo usuário. A ferramenta SQL executada abaixo gravará novamente
+        # esta chave com os registros atuais.
+        raw_key = f"scheduler_result:{telefone}"
+        try:
+            from app.core.redis_client import redis_client as _redis
+            redis_cache_client = await _redis.get_client()
+            await redis_cache_client.delete(raw_key)
+            logger.info(
+                "[SCHEDULER] Cache anterior do anexo removido antes de executar '%s'",
+                descricao,
+            )
+        except Exception as e:
+            logger.warning(
+                "[SCHEDULER] Não foi possível limpar o cache anterior do anexo: %s",
+                e,
+            )
+
         # Invoca o agente
         orchestrator = AgentOrchestrator(user=user, session_id=telefone)
         resposta = await orchestrator.process_message(mensagem)
@@ -148,7 +166,6 @@ async def _executar_relatorio(relatorio: dict) -> None:
                 xlsx_bytes = None
                 xlsx_nome = "relatorio.xlsx"
                 redis_cache_client = None
-                raw_key = f"scheduler_result:{telefone}"
                 try:
                     from app.core.redis_client import redis_client as _redis
                     import json

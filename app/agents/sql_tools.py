@@ -3658,6 +3658,10 @@ IMPORTANTE:
                 elif limite > 0:
                     result_list = result_list[:limite]
 
+            # O anexo do e-mail deve refletir o resultado final, depois dos
+            # filtros e da deduplicacao aplicados nesta consulta.
+            self._salvar_resultado_scheduler(result_list)
+
             # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
             if len(result_list) <= 50:
                 total_geral = 0
@@ -4148,6 +4152,7 @@ IMPORTANTE:
         try:
             logger.info(f"Executando usp_LS_FILIAIS com parâmetros: {params}")
             results = sql_client.execute_procedure("usp_LS_FILIAIS", params)
+            self._salvar_resultado_scheduler(results)
             if results:
                 logger.info(
                     "[LONGSHORT] Colunas retornadas por usp_LS_FILIAIS: %s",
@@ -5072,8 +5077,11 @@ IMPORTANTE:
             logger.error(f"[AGENDAMENTO] Erro ao cancelar relatório {relatorio_id}: {e}")
             return f"Erro ao cancelar agendamento: {e}"
 
-    def _cancelar_todos_relatorios_agendados(self) -> str:
-        """Cancela todos os relatórios agendados ativos do usuário."""
+    def _cancelar_todos_relatorios_agendados(
+        self,
+        manter_descricao: Optional[str] = None,
+    ) -> str:
+        """Cancela todos os relatórios, opcionalmente preservando uma descrição."""
         from app.core.supabase_client import supabase_client
 
         try:
@@ -5084,14 +5092,31 @@ IMPORTANTE:
             if not relatorios:
                 return "Você não tem relatórios agendados ativos."
 
+            manter_normalizado = self._remove_accents(
+                str(manter_descricao or "").lower()
+            ).strip()
             cancelados = 0
+            mantidos = []
             for r in relatorios:
+                descricao = str(r.get("descricao") or "").strip()
+                descricao_normalizada = self._remove_accents(descricao.lower())
+                if manter_normalizado and (
+                    manter_normalizado in descricao_normalizada
+                    or descricao_normalizada in manter_normalizado
+                ):
+                    mantidos.append(descricao)
+                    continue
                 sucesso = self._run_coroutine(
                     supabase_client.cancelar_relatorio_agendado(r["id"], self.user.telefone)
                 )
                 if sucesso:
                     cancelados += 1
 
+            if mantidos:
+                return (
+                    f"✅ {cancelados} relatório(s) cancelado(s) com sucesso. "
+                    f"Mantido(s): {', '.join(mantidos)}."
+                )
             return f"✅ {cancelados} relatório(s) cancelado(s) com sucesso. Você não receberá mais envios automáticos."
 
         except Exception as e:
@@ -5825,13 +5850,17 @@ Argumentos:
                 description="""Cancela TODOS os relatórios automáticos agendados do usuário de uma vez.
 
 Use quando o usuário quiser cancelar todos os agendamentos.
+Também use quando ele quiser cancelar todos EXCETO um tipo específico; nesse caso,
+preencha manter_descricao com a descrição que deve permanecer ativa.
 Exemplos:
 - "Cancela todos os relatórios"
 - "Remove todos os meus agendamentos"
 - "Não quero mais receber nenhum relatório automático"
 - "Para todos os envios automáticos"
+- "Exclua todos menos contas a receber vencidas" → manter_descricao="contas a receber vencidas"
 
-Não requer argumentos.
+Argumentos:
+- manter_descricao (opcional): relatório que deve ser preservado. Não informe quando todos devem ser cancelados.
 """
             ),
             StructuredTool.from_function(
