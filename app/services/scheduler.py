@@ -185,6 +185,15 @@ async def _executar_relatorio(relatorio: dict) -> None:
                                 f"[SCHEDULER] Dados encontrados, mas a planilha de '{descricao}' "
                                 "não pôde ser gerada"
                             )
+                    elif orchestrator.last_report_rows:
+                        raw_data = orchestrator.last_report_rows
+                        xlsx_bytes = email_service.gerar_xlsx(raw_data)
+                        xlsx_nome = f"{descricao[:40].replace(' ', '_')}.xlsx"
+                        if xlsx_bytes:
+                            logger.info(
+                                f"[SCHEDULER] Planilha gerada com {len(raw_data)} registro(s) "
+                                f"a partir da ToolMessage para '{descricao}'"
+                            )
                     else:
                         logger.warning(
                             f"[SCHEDULER] Nenhum dado bruto encontrado no Redis para anexar "

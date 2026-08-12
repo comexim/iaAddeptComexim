@@ -1690,8 +1690,9 @@ class SQLTools:
             query_lower = self.user_query_original.lower()
 
             # Padrão: número/ano (ex: 488/25, 453/25A, 513/25)
-            # IMPORTANTE: (?!\d) evita casar datas como "02/2026" (após "02/20" vem "2", não letra/fim)
-            if re.search(r'\d{2,4}/\d{2}(?!\d)[A-Z]?', self.user_query_original) and not self._extract_safra_code(self.user_query_original):
+            # Não aceite outra barra após o ano curto: isso impede interpretar
+            # datas como 12/08/2026 como se fossem o contrato 12/08.
+            if re.search(r'(?<![\d/])\d{2,4}/\d{2}(?![\d/])[A-Z]?', self.user_query_original) and not self._extract_safra_code(self.user_query_original):
                 menciona_contrato = True
                 logger.info(f"[DETECÇÃO] Pergunta menciona contrato específico, NÃO vai agregar")
 
@@ -2404,8 +2405,8 @@ Formato: "N. [contrato] ([cliente]) - USD [valorTotal]" para cada um dos {len(ta
         if menciona_contrato and self.user_query_original:
             import re
             # Extrai número do contrato da pergunta (ex: "087/25A", "453/25", "512/25B")
-            # IMPORTANTE: (?!\d) garante que não é uma data (ex: "12/2025" não casa)
-            match = re.search(r'(\d{2,4}/\d{2}(?!\d)[A-Z]?)', self.user_query_original, re.IGNORECASE)
+            # (?![\d/]) impede capturar o início de datas como 12/08/2026.
+            match = re.search(r'(?<![\d/])(\d{2,4}/\d{2}(?![\d/])[A-Z]?)', self.user_query_original, re.IGNORECASE)
             if match:
                 contrato_solicitado = match.group(1).upper()
                 logger.info(f"[FILTRO CONTRATO] Contrato específico solicitado: {contrato_solicitado}")
@@ -2975,7 +2976,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         contrato_na_query = contrato.upper().strip() if contrato else None
         if self.user_query_original:
             # Tenta extrair contrato da pergunta atual
-            match_contrato = re.search(r'(\d{2,4}/\d{2}(?!\d)[A-Z]?)', self.user_query_original, re.IGNORECASE)
+            match_contrato = re.search(r'(?<![\d/])(\d{2,4}/\d{2}(?![\d/])[A-Z]?)', self.user_query_original, re.IGNORECASE)
             if match_contrato:
                 contrato_na_query = match_contrato.group(1).upper()
                 logger.info(f"[CONTEXTO CONTRATO] Contrato mencionado explicitamente: {contrato_na_query}")

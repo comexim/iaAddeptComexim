@@ -487,6 +487,9 @@ class AgentOrchestrator:
         self.session_id = session_id
         self.user_preferences = None  # Carregado sob demanda
         self.system_prompt = ""  # Carregado quando agente é criado
+        # Cópia estruturada do último retorno de relatório. O scheduler usa
+        # como fallback caso a gravação temporária no Redis não esteja disponível.
+        self.last_report_rows = []
 
         # Inicializa LLM
         if settings.llm_provider == "openai":
@@ -1113,19 +1116,36 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 or "posicao ls" in normalized_current
                 or "posicao net ls" in normalized_current
             )
-            if longshort_query:
+            # Um pedido de agendamento também contém "Long/Short", mas deve
+            # chegar ao agente para chamar criar_relatorio_agendado. O atalho
+            # abaixo serve apenas para consultas imediatas.
+            scheduling_intent = bool(
+                re.search(
+                    r'\b(?:agend(?:e|a|ar|ado)|program(?:e|a|ar)|todos?\s+os\s+dias|'
+                    r'todo\s+dia|diariamente|dias?\s+uteis|segunda\s+a\s+sexta|'
+                    r'semanalmente|mensalmente|toda\s+(?:segunda|terca|quarta|quinta|sexta|sabado|domingo))\b',
+                    normalized_current,
+                )
+                or bool(re.search(r'\b(?:as|a)\s+\d{1,2}:\d{2}\b', normalized_current))
+            )
+            if longshort_query and not scheduling_intent:
                 logger.info("[FORCE TOOL] Consulta Long/Short detectada; usando quadro oficial")
                 output = sql_tools._pesquisa_longshort()
                 self.message_history.add_user_message(message)
                 self.message_history.add_ai_message(output)
                 logger.info(f"Resposta Long/Short gerada via tool forçada: {output[:100]}...")
                 return output
+            if longshort_query and scheduling_intent:
+                logger.info(
+                    "[AGENDAMENTO] Pedido de Long/Short com horário/frequência; "
+                    "encaminhando para criar_relatorio_agendado"
+                )
 
             # O status de fixação é uma regra objetiva de banco: somente
             # valorFixado > 0 significa contrato fixado. Evita interpretação
             # indevida do campo precoFix pelo modelo.
             contrato_fixacao = re.search(
-                r'\b(\d{2,4}/\d{2}(?!\d)[A-Za-z]?)\b',
+                r'(?<![\d/])\b(\d{2,4}/\d{2}(?![\d/])[A-Za-z]?)\b',
                 contextualized_query,
                 re.IGNORECASE,
             )
@@ -1269,6 +1289,33 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 )
                 output_messages = response.get("messages", [])
                 current_turn_messages = _current_turn_messages(output_messages, message)
+
+            # Alguns relatórios (como despesas de venda agregadas) retornam
+            # diretamente uma lista JSON na ToolMessage. Preserve esses dados
+            # para que o scheduler ainda consiga gerar o XLSX se o cache Redis
+            # falhar ou não for encontrado.
+            self.last_report_rows = []
+            for tool_message in reversed(current_turn_messages):
+                if not isinstance(tool_message, ToolMessage):
+                    continue
+                content = getattr(tool_message, "content", None)
+                parsed = content
+                if isinstance(content, str):
+                    try:
+                        parsed = json.loads(content)
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        continue
+                if (
+                    isinstance(parsed, list)
+                    and parsed
+                    and all(isinstance(row, dict) for row in parsed)
+                ):
+                    self.last_report_rows = parsed
+                    logger.info(
+                        "[SCHEDULER_RESULT] %s registro(s) preservados da ToolMessage",
+                        len(parsed),
+                    )
+                    break
 
             logger.info(f"[DEBUG] Total de mensagens retornadas: {len(output_messages)}")
 
