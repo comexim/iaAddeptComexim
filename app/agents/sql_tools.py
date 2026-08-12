@@ -5765,6 +5765,12 @@ Argumentos:
 
 Use esta ferramenta quando o usuário pedir para receber um relatório — tanto uma única vez em horário específico quanto de forma recorrente.
 
+REGRA DE EXECUÇÃO IMEDIATA:
+- Se descrição, frequência, horário e canal já estiverem informados, chame esta ferramenta IMEDIATAMENTE.
+- NÃO peça confirmação, NÃO repita os dados em forma de pergunta e NÃO espere o usuário responder "sim".
+- A própria mensagem de sucesso da ferramenta é a confirmação final.
+- Esta regra vale para TODOS os tipos de relatório, incluindo compras, vendas, contratos, estoque, Long/Short, financeiro, despesas e cotações.
+
 REGRA OBRIGATÓRIA PARA "TODOS OS DIAS":
 - Se o usuário disser "todos os dias", "todo dia", "diariamente" ou expressão equivalente sem esclarecer os dias da semana, NÃO chame esta ferramenta ainda.
 - Pergunte: "Você quer receber de segunda a sexta-feira ou todos os dias corridos, incluindo sábado e domingo?"

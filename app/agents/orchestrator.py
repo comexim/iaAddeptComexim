@@ -62,6 +62,73 @@ def _message_content_as_text(message: BaseMessage) -> str:
     return str(content or "")
 
 
+def _extract_complete_daily_schedule(text: str) -> Optional[dict]:
+    """Extrai pedidos diários completos que não exigem confirmação do LLM."""
+    normalized = _normalize_query_text(text)
+    if "relatorio" not in normalized or not any(
+        term in normalized
+        for term in ("me envie", "enviar", "receber", "agende", "agendar", "programe")
+    ):
+        return None
+
+    if any(
+        term in normalized
+        for term in (
+            "todos os dias corridos", "todo dia corrido",
+            "incluindo sabado e domingo", "inclusive sabado e domingo",
+        )
+    ):
+        frequencia = "diario"
+    elif any(
+        term in normalized
+        for term in ("dias uteis", "segunda a sexta", "de segunda a sexta")
+    ):
+        frequencia = "dias_uteis"
+    else:
+        # "Todos os dias" sem esclarecer fim de semana ainda exige pergunta.
+        return None
+
+    time_match = re.search(
+        r'\b(?:para\s+)?(?:as|a)\s+(\d{1,2})(?::|h)(\d{2})?\b',
+        normalized,
+    )
+    if not time_match:
+        return None
+    hour = int(time_match.group(1))
+    minute = int(time_match.group(2) or 0)
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+
+    description_match = re.search(
+        r'relat[oó]rio\s+(?:de\s+)?(.+?)(?=\s+(?:para\s+)?(?:às|as|a)\s+\d{1,2}(?::|h)|,\s*(?:todos|todo|de\s+segunda)|$)',
+        text,
+        re.IGNORECASE,
+    )
+    if not description_match:
+        return None
+    descricao = description_match.group(1).strip(" .,")
+    if not descricao:
+        return None
+
+    has_email = "email" in normalized or "e-mail" in normalized
+    has_whatsapp = "whatsapp" in normalized
+    if has_email and has_whatsapp:
+        canal = "ambos"
+    elif has_email:
+        canal = "email"
+    elif has_whatsapp:
+        canal = "whatsapp"
+    else:
+        return None
+
+    return {
+        "descricao": descricao,
+        "frequencia": frequencia,
+        "horario": f"{hour:02d}:{minute:02d}",
+        "canal": canal,
+    }
+
+
 def _claims_successful_schedule(messages: Sequence[BaseMessage]) -> bool:
     """Detecta confirmação ou promessa final de agendamento sem pergunta pendente."""
     for message in reversed(messages):
@@ -1105,6 +1172,19 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             self.tools = sql_tools.get_all_tools()
 
             logger.info(f"Processando mensagem do usuário {self.user.nome}: {message[:100]}...")
+
+            # Quando descrição, frequência, horário e canal já foram
+            # informados, cria imediatamente. Pedir "sim" novamente não
+            # acrescenta nenhum dado e causa ciclos de reconfirmação.
+            complete_schedule = _extract_complete_daily_schedule(message)
+            if complete_schedule:
+                logger.info(
+                    "[AGENDAMENTO] Pedido diário completo detectado; criando sem confirmação adicional"
+                )
+                output = sql_tools._criar_relatorio_agendado(**complete_schedule)
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                return output
 
             # Long/Short tem um quadro comercial obrigatório. Retorna diretamente
             # a saída determinística da tool para impedir que o LLM omita linhas.
