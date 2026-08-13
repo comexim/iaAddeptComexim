@@ -857,7 +857,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             normalized_user_message = _normalize_query_text(message)
             new_fixacao_request = re.search(
                 r'\b(?:cadastrar|inserir|registrar|lancar|adicionar)\b.*\bvalor\b.*\bcontrato\b|'
-                r'\bfixar\b.*\bcontrato\b',
+                r'\b(?:fixar|fixe|fixa)\b.*\bcontrato\b',
                 normalized_user_message,
             )
             if new_fixacao_request:
@@ -870,7 +870,9 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 new_fixacao.clear_pending()
 
                 contract_pattern = re.compile(
-                    r'\b(?:\d{2,4}\s*/\s*\d{2}\s*[a-z]?|\d{5,})\b',
+                    # A letra deve estar colada ao ano (118/26A). Se aceitar
+                    # espaço, o "a" de "118/26 a 233,50" vira letra do contrato.
+                    r'\b(?:\d{2,4}\s*/\s*\d{2}[a-z]?|\d{5,})\b',
                     re.IGNORECASE,
                 )
                 contract_match = contract_pattern.search(normalized_user_message)
@@ -950,6 +952,16 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         value_match = re.search(
                             r'([+-]?\d+(?:[.,]\d+)?)\s*(?:de\s+)?fixacao\b',
                             normalized_user_message,
+                        )
+                    if not value_match and contract_match:
+                        # Forma abreviada comum: "fixe o contrato 118/26 a
+                        # 233,50". Pesquisa somente depois do identificador
+                        # para não confundir 118/26 com o valor da fixação.
+                        text_after_contract = normalized_user_message[contract_match.end():]
+                        value_match = re.search(
+                            r'(?:\b(?:a|por)\b|\b(?:no|com)\s+valor\s+(?:de\s+)?)\s*'
+                            r'([+-]?\d+(?:[.,]\d+)?)',
+                            text_after_contract,
                         )
                     if value_match:
                         initial_data["valor_fixacao"] = float(value_match.group(1).replace(",", "."))
