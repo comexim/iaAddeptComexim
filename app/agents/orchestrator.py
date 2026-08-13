@@ -661,6 +661,10 @@ class AgentOrchestrator:
                             _message_content_as_text(previous),
                         )
                 hedge.remember_from_text(data, message)
+                # A quantidade dita pelo usuário sempre prevalece. Quando ele
+                # não informa lotes, usa automaticamente a sugestão calculada.
+                if "lotes" not in data and data.get("lotesRecomendados") is not None:
+                    data["lotes"] = int(data["lotesRecomendados"])
                 hedge.save(data)
                 if yes:
                     missing = hedge.next_missing(data)
@@ -703,15 +707,20 @@ class AgentOrchestrator:
 
         broker_text = None
         broker_match = re.search(r'\bcorret(?:ora)?\b\s*(?:e|eh|:|=|como)?\s*(.+)', normalized)
+        message_has_other_hedge_details = bool(
+            hedge.parse_month(message)
+            or re.search(r'\b20\d{2}\b', normalized)
+            or re.search(r'\b\d+\s*lotes?\b', normalized)
+        )
         if broker_match:
             broker_text = broker_match.group(1).strip()
-        elif expected_field == "corret" and normalized:
+        elif expected_field == "corret" and normalized and not message_has_other_hedge_details:
             broker_text = message.strip()
         if broker_text:
             broker = hedge.parse_known_broker(broker_text)
             if broker:
                 data["corret"], data["corretDescricao"] = broker
-            elif next_field == "corret" or broker_match:
+            elif broker_match or expected_field == "corret":
                 hedge.save(data)
                 return "Não encontrei uma corretora suficientemente parecida. Informe o nome novamente."
 
@@ -1054,7 +1063,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         confirmar_envio=True,
                     )
                     if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
-                        output = "Valor do contrato cadastrado com sucesso.\n\nGostaria que eu fizesse o Hedge da bolsa?"
+                        from app.agents.hedge_tools import HedgeTools
+                        hedge_pending = HedgeTools(self.session_id or "default")
+                        output = (
+                            "Valor do contrato cadastrado com sucesso.\n\n"
+                            "Gostaria que eu fizesse o Hedge da bolsa?"
+                            + hedge_pending.recommendation_message(hedge_pending.load())
+                        )
                     elif result.startswith("ERRO_API:"):
                         # Defesa adicional: uma falha na Z24 nunca pode deixar
                         # uma oferta de Hedge pendente de uma tentativa anterior.

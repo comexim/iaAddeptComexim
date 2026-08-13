@@ -1,13 +1,19 @@
 """Estado e regras determinísticas do fluxo de Hedge de bolsa."""
 import json
+import logging
 import re
 import unicodedata
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from difflib import SequenceMatcher
 from typing import Any, Dict, Optional, Tuple
 
 import redis
 
 from app.core.config import settings
+from app.core.database import sql_client
+
+
+logger = logging.getLogger(__name__)
 
 
 class HedgeTools:
@@ -54,7 +60,70 @@ class HedgeTools:
         self._redis().delete(self.key)
 
     def prepare_offer(self, contract: str, value: float):
-        self.save({"stage": "offered", "tipo": "C", "operac": "FV", "valor": float(value), "ctrex": str(contract)})
+        data = {
+            "stage": "offered", "tipo": "C", "operac": "FV",
+            "valor": float(value), "ctrex": str(contract),
+        }
+        recommendation = self.recommend_lots(contract)
+        if recommendation:
+            data.update(recommendation)
+        self.save(data)
+
+    @staticmethod
+    def recommend_lots(contract: str) -> Optional[Dict[str, Any]]:
+        """Consulta as sacas do contrato e calcula uma sugestao nao vinculante."""
+        try:
+            rows = sql_client.execute_procedure(
+                "usp_IA_Vendas", {"Contrato": str(contract).strip()}
+            )
+            quantities = []
+            for row in rows or []:
+                raw = next(
+                    (value for key, value in row.items() if str(key).lower() == "sacas"),
+                    None,
+                )
+                if raw is None:
+                    continue
+                quantity = Decimal(str(raw).replace(",", "."))
+                if quantity > 0:
+                    quantities.append(quantity)
+            if not quantities:
+                logger.warning(
+                    "[HEDGE] Contrato %s sem quantidade de sacas para recomendacao",
+                    contract,
+                )
+                return None
+
+            # A procedure pode repetir o total do contrato em mais de uma linha;
+            # por isso usamos a maior quantidade encontrada, sem somar duplicatas.
+            sacks = max(quantities)
+            lots = int(
+                (sacks / Decimal("288.300235169045")).quantize(
+                    Decimal("1"), rounding=ROUND_HALF_UP
+                )
+            )
+            logger.info(
+                "[HEDGE] Recomendacao para contrato %s: %s sacas = %s lotes",
+                contract, sacks, lots,
+            )
+            return {"sacasContrato": float(sacks), "lotesRecomendados": lots}
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            logger.warning("[HEDGE] Quantidade invalida no contrato %s: %s", contract, exc)
+        except Exception as exc:
+            # A consulta auxiliar nunca deve transformar uma fixacao bem-sucedida
+            # em erro; o fluxo apenas segue sem a recomendacao.
+            logger.exception("[HEDGE] Falha ao calcular lotes para %s: %s", contract, exc)
+        return None
+
+    @staticmethod
+    def recommendation_message(data: Dict[str, Any]) -> str:
+        lots = data.get("lotesRecomendados")
+        if lots is None:
+            return ""
+        return (
+            f"\n\nQuantidade de lotes recomendada: {lots} lotes. "
+            "Você pode informar outra quantidade; se não informar, usarei essa recomendação."
+        )
 
     def start_collecting(self):
         data = self.load()
