@@ -108,11 +108,21 @@ class HedgeTools:
     ) -> Dict[str, Any]:
         """Guarda campos de Hedge já mencionados, sem consultar API externa."""
         normalized = self.normalize(text)
+        mentions_lots = bool(re.search(r'\b\d+\s*lotes?\b', normalized))
+        mentions_fixation_month = bool(
+            re.search(
+                r'\bmes\s+(?:de\s+)?(?:marco|maio|julho|setembro|dezembro)\b',
+                normalized,
+            )
+        )
+        hedge_details_context = (
+            "hedge" in normalized or mentions_lots or mentions_fixation_month
+        )
 
         month = self.parse_month(text)
         if month and (
             expected == "mesfix"
-            or "hedge" in normalized
+            or hedge_details_context
             or re.search(r'\bmes(?:\s+da)?\s+fixacao\b', normalized)
         ):
             data["mesfix"] = month
@@ -120,7 +130,7 @@ class HedgeTools:
         year_match = re.search(r'\b(20\d{2})\b', normalized)
         if year_match and (
             expected == "anofix"
-            or "hedge" in normalized
+            or hedge_details_context
             or re.search(r'\bano(?:\s+da)?\s+fixacao\b', normalized)
         ):
             data["anofix"] = year_match.group(1)
@@ -139,8 +149,15 @@ class HedgeTools:
                 data["account"], data["accountDescricao"] = account
 
         broker_context = re.search(r'\bcorret(?:ora)?\b', normalized)
-        if expected == "corret" or broker_context:
-            broker_text = broker_context.string[broker_context.start():] if broker_context else text
+        known_broker_hint = re.search(
+            r'\b(?:na|pela|via)\s+'
+            r'(?:adm13|rjobrien|ndf|adm14|sucden|hedgepoint|marex\s+fut|'
+            r'marex\s+otc|fcstone|btgpactual|a13|rjo|a14|scd|hed|mar|mao|fcs|ice)\b',
+            normalized,
+        )
+        if expected == "corret" or broker_context or known_broker_hint:
+            context_match = broker_context or known_broker_hint
+            broker_text = context_match.string[context_match.start():] if context_match else text
             broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
             broker = self.parse_known_broker(broker_text)
             if broker:
