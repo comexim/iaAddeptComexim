@@ -117,10 +117,63 @@ class FixacaoApiClient:
             response = await client.request("GET", url, json=body, headers=headers)
         if not 200 <= response.status_code < 300:
             raise RuntimeError(f"Consulta de corretoras retornou HTTP {response.status_code}")
-        result = response.json()
-        if not isinstance(result, dict) or not isinstance(result.get("registros"), list):
-            raise RuntimeError("Consulta de corretoras retornou formato inesperado")
-        return result
+        try:
+            result = response.json()
+        except ValueError as exc:
+            logger.warning("[CMX F3] Resposta não JSON: %s", response.text[:300])
+            raise RuntimeError("Consulta de corretoras retornou resposta inválida") from exc
+
+        def find_records(value: Any) -> list:
+            """Aceita lista direta ou listas sob registros/data/items/resultado."""
+            if isinstance(value, list):
+                if all(isinstance(item, dict) for item in value):
+                    return value
+                return []
+            if not isinstance(value, dict):
+                return []
+            preferred = ("registros", "records", "data", "items", "resultado", "result")
+            for key in preferred:
+                records = find_records(value.get(key))
+                if records:
+                    return records
+            for nested in value.values():
+                records = find_records(nested)
+                if records:
+                    return records
+            return []
+
+        records = find_records(result)
+        if not records:
+            structure = sorted(result.keys()) if isinstance(result, dict) else type(result).__name__
+            logger.warning("[CMX F3] Nenhuma lista de registros; estrutura=%s", structure)
+            message = result.get("message") if isinstance(result, dict) else None
+            raise RuntimeError(str(message or "Consulta de corretoras não retornou registros"))
+
+        normalized_records = []
+        for record in records:
+            casefolded = {str(key).lower(): value for key, value in record.items()}
+            code = (
+                casefolded.get("codigo")
+                or casefolded.get("code")
+                or casefolded.get("cod")
+            )
+            description = (
+                casefolded.get("descricao")
+                or casefolded.get("description")
+                or casefolded.get("nome")
+            )
+            if code not in (None, "") and description not in (None, ""):
+                normalized_records.append({"codigo": str(code), "descricao": str(description)})
+
+        if not normalized_records:
+            logger.warning(
+                "[CMX F3] %s registro(s) sem campos reconhecidos de código/descrição",
+                len(records),
+            )
+            raise RuntimeError("Consulta de corretoras retornou campos não reconhecidos")
+
+        logger.info("[CMX F3] %s corretora(s) carregada(s)", len(normalized_records))
+        return {"registros": normalized_records}
 
     async def cadastrar_hedge(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Envia o Hedge confirmado ao endpoint Z03."""
