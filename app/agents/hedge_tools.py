@@ -96,6 +96,66 @@ class HedgeTools:
                 return account
         return None
 
+    def parse_known_broker(self, text: str) -> Optional[Tuple[str, str]]:
+        """Resolve corretora exclusivamente pela lista fixa ACCOUNTS."""
+        return self.parse_account(text, allow_descriptions=True)
+
+    def remember_from_text(
+        self,
+        data: Dict[str, Any],
+        text: str,
+        expected: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Guarda campos de Hedge já mencionados, sem consultar API externa."""
+        normalized = self.normalize(text)
+
+        month = self.parse_month(text)
+        if month and (
+            expected == "mesfix"
+            or "hedge" in normalized
+            or re.search(r'\bmes(?:\s+da)?\s+fixacao\b', normalized)
+        ):
+            data["mesfix"] = month
+
+        year_match = re.search(r'\b(20\d{2})\b', normalized)
+        if year_match and (
+            expected == "anofix"
+            or "hedge" in normalized
+            or re.search(r'\bano(?:\s+da)?\s+fixacao\b', normalized)
+        ):
+            data["anofix"] = year_match.group(1)
+
+        lots_match = re.search(r'\b(\d+)\s*lotes?\b', normalized)
+        if lots_match:
+            data["lotes"] = int(lots_match.group(1))
+        elif expected == "lotes" and re.fullmatch(r'\d+', normalized):
+            data["lotes"] = int(normalized)
+
+        account_context = re.search(r'\b(?:conta|account)\b', normalized)
+        if expected == "account" or account_context:
+            account_text = account_context.string[account_context.start():] if account_context else text
+            account = self.parse_account(account_text, allow_descriptions=True)
+            if account:
+                data["account"], data["accountDescricao"] = account
+
+        broker_context = re.search(r'\bcorret(?:ora)?\b', normalized)
+        if expected == "corret" or broker_context:
+            broker_text = broker_context.string[broker_context.start():] if broker_context else text
+            broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
+            broker = self.parse_known_broker(broker_text)
+            if broker:
+                data["corret"], data["corretDescricao"] = broker
+
+        if "aa" in normalized:
+            if re.search(r'\b(?:sim|com|s)\b', normalized):
+                data["lancaa"] = "Sim"
+            elif re.search(r'\b(?:nao|sem|n)\b', normalized):
+                data["lancaa"] = "Nao"
+        elif expected == "lancaa" and normalized in {"sim", "s", "nao", "n"}:
+            data["lancaa"] = "Sim" if normalized in {"sim", "s"} else "Nao"
+
+        return data
+
     def resolve_broker_from_message(self, informed: str, records: list) -> Optional[Tuple[str, str]]:
         """Encontra uma descricao ou codigo de corretora dentro de uma frase."""
         normalized = self.normalize(informed)

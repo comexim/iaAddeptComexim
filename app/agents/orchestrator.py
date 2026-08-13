@@ -652,8 +652,20 @@ class AgentOrchestrator:
                 hedge.start_collecting()
                 data = hedge.load()
                 stage = "collecting"
+                # Reaproveita informações explícitas já mencionadas nas
+                # mensagens recentes da conversa antes da oferta do Hedge.
+                for previous in list(self.message_history.messages)[-12:]:
+                    if isinstance(previous, HumanMessage):
+                        hedge.remember_from_text(
+                            data,
+                            _message_content_as_text(previous),
+                        )
+                hedge.remember_from_text(data, message)
+                hedge.save(data)
                 if yes:
-                    return hedge.question_for("mesfix")
+                    missing = hedge.next_missing(data)
+                    if missing:
+                        return hedge.question_for(missing)
             if no:
                 hedge.clear()
                 return "Tudo bem. O Hedge da bolsa não será realizado."
@@ -676,54 +688,27 @@ class AgentOrchestrator:
             data["stage"] = "collecting"
 
         next_field = hedge.next_missing(data)
+        expected_field = next_field
 
-        month = hedge.parse_month(message)
-        if month:
-            data["mesfix"] = month
-        elif next_field == "mesfix":
+        # Toda mensagem pode trazer mais de um campo. Salva todos os campos
+        # reconhecidos para não perguntá-los novamente nos turnos seguintes.
+        hedge.remember_from_text(data, message, expected=expected_field)
+        next_field = hedge.next_missing(data)
+
+        if expected_field == "mesfix" and "mesfix" not in data:
             mentioned_month = bool(re.search(r'\b(?:mes|janeiro|fevereiro|abril|junho|agosto|outubro|novembro)\b', normalized))
             if mentioned_month or len(normalized.split()) <= 3:
                 hedge.save(data)
                 return "Esse mês não é aceito. Escolha março, maio, julho, setembro ou dezembro."
 
-        year_match = re.search(r'\b(20\d{2})\b', normalized)
-        if year_match:
-            data["anofix"] = year_match.group(1)
-
-        lots_match = re.search(r'\b(\d+)\s*lotes?\b', normalized)
-        if lots_match:
-            data["lotes"] = int(lots_match.group(1))
-        elif next_field == "lotes" and re.fullmatch(r'\d+', normalized):
-            data["lotes"] = int(normalized)
-
-        account = hedge.parse_account(message, allow_descriptions=next_field == "account")
-        if account:
-            data["account"], data["accountDescricao"] = account
-
-        if "aa" in normalized:
-            if re.search(r'\b(?:sim|com|s)\b', normalized):
-                data["lancaa"] = "Sim"
-            elif re.search(r'\b(?:nao|sem|n)\b', normalized):
-                data["lancaa"] = "Nao"
-        elif next_field == "lancaa" and (yes or no):
-            data["lancaa"] = "Sim" if yes else "Nao"
-
         broker_text = None
         broker_match = re.search(r'\bcorret(?:ora)?\b\s*(?:e|eh|:|=|como)?\s*(.+)', normalized)
         if broker_match:
             broker_text = broker_match.group(1).strip()
-        elif hedge.next_missing(data) == "corret" and normalized:
+        elif expected_field == "corret" and normalized:
             broker_text = message.strip()
         if broker_text:
-            try:
-                broker_result = await fixacao_api_client.consultar_corretoras_bolsa()
-                records = broker_result.get("registros", [])
-                broker = hedge.resolve_broker_from_message(broker_text, records)
-                if not broker and broker_match:
-                    broker = hedge.resolve_broker(broker_text, records)
-            except Exception as exc:
-                hedge.save(data)
-                return f"Não foi possível consultar as corretoras: {exc}"
+            broker = hedge.parse_known_broker(broker_text)
             if broker:
                 data["corret"], data["corretDescricao"] = broker
             elif next_field == "corret" or broker_match:
