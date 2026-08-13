@@ -941,7 +941,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     initial_data = {"contratode_venda": contract}
 
                     value_match = re.search(
-                        r'(?:valor\s+(?:da|de)\s+fixacao|fixacao)\s*(?:e|eh|de|como|:|=)*\s*'
+                        r'(?:valor(?:\s+(?:da|de)\s+fixacao)?|fixacao)\s*'
+                        r'(?:e|eh|de|como|:|=)*\s*'
                         r'([+-]?\d+(?:[.,]\d+)?)',
                         normalized_user_message,
                     )

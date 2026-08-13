@@ -82,12 +82,22 @@ class FixacaoApiClient:
                 has_error = bool(error_code)
 
             if has_error:
-                error_message = str(result.get("errorMessage") or "Operacao recusada pela API CMX").strip()
-                errors = result.get("erros") or []
+                error_message = str(
+                    result.get("errorMessage")
+                    or result.get("message")
+                    or "Operação recusada pela API CMX"
+                ).strip()
+                attention = str(result.get("atencao") or "").strip()
+                errors = result.get("inconsistencias") or result.get("erros") or []
                 if isinstance(errors, str):
                     errors = [errors]
                 details = "; ".join(str(item).strip() for item in errors if str(item).strip())
-                full_message = f"{error_message} {details}".strip()
+                parts = [error_message]
+                if details:
+                    parts.append(f"Motivo: {details}")
+                if attention:
+                    parts.append(f"Atenção: {attention}")
+                full_message = " ".join(parts).strip()
                 logger.warning("[CMX Z24] Erro funcional %s: %s", error_code, full_message)
                 raise RuntimeError(full_message)
 
