@@ -2939,9 +2939,50 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         return None
 
+    def _parse_emissao_vendas(self, periodo: str) -> Optional[Dict[str, str]]:
+        """Converte o periodo de inclusao da venda para EmisIni/EmisFim."""
+        from datetime import timedelta
+
+        texto = self._remove_accents(str(periodo or "").lower())
+        agora = date_parser.get_current_date()
+
+        intervalo = re.search(
+            r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s*'
+            r'(?:a|ate|entre|-)\s*'
+            r'(\d{1,2})[/-](\d{1,2})[/-](\d{4})',
+            texto,
+        )
+        if intervalo:
+            dia_ini, mes_ini, ano_ini, dia_fim, mes_fim, ano_fim = intervalo.groups()
+            return {
+                "data_inicio": f"{ano_ini}{int(mes_ini):02d}{int(dia_ini):02d}",
+                "data_fim": f"{ano_fim}{int(mes_fim):02d}{int(dia_fim):02d}",
+            }
+
+        if any(
+            expressao in texto
+            for expressao in ("esta semana", "essa semana", "desta semana", "nessa semana")
+        ):
+            dias_desde_domingo = (agora.weekday() + 1) % 7
+            domingo = agora - timedelta(days=dias_desde_domingo)
+            sabado = domingo + timedelta(days=6)
+            return {
+                "data_inicio": domingo.strftime("%Y%m%d"),
+                "data_fim": sabado.strftime("%Y%m%d"),
+            }
+
+        parsed = date_parser.parse_natural_date(periodo)
+        if not parsed or not parsed.get("data_inicio"):
+            return None
+        return {
+            "data_inicio": parsed["data_inicio"],
+            "data_fim": parsed.get("data_fim", parsed["data_inicio"]),
+        }
+
     def _pesquisa_vendas(
         self,
         periodo: Optional[str] = None,
+        data_emissao: Optional[str] = None,
         cliente: Optional[str] = None,
         contrato: Optional[str] = None,
         mes_fixacao: Optional[str] = None,
@@ -2953,8 +2994,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         Consulta dados de vendas e embarques da empresa.
 
         Args:
-            periodo: Período desejado (ex: "dezembro 2025", "hoje", "sexta-feira passada")
-                    Aceita mês/ano ou datas específicas
+            periodo: Período de embarque desejado (ex: "dezembro 2025")
+            data_emissao: Período em que os contratos foram inseridos, digitados ou lançados
             cliente: Nome do cliente
             contrato: Número do contrato de venda (ex: "032/26A")
             mes_fixacao: Índice ou mês de fixação (ex: "U26", "setembro/26")
@@ -2967,7 +3008,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             Dados de vendas formatados
         """
         logger.info(
-            f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, cliente={cliente}, "
+            f"[DEBUG] _pesquisa_vendas chamado com periodo={periodo}, data_emissao={data_emissao}, cliente={cliente}, "
             f"contrato={contrato}, mes_fixacao={mes_fixacao}, verificar_fixacao={verificar_fixacao}, "
             f"limite={limite}, pagina={pagina}"
         )
@@ -3030,6 +3071,34 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         procedure_name = "usp_IA_Vendas"
         procedure_params = {}
 
+        pergunta_original = self._remove_accents(
+            (self.user_query_original or self.user_query or "").lower()
+        )
+        contexto_emissao = bool(data_emissao) or bool(
+            re.search(
+                r'\b(?:inserid[oa]s?|digitad[oa]s?|lancad[oa]s?|cadastrad[oa]s?|emitid[oa]s?)\b',
+                pergunta_original,
+            )
+            or re.search(
+                r'\bvendid[oa]s?\b.*\b(?:hoje|ontem|semana|mes|ano|\d{1,2}[/-]\d{1,2})\b',
+                pergunta_original,
+            )
+        )
+        fonte_emissao = data_emissao or (
+            self.user_query_original or self.user_query or periodo or ""
+        )
+        periodo_emissao = (
+            self._parse_emissao_vendas(fonte_emissao) if contexto_emissao else None
+        )
+        if periodo_emissao:
+            procedure_params["EmisIni"] = periodo_emissao["data_inicio"]
+            procedure_params["EmisFim"] = periodo_emissao["data_fim"]
+            logger.info(
+                "[VENDAS] Periodo de emissao detectado: %s ate %s",
+                periodo_emissao["data_inicio"],
+                periodo_emissao["data_fim"],
+            )
+
         fonte_mes_fixacao = mes_fixacao or self.user_query_original or self.user_query or ""
         periodo_fixacao = self._parse_mes_fixacao_vendas(
             fonte_mes_fixacao,
@@ -3044,7 +3113,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 periodo_fixacao["mes_inicio"],
                 periodo_fixacao["mes_fim"],
             )
-        elif periodo:
+        elif periodo and not periodo_emissao:
             parsed = self._parse_periodo_vendas(periodo)
             logger.info(f"[VENDAS] Período convertido para meses: {parsed}")
             if parsed:
@@ -3108,6 +3177,31 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 return (
                     f"Não. O contrato {contrato_na_query} ainda não foi fixado, "
                     "pois o valorFixado está zerado."
+                )
+
+            filial_solicitada = detect_sales_branch_from_query(
+                self.user_query_original or self.user_query or ""
+            )
+            if periodo_emissao and not filial_solicitada:
+                totais = aggregate_sales_totals(results)
+                por_filial = aggregate_sales_by_branch(results)
+                linhas = [
+                    f"- {item['empresa']} (filial {item['filial']}): "
+                    f"{item['contratos']} contrato(s) | "
+                    f"{format_pt_br(item['sacas'])} sacas | "
+                    f"USD {format_pt_br(item['valor_usd'])}"
+                    for item in por_filial
+                ]
+                if not linhas:
+                    return "Não foram encontrados contratos de venda inseridos no período informado."
+                return (
+                    "RESUMO DE VENDAS INSERIDAS POR FILIAL\n\n"
+                    f"Período de emissão: {periodo_emissao['data_inicio']} a "
+                    f"{periodo_emissao['data_fim']}\n"
+                    f"Total: {totais['contratos']} contrato(s) | "
+                    f"{format_pt_br(totais['sacas'])} sacas | "
+                    f"USD {format_pt_br(totais['valor_usd'])}\n\n"
+                    + "\n".join(linhas)
                 )
 
             if client_filter and not periodo:
@@ -5176,6 +5270,9 @@ Para CONSULTAR dados de vendas existentes, use: pesquisa_vendas (esta ferramenta
 Consulta dados de CONTRATOS DE VENDA (vendas e embarques da empresa).
 
 Argumentos específicos:
+- data_emissao (opcional): data ou período em que a venda foi inserida, digitada,
+  lançada, cadastrada ou emitida. É convertida para @EmisIni e @EmisFim no
+  formato YYYYMMDD. Para "esta semana", considera domingo a sábado.
 - contrato (opcional): número exato do contrato. Quando informado, é enviado à
   usp_IA_Vendas como @Contrato (ex.: contrato="032/26A").
 - mes_fixacao (opcional): índice ou mês de fixação. Aceita H/K/N/U/Z com dois
@@ -5192,6 +5289,14 @@ MESES/ÍNDICES DE FIXAÇÃO:
 - N26 → @MesFixIni='2026/07', @MesFixFim='2026/07'
 - "Quais contratos não fixados temos contra bolsa U26?" → pesquisa_vendas(mes_fixacao="U26")
 - Nunca trate esses índices como mês de embarque.
+
+REGRA DE EMISSÃO/INCLUSÃO:
+- Contratos inseridos, digitados, lançados, cadastrados ou emitidos em uma data
+  usam data_emissao, nunca o período de embarque.
+- "Quantas sacas de vendas foram vendidas hoje?" → pesquisa_vendas(data_emissao="hoje")
+- "Quais contratos de exportação foram inseridos essa semana?" →
+  pesquisa_vendas(data_emissao="essa semana")
+- Sem filial específica, resumir por filial: 05=COBRA, 60=CUSA e 61=CEU.
 
 REGRA DE FIXAÇÃO:
 - Para saber se o contrato foi fixado, use somente valorFixado.
