@@ -283,6 +283,7 @@ SEU ÚNICO TRABALHO É CHAMAR AS TOOLS DISPONÍVEIS.
 - Demais contas a receber → CHAMAR pesquisa_contas_a_receber()
 - Saldo bancário → CHAMAR pesquisa_saldo_bancario()
 - Estoque → CHAMAR pesquisa_estoque()
+- Conversões entre sacas e quilos nunca devem ser calculadas pelo modelo. Use o peso real retornado pela ferramenta; quando a ferramenta aplicar o padrão de 60 kg/saca por ausência de peso real, informe explicitamente esse fator. Preserve e apresente composições com pesos/unidades diferentes.
 - Orçamento → CHAMAR pesquisa_orcamento()
 - Despesas de um contrato específico → CHAMAR pesquisa_despesa_venda(contrato="XXX")
 - Despesas por tipo (todos os contratos) → CHAMAR pesquisa_despesa_venda()

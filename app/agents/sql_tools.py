@@ -4,7 +4,10 @@ Tools LangChain para consultas SQL
 import json
 import logging
 import re
+import time
 import unicodedata
+import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Dict, Any
 from langchain_core.tools import Tool, StructuredTool
@@ -32,9 +35,13 @@ from app.services.accounts_payable_metrics import (
     reconcile_payables,
 )
 from app.services.stock_metrics import (
+    build_longshort_snapshot,
+    build_stock_snapshot,
     certificate_matches,
     detect_certificate_from_query,
+    format_longshort_snapshot,
     normalize_certificate,
+    snapshot_fingerprint,
 )
 
 logger = logging.getLogger(__name__)
@@ -1333,6 +1340,101 @@ class SQLTools:
         logger.info(f"Agregados {len(results)} registros de estoque em {len(result_list)} grupos (por {agregar_por})")
         return result_list
 
+    def _format_stock_snapshot(self, results: list[Dict[str, Any]]) -> str:
+        """Formata o estoque no código, sem delegar cálculos ao modelo."""
+        query = self.user_query_original or self.user_query or ""
+        group_by = (
+            "certificado"
+            if detect_certificate_from_query(query)
+            or any(term in query.lower() for term in ("certificado", "certificação", "rainforest"))
+            else "linha"
+        )
+        snapshot = build_stock_snapshot(results, group_by=group_by)
+        weight = snapshot["composicao_peso"]
+        context = getattr(self, "_stock_execution_context", {})
+        logger.info(
+            "[ESTOQUE RESPOSTA][%s] pergunta=%r agrupamento=%s linhas_filtradas=%s "
+            "fingerprint_filtrado=%s duplicatas_exatas=%s repetições_chave_lote=%s "
+            "totais={sacas:%s,consumo:%s,exportação:%s,peso:%s,lotes:%s}",
+            context.get("execution_id", "sem-id"),
+            query,
+            group_by,
+            len(results),
+            snapshot_fingerprint(results),
+            snapshot["duplicatas_exatas"],
+            snapshot["repeticoes_chave_lote"],
+            snapshot["total_sacas"],
+            snapshot["sacas_consumo"],
+            snapshot["sacas_exportacao"],
+            snapshot["peso_kg"],
+            snapshot["total_lotes"],
+        )
+        group_lines = []
+        for item in snapshot["grupos"]:
+            group_lines.append(
+                f"- {item[group_by]}: {format_pt_br(item['sacas_total'])} sacas | "
+                f"consumo {format_pt_br(item['sacas_consumo'])} | "
+                f"exportação {format_pt_br(item['sacas_exportacao'])} | "
+                f"{item['qtd_lotes']} lote(s) | filiais {item['filiais']} | "
+                f"armazéns {item['armazens']}"
+            )
+
+        weight_lines = []
+        for item in weight["itens"]:
+            weight_lines.append(
+                f"- {item['tipo']}: {item['registros']} registro(s) | "
+                f"{format_pt_br(item['sacas'])} sacas | "
+                f"{format_pt_br(item['peso_kg'])} kg de peso real"
+            )
+        if weight["fator_efetivo_kg_por_saca"] is not None:
+            conversion_explanation = (
+                "Relação efetiva do snapshot: "
+                f"{format_pt_br(weight['fator_efetivo_kg_por_saca'])} kg por saca, "
+                "calculada por peso real ÷ sacas. Nenhum fator padrão foi aplicado "
+                "a esses registros."
+            )
+        else:
+            conversion_explanation = "Não há peso real suficiente para calcular a relação kg por saca."
+        if weight["sacas_sem_peso_real"] > 0:
+            conversion_explanation += (
+                f" Para {format_pt_br(weight['sacas_sem_peso_real'])} sacas sem peso real, "
+                f"a estimativa é {format_pt_br(weight['peso_estimado_kg'])} kg usando "
+                f"explicitamente o fator padrão de "
+                f"{format_pt_br(weight['fator_padrao_kg_por_saca'], 0)} kg por saca."
+            )
+        if weight["registros_sem_peso_real"] == 0:
+            weight_total_lines = f"Peso Total (campo real): {format_pt_br(weight['peso_real_kg'])} kg"
+        elif weight["registros_com_peso_real"] == 0:
+            weight_total_lines = (
+                f"Peso Total estimado: {format_pt_br(weight['peso_estimado_kg'])} kg "
+                f"(fator padrão informado: "
+                f"{format_pt_br(weight['fator_padrao_kg_por_saca'], 0)} kg/saca)"
+            )
+        else:
+            combined_weight = weight["peso_real_kg"] + weight["peso_estimado_kg"]
+            weight_total_lines = (
+                f"Peso Real conhecido: {format_pt_br(weight['peso_real_kg'])} kg\n"
+                f"Peso estimado para registros sem peso: "
+                f"{format_pt_br(weight['peso_estimado_kg'])} kg "
+                f"({format_pt_br(weight['fator_padrao_kg_por_saca'], 0)} kg/saca)\n"
+                f"Peso combinado real + estimado: {format_pt_br(combined_weight)} kg"
+            )
+
+        return (
+            "Claro! Segue a posição atual do estoque físico:\n\n"
+            f"Total de Sacas: {format_pt_br(snapshot['total_sacas'])} sacas\n"
+            f"Sacas para Consumo: {format_pt_br(snapshot['sacas_consumo'])} sacas\n"
+            f"Sacas para Exportação: {format_pt_br(snapshot['sacas_exportacao'])} sacas\n"
+            f"{weight_total_lines}\n"
+            f"Total de Lotes: {snapshot['total_lotes']}\n\n"
+            f"Origem e conversão do peso:\n{conversion_explanation}\n"
+            + ("\nComposição:\n" + "\n".join(weight_lines) if weight_lines else "")
+            + "\n\n"
+            + f"Detalhamento por {group_by}:\n"
+            + ("\n".join(group_lines) if group_lines else "Não há grupos para detalhar.")
+            + "\n\nSe quiser, posso detalhar um tipo, certificado, filial ou armazém específico."
+        )
+
     def _filter_by_client(self, results: list[Dict[str, Any]], client_name: str) -> list[Dict[str, Any]]:
         """
         Filtra resultados por nome do cliente (case insensitive, busca parcial)
@@ -1813,6 +1915,12 @@ class SQLTools:
         if monthly_series is not None:
             return monthly_series
 
+        # Estoque é sempre calculado e formatado deterministicamente, qualquer
+        # que seja a quantidade de linhas. Isso elimina a antiga bifurcação em
+        # que retornos com até 50 registros podiam ser somados pelo modelo.
+        if function_name == "IA_Estoque":
+            return self._format_stock_snapshot(results)
+
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
         # MAS: Se pergunta menciona critério específico que resulta em poucos registros (<= 10), NÃO agrega
@@ -2023,9 +2131,11 @@ IMPORTANTE - REGRAS CRÍTICAS:
    - Ao separar por certificado, mantenha o código exato do grupo retornado (ex: "RF", "4C", "GCP").
    - Não junte certificados parecidos e não renomeie "RF" para "RF (Rainforest)" sem o usuário pedir descrição.
 
-4. CONVERSÃO PESO/SACAS:
-   - 1 saca de café ≈ 60 kg
-   - Peso e sacas são independentes (NÃO calcule um a partir do outro)
+4. PESO E SACAS:
+   - O campo peso é o peso real em kg e deve ter prioridade sobre estimativas.
+   - Peso e sacas são campos independentes; NÃO faça conversões no modelo.
+   - Quando não houver peso real, somente o código pode aplicar o fator padrão de 60 kg/saca e deve informá-lo.
+   - Se a relação efetiva do banco for 59 kg/saca ou outro valor, preserve-a e explique que veio de peso real ÷ sacas.
 
 5. INTERPRETAÇÃO DOS VALORES:
    - sacas_total = sacas_consumo + sacas_exportacao (sempre)
@@ -2803,7 +2913,7 @@ QUANTIDADES:
 
 IMPORTANTE - REGRAS:
 1. sacas = sacasConsumo + sacasExportacao (sempre)
-2. 1 saca ≈ 60 kg (conversão aproximada, mas peso e sacas são campos independentes)
+2. O campo peso é real e independente de sacas. Não faça conversões no modelo. Se não houver peso real, o código usa o fator padrão de 60 kg/saca e o informa explicitamente.
 3. Para "total de sacas", use campo "sacas"
 4. Para "sacas para consumo", use "sacasConsumo"
 5. Para "sacas para exportação", use "sacasExportacao"
@@ -2929,8 +3039,46 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         # Executa query
         try:
-            logger.info(f"Executando {function_name} com filtros: {filters}, client_filter: {client_filter}")
+            execution_id = uuid.uuid4().hex[:12]
+            started_at = datetime.now(timezone.utc)
+            started_clock = time.perf_counter()
+            logger.info(
+                "[SQL SNAPSHOT][%s] início=%s fonte=%s parâmetros=%s client_filter=%s",
+                execution_id,
+                started_at.isoformat(),
+                function_name,
+                filters or {},
+                client_filter,
+            )
             results = sql_client.execute_function(function_name, filters)
+            if function_name == "IA_Estoque":
+                self._stock_execution_context = {
+                    "execution_id": execution_id,
+                    "source": function_name,
+                    "params": filters or {},
+                }
+                snapshot = build_stock_snapshot(results, group_by="linha")
+                logger.info(
+                    "[ESTOQUE SNAPSHOT][%s] fim=%s duração_ms=%.2f fonte=%s "
+                    "parâmetros=%s linhas=%s linhas_únicas=%s duplicatas_exatas=%s "
+                    "repetições_chave_lote=%s "
+                    "fingerprint=%s totais={sacas:%s,consumo:%s,exportação:%s,peso:%s,lotes:%s}",
+                    execution_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    (time.perf_counter() - started_clock) * 1000,
+                    function_name,
+                    filters or {},
+                    snapshot["linhas_recebidas"],
+                    snapshot["linhas_unicas"],
+                    snapshot["duplicatas_exatas"],
+                    snapshot["repeticoes_chave_lote"],
+                    snapshot_fingerprint(results),
+                    snapshot["total_sacas"],
+                    snapshot["sacas_consumo"],
+                    snapshot["sacas_exportacao"],
+                    snapshot["peso_kg"],
+                    snapshot["total_lotes"],
+                )
             self._salvar_resultado_scheduler(results)
             return self._format_results(results, function_name, client_filter, pagina=pagina)
         except Exception as e:
@@ -4472,13 +4620,48 @@ IMPORTANTE:
 
         # Executa stored procedure (usa EXEC ao invés de SELECT)
         try:
-            logger.info(f"Executando usp_LS_FILIAIS com parâmetros: {params}")
+            execution_id = uuid.uuid4().hex[:12]
+            started_at = datetime.now(timezone.utc)
+            started_clock = time.perf_counter()
+            logger.info(
+                "[LONGSHORT SNAPSHOT][%s] início=%s procedure=usp_LS_FILIAIS parâmetros=%s",
+                execution_id,
+                started_at.isoformat(),
+                params,
+            )
             results = sql_client.execute_procedure("usp_LS_FILIAIS", params)
             self._salvar_resultado_scheduler(results)
             if results:
+                snapshot = build_longshort_snapshot(results[0])
                 logger.info(
-                    "[LONGSHORT] Colunas retornadas por usp_LS_FILIAIS: %s",
+                    "[LONGSHORT SNAPSHOT][%s] fim=%s duração_ms=%.2f "
+                    "procedure=usp_LS_FILIAIS parâmetros=%s linhas=%s fingerprint=%s "
+                    "componentes=%s colunas=%s",
+                    execution_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    (time.perf_counter() - started_clock) * 1000,
+                    params,
+                    len(results),
+                    snapshot_fingerprint(results),
+                    snapshot,
                     sorted(str(key) for key in results[0].keys()),
+                )
+                if len(results) != 1:
+                    logger.warning(
+                        "[LONGSHORT SNAPSHOT][%s] A procedure retornou %s linhas; "
+                        "o quadro oficial usa exclusivamente a primeira linha do mesmo snapshot.",
+                        execution_id,
+                        len(results),
+                    )
+            else:
+                logger.info(
+                    "[LONGSHORT SNAPSHOT][%s] fim=%s duração_ms=%.2f "
+                    "procedure=usp_LS_FILIAIS parâmetros=%s linhas=0 fingerprint=%s",
+                    execution_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    (time.perf_counter() - started_clock) * 1000,
+                    params,
+                    snapshot_fingerprint(results),
                 )
             return self._format_longshort_results(results)
         except Exception as e:
@@ -4493,71 +4676,8 @@ IMPORTANTE:
         if not results:
             return "Nenhum dado de posição Long/Short foi encontrado."
 
-        row = results[0]
-
-        def normalize(value: str) -> str:
-            value = unicodedata.normalize("NFD", value.lower())
-            value = "".join(char for char in value if unicodedata.category(char) != "Mn")
-            return re.sub(r"[^a-z0-9]", "", value)
-
-        normalized = {normalize(str(key)): value for key, value in row.items()}
-
-        def get_value(*aliases: str, default: Any = None) -> Any:
-            for alias in aliases:
-                key = normalize(alias)
-                if key in normalized and normalized[key] is not None:
-                    return normalized[key]
-            return default
-
-        def number(value: Any, decimals: int = 0) -> str:
-            if value is None:
-                return "Não informado"
-            try:
-                numeric = float(value)
-            except (TypeError, ValueError):
-                return str(value)
-
-            formatted = f"{numeric:,.{decimals}f}"
-            formatted = formatted.replace(",", "X").replace(".", ",").replace("X", ".")
-            return formatted
-
-        # A posição líquida oficial vem exclusivamente de netPosition.
-        # Não usar posicaoLongShort: esse campo representa outro indicador.
-        net_position = get_value("netPosition")
-        total_estoque = get_value(
-            "totalEstoqueExportacao", "totalEstoque", "estoqueTotalExportacao", "estoqueExportacao"
-        )
-        vendas_exportacao = get_value("vendasExportacao", "vendasTotaisExportacao", "totalVendasExportacao")
-        basis_saldo = get_value(
-            "basisExportacao", "basisSaldoSacas", "basisSaldo", "saldoBasisSacas", "basisSacas"
-        )
-        vendas_mercado_a_fixar = get_value(
-            "mercadoAFixar", "vendasMercadoAFixar", "vendasMercadoFixar", "vendaMercadoAFixar"
-        )
-        vendas_fixadas = get_value(
-            "mercadoFixadas", "vendasFixadas", "totalVendasFixadas", "vendaFixada"
-        )
-        vendas_a_fixar_embarcadas = get_value(
-            "mercadoAfixarEmbarcadas",
-            "vendasAFixarEmbarcadas",
-            "vendasFixarEmbarcadas",
-            "vendaAFixarEmbarcada",
-        )
-        bolsa_lotes = get_value("bolsaLotes", "lotesBolsa", "totalLotesBolsa")
-        bolsa_sacas = get_value("bolsaSacas", "sacasBolsa", "totalSacasBolsa")
-
-        return (
-            "Claro! Segue a posição Long/Short atual:\n\n"
-            f"Posição Net LS = {number(net_position)} sacas\n"
-            f"Estoque Total Exportação: {number(total_estoque)}\n"
-            f"Vendas Totais Exportação: {number(vendas_exportacao)}\n\n"
-            f"Basis Saldo Sacas: {number(basis_saldo)}\n"
-            f"Vendas Mercado A fixar: {number(vendas_mercado_a_fixar)}\n"
-            f"Vendas Fixadas: {number(vendas_fixadas)}\n"
-            f"Vendas A Fixar Embarcadas: {number(vendas_a_fixar_embarcadas)}\n"
-            f"Bolsa Lotes: {number(bolsa_lotes)} lotes / {number(bolsa_sacas)} Sacas\n\n"
-            "Se quiser, também posso detalhar essa posição por filial: COBRA, CUSA ou CEU."
-        )
+        snapshot = build_longshort_snapshot(results[0])
+        return format_longshort_snapshot(snapshot)
 
     def _pesquisa_contas_a_receber_vencidas(
         self,

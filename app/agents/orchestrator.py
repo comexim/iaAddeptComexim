@@ -19,6 +19,7 @@ from app.models.user import UserPermissions
 from app.agents.sql_tools import SQLTools
 from app.prompts.system_prompt import get_system_prompt, get_current_date_info
 from app.services.preference_learning import preference_learning
+from app.services.stock_metrics import format_standard_weight_conversion
 
 logger = logging.getLogger(__name__)
 
@@ -1209,6 +1210,16 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 or "posicao ls" in normalized_current
                 or "posicao net ls" in normalized_current
             )
+            stock_query = any(
+                term in normalized_current
+                for term in (
+                    "estoque fisico",
+                    "posicao de estoque",
+                    "posicao do estoque",
+                    "total do estoque",
+                    "sacas em estoque",
+                )
+            )
             # Um pedido de agendamento também contém "Long/Short", mas deve
             # chegar ao agente para chamar criar_relatorio_agendado. O atalho
             # abaixo serve apenas para consultas imediatas.
@@ -1233,6 +1244,24 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     "[AGENDAMENTO] Pedido de Long/Short com horário/frequência; "
                     "encaminhando para criar_relatorio_agendado"
                 )
+
+            # Consultas explícitas de estoque também retornam diretamente a
+            # formatação determinística. O histórico não participa dos filtros
+            # nem dos totais desta execução.
+            if stock_query and not longshort_query and not scheduling_intent:
+                logger.info("[FORCE TOOL] Consulta de estoque detectada; usando snapshot atual")
+                output = sql_tools._pesquisa_estoque()
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                logger.info(f"Resposta de estoque gerada via tool forçada: {output[:100]}...")
+                return output
+
+            standard_weight_conversion = format_standard_weight_conversion(message)
+            if standard_weight_conversion and not stock_query and not scheduling_intent:
+                logger.info("[CONVERSÃO PESO/SACAS] Conversão padrão calculada no código")
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(standard_weight_conversion)
+                return standard_weight_conversion
 
             # O status de fixação é uma regra objetiva de banco: somente
             # valorFixado > 0 significa contrato fixado. Evita interpretação
