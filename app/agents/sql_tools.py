@@ -41,6 +41,13 @@ from app.services.financial_position_scope import (
     compact_financial_date,
     current_open_scope_notice,
 )
+from app.services.financial_period_context import (
+    append_period_context,
+    build_financial_period_context,
+    filter_financial_rows_by_calendar,
+    resolve_business_day_range,
+    uses_business_days,
+)
 from app.services.stock_metrics import (
     build_longshort_snapshot,
     build_stock_snapshot,
@@ -3987,6 +3994,8 @@ IMPORTANTE:
 
         procedure_name = "usp_IA_ContasAPagar"
         procedure_params = {}
+        expressao_periodo = data_vencimento if data_vencimento else data_emissao
+        campo_data_periodo = "vencimento" if data_vencimento or not data_emissao else "emissao"
         periodo_inicio = None
         periodo_fim = None
         data_fim_filter = None
@@ -4023,6 +4032,12 @@ IMPORTANTE:
                     fim = (datetime.strptime(fim, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
 
                 if inicio and fim:
+                    inicio, fim = resolve_business_day_range(
+                        expressao_periodo,
+                        inicio,
+                        fim,
+                        today=date_parser.get_current_date(),
+                    )
                     periodo_inicio, periodo_fim = inicio, fim
                     procedure_params["VencIni"] = inicio
                     procedure_params["VencFim"] = fim
@@ -4055,6 +4070,15 @@ IMPORTANTE:
                 "posicao_atual_filtrada_data_passada" if aviso_escopo else "posicao_atual",
             )
 
+            if result_list and periodo_inicio and periodo_fim and uses_business_days(expressao_periodo):
+                result_list = filter_financial_rows_by_calendar(
+                    result_list,
+                    date_field=campo_data_periodo,
+                    start=periodo_inicio,
+                    end=periodo_fim,
+                    business_days=True,
+                )
+
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
                 original_count = len(result_list)
@@ -4078,11 +4102,21 @@ IMPORTANTE:
                 result_list = [r for r in result_list if natureza_upper in str(r.get("natureza", "")).upper()]
                 logger.info(f"[CONTAS A PAGAR] Filtro por natureza '{natureza}': {original_count} → {len(result_list)} registros")
 
+            contexto_periodo = build_financial_period_context(
+                expressao_periodo,
+                periodo_inicio,
+                periodo_fim,
+                result_list or [],
+                date_field=campo_data_periodo,
+            )
+            if contexto_periodo:
+                logger.info("[CONTAS A PAGAR][PERÍODO] %s", contexto_periodo)
+
             if not result_list:
-                return append_scope_notice(
+                return append_period_context(append_scope_notice(
                     "Nenhuma conta a pagar encontrada para o período especificado.",
                     aviso_escopo,
-                )
+                ), contexto_periodo)
 
             result_list, duplicate_count = deduplicate_payables(result_list)
             if duplicate_count:
@@ -4183,7 +4217,7 @@ IMPORTANTE:
                     if partial_listing
                     else "A listagem contém todos os títulos usados no total informado."
                 )
-                return append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
+                return append_period_context(append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
 
 {partial_notice}Total de títulos detalhados: {len(result_list)}
 Valor dos títulos detalhados: R$ {total_geral:,.2f}
@@ -4193,7 +4227,7 @@ TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
 {tabela_str}
 
 Analise os {len(result_list)} registros acima e responda com base nos dados fornecidos.
-{partial_instruction}""", aviso_escopo)
+{partial_instruction}""", aviso_escopo), contexto_periodo)
 
             # Agrega por dia de vencimento E por fornecedor
             from collections import defaultdict
@@ -4278,7 +4312,7 @@ Analise os {len(result_list)} registros acima e responda com base nos dados forn
             formatted_por_dia = json.dumps(dias_list, ensure_ascii=False, indent=2, default=convert_decimals)
             formatted_por_fornecedor = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
+            return append_period_context(append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
 Total de fornecedores únicos: {len(por_fornecedor)}
@@ -4294,7 +4328,7 @@ IMPORTANTE:
 1. Estas são contas PENDENTES (a pagar no futuro)
 2. Os totais por dia e por fornecedor já estão calculados acima
 3. Para responder "total por dia", use a seção TOTAIS POR DIA DE VENCIMENTO
-4. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}""", aviso_escopo)
+4. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}""", aviso_escopo), contexto_periodo)
 
         except Exception as e:
             import traceback
@@ -4895,6 +4929,12 @@ IMPORTANTE:
 
                 # Se temos datas, usa IA_ContasAReceberPar com parâmetros
                 if inicio and fim:
+                    inicio, fim = resolve_business_day_range(
+                        data_vencimento,
+                        inicio,
+                        fim,
+                        today=date_parser.get_current_date(),
+                    )
                     periodo_inicio, periodo_fim = inicio, fim
                     function_name = "IA_ContasAReceberPar"
                     filters, vencimento_inicio_filter, data_fim_filter = (
@@ -4959,8 +4999,14 @@ IMPORTANTE:
                     len(result_list),
                 )
 
-            # O anexo deve conter somente o período pedido, depois do recorte.
-            self._salvar_resultado_scheduler(result_list)
+            if result_list and periodo_inicio and periodo_fim and uses_business_days(data_vencimento):
+                result_list = filter_financial_rows_by_calendar(
+                    result_list,
+                    date_field="vencimentoReal",
+                    start=periodo_inicio,
+                    end=periodo_fim,
+                    business_days=True,
+                )
 
             # Aplica filtro por cliente se fornecido
             if result_list and cliente:
@@ -4976,13 +5022,29 @@ IMPORTANTE:
                 result_list = [r for r in result_list if self._normalizar_contrato(str(r.get("contrato", ""))) == contrato_normalizado]
                 logger.info(f"[CONTAS A RECEBER] Filtro por contrato '{contrato}' (normalizado: {contrato_normalizado}): {original_count} → {len(result_list)} registros")
 
+            contexto_periodo = build_financial_period_context(
+                data_vencimento,
+                periodo_inicio,
+                periodo_fim,
+                result_list or [],
+                date_field="vencimentoReal",
+            )
+            if contexto_periodo:
+                logger.info("[CONTAS A RECEBER][PERÍODO] %s", contexto_periodo)
+
+            # O anexo deve conter somente o período pedido e os demais filtros.
+            self._salvar_resultado_scheduler(result_list)
+
             if not result_list:
                 msg = "Nenhuma conta a receber encontrada"
                 if contrato:
                     msg += f" para o contrato {contrato}"
                 if data_vencimento:
                     msg += f" no período especificado"
-                return append_scope_notice(msg + ".", aviso_escopo)
+                return append_period_context(
+                    append_scope_notice(msg + ".", aviso_escopo),
+                    contexto_periodo,
+                )
 
             # Se contrato específico foi solicitado E poucos registros (<= 50), retorna detalhes completos
             if contrato and len(result_list) <= 50:
@@ -5024,7 +5086,7 @@ IMPORTANTE:
 
                 formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-                return append_scope_notice(f"""Resultados da consulta IA_ContasAReceber para o contrato {contrato}:
+                return append_period_context(append_scope_notice(f"""Resultados da consulta IA_ContasAReceber para o contrato {contrato}:
 
 Total de títulos: {len(result_list)}
 Valor total a receber: R$ {total_valor:,.2f}
@@ -5038,7 +5100,7 @@ IMPORTANTE:
 2. Cada linha representa um título individual do contrato
 3. valor = valor total do título
 4. saldo = saldo pendente a receber
-5. Total geral: R$ {total_valor:,.2f}""", aviso_escopo)
+5. Total geral: R$ {total_valor:,.2f}""", aviso_escopo), contexto_periodo)
 
             # Se NÃO solicitou contrato específico, agrega por cliente para garantir valores corretos
             from collections import defaultdict
@@ -5166,13 +5228,13 @@ IMPORTANTE:
                     if linhas_clientes:
                         clientes_texto = "\n\nClientes em atraso:\n" + "\n".join(linhas_clientes)
 
-                return append_scope_notice((
+                return append_period_context(append_scope_notice((
                     f"O total de contas a receber vencidas: "
                     f"R$ {format_pt_br(total_vencido_positivo)}."
                     f"{clientes_texto}"
-                ), aviso_escopo or CURRENT_OPEN_PAST_NOTICE)
+                ), aviso_escopo or CURRENT_OPEN_PAST_NOTICE), contexto_periodo)
 
-            return append_scope_notice(f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
+            return append_period_context(append_scope_notice(f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
 
 Total de registros SQL: {len(result_list)}
 Total de clientes únicos: {len(por_cliente)}
@@ -5186,7 +5248,7 @@ IMPORTANTE:
 1. Estas são contas {_tipo_label}
 2. Os valores já estão AGREGADOS por cliente (se cliente tem múltiplos títulos, valores foram somados)
 3. valor_total = soma de todos os títulos daquele cliente
-4. Total geral: R$ {total_valor:,.2f}""", aviso_escopo)
+4. Total geral: R$ {total_valor:,.2f}""", aviso_escopo), contexto_periodo)
 
         except Exception as e:
             import traceback
@@ -5983,6 +6045,7 @@ Para pagamentos já efetuados, use pesquisa_contas_pagas.
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
   - Formato flexível: "hoje", "próximos 7 dias", "este mês", "próxima semana", "20251212"
+  - Preserve literalmente "dias úteis" ou "dias corridos" quando o usuário informar. O código calcula o intervalo e informa todos os dias sem registros.
   - Se NÃO INFORMADO: retorna todas as contas a pagar (sem filtro de data)
   - Se INFORMADO: filtra contas conforme período especificado
   - Use quando a pergunta menciona "vencimento", "pagar em", "vencer em"
@@ -6083,6 +6146,7 @@ Esta ferramenta retorna informações sobre contas pendentes de recebimento, inc
 Argumentos:
 - data_vencimento (opcional): Data de vencimento para filtro
   - Formato flexível: "hoje", "próximos 7 dias", "este mês", "20250112"
+  - Preserve literalmente "dias úteis" ou "dias corridos" quando o usuário informar. O código calcula o intervalo e informa todos os dias sem registros.
   - Se NÃO INFORMADO sem "vencido": retorna todas as contas a receber
 
 - cliente (opcional): Filtro por cliente

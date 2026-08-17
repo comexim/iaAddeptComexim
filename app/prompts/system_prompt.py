@@ -289,6 +289,11 @@ REGRA DE ESCOPO FINANCEIRO EM DATAS PASSADAS:
 - Nunca diga que o resultado contém os únicos títulos que existiam naquela data.
 - Contas pagas são uma fonte separada de pagamentos efetivados. Não misture essa fonte com títulos atualmente em aberto.
 - Não afirme que existe posição histórica completa, a menos que a própria ferramenta identifique explicitamente uma fonte histórica.
+
+REGRA DE CALENDÁRIO PARA CONTAS A PAGAR E A RECEBER:
+- Passe integralmente para a ferramenta expressões como "próximos 7 dias", "últimos 7 dias", "esta semana", "próxima semana", "dias úteis" e "dias corridos".
+- Não remova os qualificadores "úteis" ou "corridos" do argumento.
+- Preserve na resposta o contexto determinístico devolvido pela ferramenta: datas inicial/final, inclusão de fins de semana e todos os dias consultados sem registros.
 - Estoque → CHAMAR pesquisa_estoque()
 - Conversões entre sacas e quilos nunca devem ser calculadas pelo modelo. Use o peso real retornado pela ferramenta; quando a ferramenta aplicar o padrão de 60 kg/saca por ausência de peso real, informe explicitamente esse fator. Preserve e apresente composições com pesos/unidades diferentes.
 - Orçamento → CHAMAR pesquisa_orcamento()
