@@ -2,9 +2,11 @@ from app.services.commercial_metrics import (
     aggregate_purchases,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
+    build_monthly_commercial_series,
     detect_sales_branch_from_query,
     filter_sales_by_market,
     format_pt_br,
+    month_keys_between,
 )
 
 
@@ -85,6 +87,52 @@ def test_sales_totals_are_in_usd_and_deduplicated():
     assert result["valor_usd"] == 7000.0
 
 
+def test_sales_monthly_series_reports_missing_months_without_filling_them():
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "2", "filial": "05", "cliente": "B", "mesEmbarque": "2026/09", "sacas": 30, "valorTotal": 6000},
+    ]
+
+    result = build_monthly_commercial_series(
+        rows,
+        "sales",
+        month_keys_between("2026/07", "2026/10"),
+    )
+
+    assert [item["mes"] for item in result["meses_com_dados"]] == ["2026/07", "2026/09"]
+    assert result["meses_sem_registros"] == ["2026/08", "2026/10"]
+    assert result["meses_com_dados"][0]["sacas"] == 10.0
+    assert result["meses_com_dados"][1]["valor_usd"] == 6000.0
+
+
+def test_monthly_series_with_no_rows_contains_no_fabricated_values():
+    result = build_monthly_commercial_series(
+        [],
+        "purchases",
+        month_keys_between("2026/01", "2026/03"),
+    )
+
+    assert result["meses_com_dados"] == []
+    assert result["meses_sem_registros"] == ["2026/01", "2026/02", "2026/03"]
+
+
+def test_purchase_monthly_series_uses_only_returned_months():
+    rows = [
+        {"numero": "1", "filial": "05", "emissao": "20260115", "sacas": 12, "valor": 1200, "moeda": "BRL"},
+        {"numero": "2", "filial": "05", "emissao": "20260310", "sacas": 8, "valor": 2000, "moeda": "USD"},
+    ]
+
+    result = build_monthly_commercial_series(
+        rows,
+        "purchases",
+        month_keys_between("20260101", "20260331"),
+    )
+
+    assert [item["mes"] for item in result["meses_com_dados"]] == ["2026/01", "2026/03"]
+    assert result["meses_sem_registros"] == ["2026/02"]
+    assert result["meses_com_dados"][0]["totais_por_moeda"][0]["valor_total"] == 1200.0
+
+
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
     test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
@@ -93,4 +141,7 @@ if __name__ == "__main__":
     test_sales_branch_detection_from_query()
     test_sales_market_filters_use_mercado_column()
     test_sales_totals_are_in_usd_and_deduplicated()
+    test_sales_monthly_series_reports_missing_months_without_filling_them()
+    test_monthly_series_with_no_rows_contains_no_fabricated_values()
+    test_purchase_monthly_series_uses_only_returned_months()
     print("commercial_metrics: OK")

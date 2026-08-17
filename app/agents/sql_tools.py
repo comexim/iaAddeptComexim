@@ -17,10 +17,12 @@ from app.services.commercial_metrics import (
     aggregate_purchases,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
+    build_monthly_commercial_series,
     detect_sales_branch_from_query,
     filter_sales_by_branch,
     filter_sales_by_market,
     format_pt_br,
+    month_keys_between,
     sales_branch_name,
 )
 from app.services.stock_metrics import (
@@ -41,6 +43,8 @@ class SQLTools:
         self.user_query = ""  # Armazena última pergunta do usuário (CONTEXTUALIZADA para IA)
         self.user_query_original = ""  # Armazena pergunta ORIGINAL (sem contexto) para filtros
         self.ultimo_contrato_consultado = None  # Armazena último contrato consultado (para contexto)
+        self._series_expected_months = []
+        self._series_date_fields = None
 
         # Carrega último contrato do Redis (se disponível)
         if self.session_id:
@@ -1351,6 +1355,81 @@ class SQLTools:
         logger.info(f"Filtrados {len(filtered)} registros de {len(results)} para cliente '{client_name}' (normalizado: '{client_name_normalized}')")
         return filtered
 
+    def _is_monthly_series_request(self) -> bool:
+        query = self._remove_accents(
+            (self.user_query_original or self.user_query or "").lower()
+        )
+        return bool(re.search(
+            r'\b(?:mes\s+a\s+mes|mes\s+por\s+mes|por\s+mes|'
+            r'(?:quebra|quebre|detalhe|separad[oa]s?)\s+(?:mensal|por\s+mes)|'
+            r'decomposicao\s+(?:mensal|por\s+mes)|serie\s+mensal|tendencia\s+mensal|'
+            r'evolucao\s+mensal|mensalmente)\b',
+            query,
+        ))
+
+    def _format_monthly_commercial_series(
+        self,
+        results: list[Dict[str, Any]],
+        function_name: str,
+    ) -> Optional[str]:
+        if not self._is_monthly_series_request():
+            return None
+        if function_name not in ("IA_Vendas", "IA_Compras", "IA_ComprasPar"):
+            return (
+                "Não foi possível montar esta série mensal de forma determinística "
+                "com os dados retornados. Para evitar estimativas, nenhum mês ou "
+                "valor foi completado."
+            )
+
+        kind = "sales" if function_name == "IA_Vendas" else "purchases"
+        expected = getattr(self, "_series_expected_months", [])
+        date_fields = getattr(self, "_series_date_fields", None)
+        series = build_monthly_commercial_series(
+            results,
+            kind,
+            expected_months=expected,
+            date_fields=date_fields,
+        )
+        present = series["meses_com_dados"]
+        missing = series["meses_sem_registros"]
+        if not present:
+            return "Não foram encontrados registros para esse período."
+
+        lines = [
+            "SÉRIE MENSAL DETERMINÍSTICA — SOMENTE DADOS RETORNADOS PELO BANCO",
+            "",
+        ]
+        if kind == "sales":
+            for item in present:
+                lines.append(
+                    f"- {item['mes']}: {item['contratos']} contrato(s) | "
+                    f"{format_pt_br(item['sacas'])} sacas | "
+                    f"USD {format_pt_br(item['valor_usd'])}"
+                )
+        else:
+            for item in present:
+                currency_parts = [
+                    f"{total['moeda']} {format_pt_br(total['valor_total'])} / "
+                    f"{format_pt_br(total['quantidade_total'])} sacas"
+                    for total in item["totais_por_moeda"]
+                ]
+                lines.append(
+                    f"- {item['mes']}: {item['total_contratos']} contrato(s) | "
+                    + " | ".join(currency_parts)
+                )
+
+        if missing:
+            lines.extend([
+                "",
+                "Meses sem registros: " + ", ".join(missing) + ".",
+            ])
+        lines.extend([
+            "",
+            "REGRA OBRIGATÓRIA: apresente somente os meses acima. "
+            "Não estime, não projete e não complete meses ausentes.",
+        ])
+        return "\n".join(lines)
+
     def _format_results(self, results: list[Dict[str, Any]], function_name: str, client_filter: Optional[str] = None, pagina: int = 1) -> str:
         """
         Formata resultados SQL para apresentação ao usuário
@@ -1369,7 +1448,7 @@ class SQLTools:
             String formatada para o LLM
         """
         if not results:
-            return "Nenhum resultado encontrado para esta consulta."
+            return "Não foram encontrados registros para esse período."
 
         total_records = len(results)
         original_count = total_records
@@ -1660,9 +1739,13 @@ class SQLTools:
                 total_records = len(results)
                 logger.info(f"[FILTROS APLICADOS] {', '.join(filtros_aplicados)}")
                 if not results:
-                    return "Nenhum resultado encontrado após aplicar os filtros solicitados."
+                    return "Não foram encontrados registros para esse período."
 
-            if function_name == "IA_Vendas" and any(term in query_lower for term in ["mercado interno", "mercado nacional", "mercado externo", "mercado internacional"]):
+            if (
+                function_name == "IA_Vendas"
+                and not self._is_monthly_series_request()
+                and any(term in query_lower for term in ["mercado interno", "mercado nacional", "mercado externo", "mercado internacional"])
+            ):
                 market_label = "mercado interno" if any(term in query_lower for term in ["mercado interno", "mercado nacional"]) else "mercado externo"
                 totals = aggregate_sales_totals(results)
                 return (
@@ -1674,8 +1757,18 @@ class SQLTools:
 
             if function_name in ("IA_Compras", "IA_ComprasPar"):
                 safra_detectada = self._extract_safra_code(self.user_query_original)
-                if safra_detectada and any(term in query_lower for term in ["volume total", "total da safra", "quanto compr", "quantas sacas"]):
+                if (
+                    safra_detectada
+                    and not self._is_monthly_series_request()
+                    and any(term in query_lower for term in ["volume total", "total da safra", "quanto compr", "quantas sacas"])
+                ):
                     return self._format_purchase_total_summary(results, safra_detectada)
+
+        # Séries mensais são montadas somente depois dos filtros determinísticos
+        # (cliente, filial, mercado, fixação etc.) terem sido aplicados.
+        monthly_series = self._format_monthly_commercial_series(results, function_name)
+        if monthly_series is not None:
+            return monthly_series
 
         # ESTRATÉGIA 2: Se muitos registros (>50) e sem filtro específico, agrega
         # MAS: Se mencionou número de contrato específico (XXX/YY), NÃO agrega
@@ -3012,6 +3105,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             f"contrato={contrato}, mes_fixacao={mes_fixacao}, verificar_fixacao={verificar_fixacao}, "
             f"limite={limite}, pagina={pagina}"
         )
+        self._series_expected_months = []
+        self._series_date_fields = ("mesEmbarque", "mesembarque")
 
         # DETECÇÃO DE CONTEXTO DE CONTRATO: Detecta se é pergunta de seguimento sobre contrato anterior
         contrato_na_query = contrato.upper().strip() if contrato else None
@@ -3128,6 +3223,21 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         if contrato_na_query:
             procedure_params["Contrato"] = contrato_na_query
 
+        if procedure_params.get("MesFixIni") and procedure_params.get("MesFixFim"):
+            self._series_expected_months = month_keys_between(
+                procedure_params["MesFixIni"], procedure_params["MesFixFim"]
+            )
+            self._series_date_fields = ("mesFixacao", "mesfixacao")
+        elif procedure_params.get("MesIni") and procedure_params.get("MesFim"):
+            self._series_expected_months = month_keys_between(
+                procedure_params["MesIni"], procedure_params["MesFim"]
+            )
+        elif procedure_params.get("EmisIni") and procedure_params.get("EmisFim"):
+            self._series_expected_months = month_keys_between(
+                procedure_params["EmisIni"], procedure_params["EmisFim"]
+            )
+            self._series_date_fields = ("emissao", "dataEmissao", "dataemissao")
+
         has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:
             logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
@@ -3182,7 +3292,11 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             filial_solicitada = detect_sales_branch_from_query(
                 self.user_query_original or self.user_query or ""
             )
-            if periodo_emissao and not filial_solicitada:
+            if (
+                periodo_emissao
+                and not filial_solicitada
+                and not self._is_monthly_series_request()
+            ):
                 totais = aggregate_sales_totals(results)
                 por_filial = aggregate_sales_by_branch(results)
                 linhas = [
@@ -3284,6 +3398,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         """
         procedure_name = "usp_IA_Compras"
         procedure_params = {}
+        self._series_expected_months = []
+        self._series_date_fields = ("emissao", "dataEmissao", "dataemissao")
 
         # Se data_fim fornecido separadamente, parseia os dois e monta range
         if data_inicio and data_fim:
@@ -3307,6 +3423,11 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         if fornecedor:
             procedure_params["Fornec"] = fornecedor
+
+        if procedure_params.get("DataIni") and procedure_params.get("DataFim"):
+            self._series_expected_months = month_keys_between(
+                procedure_params["DataIni"], procedure_params["DataFim"]
+            )
 
         has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:

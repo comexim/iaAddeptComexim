@@ -92,3 +92,49 @@ def test_sales_purchase_volume_comparison_is_not_detected_as_client():
     query = "Compare o volume comprado com o volume vendido em junho de 2026."
 
     assert sql_tools._extract_client_name(query) is None
+
+
+def test_partial_monthly_sales_output_names_missing_months():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Mostre as vendas por mês de julho a outubro de 2026"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._series_expected_months = ["2026/07", "2026/08", "2026/09", "2026/10"]
+    sql_tools._series_date_fields = ("mesEmbarque",)
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "2", "filial": "05", "cliente": "B", "mesEmbarque": "2026/09", "sacas": 20, "valorTotal": 3000},
+    ]
+
+    output = sql_tools._format_results(rows, "IA_Vendas")
+
+    assert "2026/07" in output
+    assert "2026/09" in output
+    assert "Meses sem registros: 2026/08, 2026/10." in output
+    assert "2026/08:" not in output
+    assert "2026/10:" not in output
+
+
+def test_empty_period_uses_required_message():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Vendas por mês em 2099"
+    sql_tools.user_query = sql_tools.user_query_original
+
+    assert sql_tools._format_results([], "IA_Vendas") == (
+        "Não foram encontrados registros para esse período."
+    )
+
+
+def test_unmapped_monthly_series_fails_closed_instead_of_estimating():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Mostre a evolução mensal do saldo"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._series_expected_months = []
+    sql_tools._series_date_fields = None
+
+    output = sql_tools._format_results([{"saldo": 100}], "IA_SaldoBancario")
+
+    assert "Não foi possível montar esta série mensal de forma determinística" in output
+    assert "nenhum mês ou valor foi completado" in output

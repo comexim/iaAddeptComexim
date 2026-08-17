@@ -5,8 +5,9 @@ banco e calcula totais sem misturar o esquema de vendas com o de compras.
 """
 
 from collections import defaultdict
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 SALES_BRANCHES = {
     "05": "COBRA",
@@ -240,4 +241,89 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
         "total_contratos": len(unique),
         "totais_por_moeda": currency_totals,
         "fornecedores": supplier_totals,
+    }
+
+
+def normalize_month_key(value: Any) -> Optional[str]:
+    """Normaliza datas usuais do Protheus para YYYY/MM, sem inferir valores."""
+    if value in (None, ""):
+        return None
+    if isinstance(value, (date, datetime)):
+        return value.strftime("%Y/%m")
+
+    import re
+
+    text = str(value).strip()
+    patterns = (
+        r"^(20\d{2})[/-](0[1-9]|1[0-2])$",
+        r"^(20\d{2})(0[1-9]|1[0-2])(?:[0-3]\d)?$",
+        r"^(20\d{2})[/-](0[1-9]|1[0-2])[/-][0-3]\d$",
+    )
+    for pattern in patterns:
+        match = re.match(pattern, text)
+        if match:
+            return f"{match.group(1)}/{match.group(2)}"
+    return None
+
+
+def month_keys_between(start: Any, end: Any) -> List[str]:
+    """Gera apenas os meses do intervalo explicitamente solicitado."""
+    start_key = normalize_month_key(start)
+    end_key = normalize_month_key(end)
+    if not start_key or not end_key:
+        return []
+
+    year, month = map(int, start_key.split("/"))
+    end_year, end_month = map(int, end_key.split("/"))
+    if (year, month) > (end_year, end_month):
+        return []
+
+    result = []
+    while (year, month) <= (end_year, end_month):
+        result.append(f"{year:04d}/{month:02d}")
+        month += 1
+        if month == 13:
+            year += 1
+            month = 1
+    return result
+
+
+def build_monthly_commercial_series(
+    rows: Iterable[Dict[str, Any]],
+    kind: str,
+    expected_months: Optional[Iterable[str]] = None,
+    date_fields: Optional[Iterable[str]] = None,
+) -> Dict[str, Any]:
+    """Agrega somente meses existentes no banco e declara os meses ausentes."""
+    rows_by_month: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    selected_date_fields = tuple(date_fields or (
+        ("mesEmbarque", "mesembarque", "emissao")
+        if kind == "sales"
+        else ("emissao", "dataEmissao", "dataemissao")
+    ))
+
+    for row in rows:
+        raw_date = next(
+            (row.get(field) for field in selected_date_fields if row.get(field) not in (None, "")),
+            None,
+        )
+        month = normalize_month_key(raw_date)
+        if month:
+            rows_by_month[month].append(row)
+
+    months = []
+    for month in sorted(rows_by_month):
+        month_rows = rows_by_month[month]
+        metrics = (
+            aggregate_sales_totals(month_rows)
+            if kind == "sales"
+            else aggregate_purchases(month_rows)
+        )
+        months.append({"mes": month, **metrics})
+
+    expected = list(dict.fromkeys(expected_months or []))
+    present = set(rows_by_month)
+    return {
+        "meses_com_dados": months,
+        "meses_sem_registros": [month for month in expected if month not in present],
     }
