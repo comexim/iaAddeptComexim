@@ -1516,7 +1516,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             for msg in reversed(current_turn_messages):
                 if (
                     isinstance(msg, ToolMessage)
-                    and str(msg.content).startswith("RESUMO DETERMINÍSTICO DE COMPRAS")
+                    and str(msg.content).startswith("Resumo de compras")
                 ):
                     output = msg.content
                     logger.info(

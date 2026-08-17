@@ -57,7 +57,7 @@ class ResponseFormatter:
         if (
             text.startswith("Resultados de contas a receber vencidas:")
             or text.startswith("Contas a receber vencidas do cliente ")
-            or text.startswith("RESUMO DETERMINÍSTICO DE COMPRAS")
+            or text.startswith("Resumo de compras")
         ):
             logger.info("Formatando resultado determinístico sem IA para preservar os dados")
             return self._split_preservando_linhas(text)

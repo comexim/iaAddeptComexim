@@ -265,11 +265,10 @@ class SQLTools:
             currency_label = currency if currency != "N/I" else "moeda não informada"
             media = total["media_ponderada"]
             media_label = format_pt_br(media) if media is not None else "N/A"
-            linhas.append(
-                f"- {currency_label}: {format_pt_br(total['quantidade_total'])} sacas, "
-                f"valor {format_pt_br(total['valor_total'])}, "
-                f"média ponderada {media_label}"
-            )
+            linhas.extend([
+                f"Valor total ({currency_label}): {format_pt_br(total['valor_total'])}",
+                f"Média ponderada ({currency_label}): {media_label} por saca",
+            ])
 
         prefixo = f"Volume total da safra {safra_code}" if safra_code else "Volume total de compras"
         fornecedores = []
@@ -281,15 +280,14 @@ class SQLTools:
         relacao = metrics.get("kg_por_saca_real")
         relacao_texto = format_pt_br(relacao) if relacao is not None else "N/A"
         return (
-            "RESUMO DETERMINÍSTICO DE COMPRAS\n\n"
-            f"{prefixo}: {metrics['total_contratos']} contrato(s)/pedido(s).\n"
+            "Resumo de compras\n\n"
+            f"{prefixo}: {metrics['total_contratos']} pedido(s).\n"
             f"Total de sacas: {format_pt_br(sum(item['quantidade_total'] for item in metrics['totais_por_moeda']))}\n"
-            f"Peso real total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
-            f"Relação real do banco: {relacao_texto} kg/saca (peso ÷ sacas; nenhuma conversão estimada).\n"
+            f"Peso total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
+            f"Peso médio por saca: {relacao_texto} kg/saca\n"
             + "\n".join(linhas)
             + "\n\nTodos os fornecedores:\n"
             + "\n".join(fornecedores)
-            + "\n\nObservação: quando a moeda estiver como 'moeda não informada', não rotule o valor como R$ ou outra moeda."
         )
 
     def _is_purchase_total_query(self) -> bool:
