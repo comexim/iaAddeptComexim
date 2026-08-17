@@ -34,6 +34,11 @@ from app.services.accounts_payable_metrics import (
     payable_decimal,
     reconcile_payables,
 )
+from app.services.financial_position_scope import (
+    CURRENT_OPEN_PAST_NOTICE,
+    append_scope_notice,
+    current_open_scope_notice,
+)
 from app.services.stock_metrics import (
     build_longshort_snapshot,
     build_stock_snapshot,
@@ -3980,6 +3985,8 @@ IMPORTANTE:
 
         procedure_name = "usp_IA_ContasAPagar"
         procedure_params = {}
+        periodo_inicio = None
+        periodo_fim = None
         data_fim_filter = None
         emissao_fim_filter = None
 
@@ -4014,6 +4021,7 @@ IMPORTANTE:
                     fim = (datetime.strptime(fim, "%Y%m%d") - timedelta(days=1)).strftime("%Y%m%d")
 
                 if inicio and fim:
+                    periodo_inicio, periodo_fim = inicio, fim
                     procedure_params["VencIni"] = inicio
                     procedure_params["VencFim"] = fim
         else:
@@ -4033,6 +4041,17 @@ IMPORTANTE:
         # Executa stored procedure
         try:
             result_list = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            aviso_escopo = current_open_scope_notice(
+                periodo_inicio,
+                periodo_fim,
+                today=date_parser.get_current_date(),
+            )
+            logger.info(
+                "[CONTAS A PAGAR][ESCOPO] inicio=%s fim=%s classificacao=%s",
+                periodo_inicio,
+                periodo_fim,
+                "posicao_atual_filtrada_data_passada" if aviso_escopo else "posicao_atual",
+            )
 
             # Aplica filtro manual de emissao_fim se necessário
             if result_list and emissao_fim_filter:
@@ -4058,7 +4077,10 @@ IMPORTANTE:
                 logger.info(f"[CONTAS A PAGAR] Filtro por natureza '{natureza}': {original_count} → {len(result_list)} registros")
 
             if not result_list:
-                return "Nenhuma conta a pagar encontrada para o período especificado."
+                return append_scope_notice(
+                    "Nenhuma conta a pagar encontrada para o período especificado.",
+                    aviso_escopo,
+                )
 
             result_list, duplicate_count = deduplicate_payables(result_list)
             if duplicate_count:
@@ -4159,7 +4181,7 @@ IMPORTANTE:
                     if partial_listing
                     else "A listagem contém todos os títulos usados no total informado."
                 )
-                return f"""Resultados da consulta usp_IA_ContasAPagar:
+                return append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
 
 {partial_notice}Total de títulos detalhados: {len(result_list)}
 Valor dos títulos detalhados: R$ {total_geral:,.2f}
@@ -4169,7 +4191,7 @@ TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
 {tabela_str}
 
 Analise os {len(result_list)} registros acima e responda com base nos dados fornecidos.
-{partial_instruction}"""
+{partial_instruction}""", aviso_escopo)
 
             # Agrega por dia de vencimento E por fornecedor
             from collections import defaultdict
@@ -4254,7 +4276,7 @@ Analise os {len(result_list)} registros acima e responda com base nos dados forn
             formatted_por_dia = json.dumps(dias_list, ensure_ascii=False, indent=2, default=convert_decimals)
             formatted_por_fornecedor = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-            return f"""Resultados da consulta usp_IA_ContasAPagar:
+            return append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
 
 Total de registros: {len(result_list)}
 Total de fornecedores únicos: {len(por_fornecedor)}
@@ -4270,7 +4292,7 @@ IMPORTANTE:
 1. Estas são contas PENDENTES (a pagar no futuro)
 2. Os totais por dia e por fornecedor já estão calculados acima
 3. Para responder "total por dia", use a seção TOTAIS POR DIA DE VENCIMENTO
-4. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}"""
+4. Mostrando apenas os {len(fornecedores_list)} maiores fornecedores de um total de {len(por_fornecedor)}""", aviso_escopo)
 
         except Exception as e:
             import traceback
@@ -4720,7 +4742,10 @@ IMPORTANTE:
             self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
-                return "Nenhuma conta a receber vencida encontrada."
+                return append_scope_notice(
+                    "Nenhuma conta a receber vencida encontrada.",
+                    CURRENT_OPEN_PAST_NOTICE,
+                )
 
             def numero(valor: Any) -> Decimal:
                 if valor is None:
@@ -4758,13 +4783,13 @@ IMPORTANTE:
                     f"- {contrato}: R$ {format_pt_br(dados['saldo'])} ({dados['titulos']} título(s))"
                     for contrato, dados in contratos
                 ]
-                return (
+                return append_scope_notice((
                     f"Contas a receber vencidas do cliente {cliente}:\n\n"
                     f"Saldo líquido: R$ {format_pt_br(total_saldo)}\n"
                     f"Quantidade de contratos: {len(por_contrato)}\n\n"
                     "Todos os contratos:\n"
                     + "\n".join(linhas_contratos)
-                )
+                ), CURRENT_OPEN_PAST_NOTICE)
 
             por_cliente = defaultdict(
                 lambda: {"saldo": Decimal("0"), "contratos": set(), "titulos": 0}
@@ -4791,7 +4816,7 @@ IMPORTANTE:
                 if somente_negativas
                 else "Todos os clientes:"
             )
-            return (
+            return append_scope_notice((
                 "Resultados de contas a receber vencidas:\n\n"
                 f"Total de registros: {len(result_list)}\n"
                 f"Saldo total vencido: R$ {format_pt_br(total_saldo)}\n"
@@ -4799,7 +4824,7 @@ IMPORTANTE:
                 f"{titulo_lista}\n"
                 + "\n".join(linhas)
                 + "\n\nO saldo total é líquido: inclui valores positivos e negativos (créditos do comprador). Todos os registros possuem tipo Receber."
-            )
+            ), CURRENT_OPEN_PAST_NOTICE)
         except Exception as e:
             logger.error("[CONTAS A RECEBER VENCIDAS] Erro na consulta: %s", e, exc_info=True)
             return "Desculpe, ocorreu um erro ao consultar as contas a receber vencidas."
@@ -4822,6 +4847,8 @@ IMPORTANTE:
         function_name = "IA_ContasAReceber"
         filters = None
         data_fim_filter = None
+        periodo_inicio = None
+        periodo_fim = None
 
         # DETECÇÃO DE "VENCIDO": se query menciona "vencido/vencidas" sem data explícita,
         # usa range de 1 ano atrás até hoje (contas já vencidas)
@@ -4838,6 +4865,8 @@ IMPORTANTE:
                     "data_inicio": um_ano_atras.strftime('%Y%m%d'),
                     "data_fim": hoje_sp.strftime('%Y%m%d')
                 }
+                periodo_inicio = filters["data_inicio"]
+                periodo_fim = filters["data_fim"]
                 logger.info(f"[CONTAS A RECEBER] 'vencido' detectado sem data - usando IA_ContasAReceberPar({filters['data_inicio']}, {filters['data_fim']})")
 
         if data_vencimento:
@@ -4867,6 +4896,7 @@ IMPORTANTE:
 
                 # Se temos datas, usa IA_ContasAReceberPar com parâmetros
                 if inicio and fim:
+                    periodo_inicio, periodo_fim = inicio, fim
                     function_name = "IA_ContasAReceberPar"
                     filters = {
                         "data_inicio": inicio,
@@ -4890,6 +4920,18 @@ IMPORTANTE:
         # Executa query
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
+            aviso_escopo = current_open_scope_notice(
+                periodo_inicio,
+                periodo_fim,
+                today=date_parser.get_current_date(),
+            )
+            logger.info(
+                "[CONTAS A RECEBER][ESCOPO] fonte=%s inicio=%s fim=%s classificacao=%s",
+                function_name,
+                periodo_inicio,
+                periodo_fim,
+                "posicao_atual_filtrada_data_passada" if aviso_escopo else "posicao_atual",
+            )
             self._salvar_resultado_scheduler(result_list)
 
             # Aplica filtro manual de data_fim se necessário
@@ -4920,7 +4962,7 @@ IMPORTANTE:
                     msg += f" para o contrato {contrato}"
                 if data_vencimento:
                     msg += f" no período especificado"
-                return msg + "."
+                return append_scope_notice(msg + ".", aviso_escopo)
 
             # Se contrato específico foi solicitado E poucos registros (<= 50), retorna detalhes completos
             if contrato and len(result_list) <= 50:
@@ -4962,7 +5004,7 @@ IMPORTANTE:
 
                 formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
 
-                return f"""Resultados da consulta IA_ContasAReceber para o contrato {contrato}:
+                return append_scope_notice(f"""Resultados da consulta IA_ContasAReceber para o contrato {contrato}:
 
 Total de títulos: {len(result_list)}
 Valor total a receber: R$ {total_valor:,.2f}
@@ -4976,7 +5018,7 @@ IMPORTANTE:
 2. Cada linha representa um título individual do contrato
 3. valor = valor total do título
 4. saldo = saldo pendente a receber
-5. Total geral: R$ {total_valor:,.2f}"""
+5. Total geral: R$ {total_valor:,.2f}""", aviso_escopo)
 
             # Se NÃO solicitou contrato específico, agrega por cliente para garantir valores corretos
             from collections import defaultdict
@@ -5104,13 +5146,13 @@ IMPORTANTE:
                     if linhas_clientes:
                         clientes_texto = "\n\nClientes em atraso:\n" + "\n".join(linhas_clientes)
 
-                return (
+                return append_scope_notice((
                     f"O total de contas a receber vencidas: "
                     f"R$ {format_pt_br(total_vencido_positivo)}."
                     f"{clientes_texto}"
-                )
+                ), aviso_escopo or CURRENT_OPEN_PAST_NOTICE)
 
-            return f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
+            return append_scope_notice(f"""Resultados da consulta IA_ContasAReceber (AGREGADOS POR CLIENTE):{_aviso_vencidas}
 
 Total de registros SQL: {len(result_list)}
 Total de clientes únicos: {len(por_cliente)}
@@ -5124,7 +5166,7 @@ IMPORTANTE:
 1. Estas são contas {_tipo_label}
 2. Os valores já estão AGREGADOS por cliente (se cliente tem múltiplos títulos, valores foram somados)
 3. valor_total = soma de todos os títulos daquele cliente
-4. Total geral: R$ {total_valor:,.2f}"""
+4. Total geral: R$ {total_valor:,.2f}""", aviso_escopo)
 
         except Exception as e:
             import traceback
@@ -5914,6 +5956,7 @@ Esta ferramenta retorna informações sobre contas pendentes de pagamento, inclu
 - natureza: Natureza/tipo da despesa (ex: compra de café, fretes, despesas, etc.)
 
 ⚠️ IMPORTANTE: Esta ferramenta é somente para PAGAMENTOS PENDENTES/FUTUROS.
+Ao consultar uma data passada, ela continua mostrando somente títulos que permanecem em aberto atualmente; não reconstrói a posição histórica daquele dia. Preserve obrigatoriamente o aviso de escopo retornado pela ferramenta e nunca conclua que eram os únicos títulos existentes naquela data.
 Para contas vencidas, atrasadas ou em atraso, use obrigatoriamente pesquisa_contas_a_receber_vencidas.
 Para pagamentos já efetuados, use pesquisa_contas_pagas.
 
@@ -6011,6 +6054,7 @@ Esta ferramenta retorna informações sobre contas pendentes de recebimento, inc
 - diferencial: Diferencial de preço
 
 ⚠️ IMPORTANTE - QUANDO USAR ESTA FERRAMENTA:
+- Ao consultar uma data passada, o resultado é a posição ATUAL dos títulos ainda abertos filtrada por aquela data, não o histórico completo. Preserve obrigatoriamente o aviso de escopo da ferramenta e não diga que os registros retornados eram os únicos existentes naquela data.
 - Para contas a receber vencidas, atrasadas ou em atraso, NÃO use esta ferramenta; use pesquisa_contas_a_receber_vencidas().
 - "Quanto temos a receber?" → USE ESTA FERRAMENTA
 - "Quanto a NESTLE me deve?" → USE ESTA FERRAMENTA
