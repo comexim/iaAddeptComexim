@@ -26,6 +26,8 @@ def test_purchase_aggregation_uses_purchase_fields_and_weighted_average():
     assert result["totais_por_moeda"] == [
         {
             "moeda": "BRL",
+            "moeda_considerada": "BRL",
+            "moeda_informada": True,
             "valor_total": 7000.0,
             "quantidade_total": 40.0,
             "media_ponderada": 175.0,
@@ -65,6 +67,8 @@ def test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl():
     )
 
     assert result["totais_por_moeda"][0]["moeda"] == "N/I"
+    assert result["totais_por_moeda"][0]["moeda_considerada"] == "USD"
+    assert result["totais_por_moeda"][0]["moeda_informada"] is False
 
 
 def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
