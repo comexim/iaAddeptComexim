@@ -292,6 +292,10 @@ class SQLTools:
             # queries como "vendas do cliente NESTRADE" e "compras do fornecedor X"
             r'\bestoque',  # "estoque"
             r'\bmês\s+de\s+(embarque|emissão|emissao|fixação|fixacao)',  # "mês de embarque", "mês de emissão"
+            r'\b(?:primeiro|segundo|1[ºo°]?|2[ºo°]?)\s+semestre\b',
+            r'\bsemestre\s+(?:de\s+)?20\d{2}\b',
+            r'\b(?:primeiro|segundo|terceiro|quarto|[1-4][ºo°]?)\s+trimestre\b',
+            r'\b(?:mes\s+a\s+mes|mes\s+por\s+mes|por\s+mes)\b',
         ]
 
         for termo in termos_tecnicos:
@@ -1396,7 +1400,7 @@ class SQLTools:
             return "Não foram encontrados registros para esse período."
 
         lines = [
-            "SÉRIE MENSAL DETERMINÍSTICA — SOMENTE DADOS RETORNADOS PELO BANCO",
+            "Vendas por mês:" if kind == "sales" else "Compras por mês:",
             "",
         ]
         if kind == "sales":
@@ -1423,11 +1427,6 @@ class SQLTools:
                 "",
                 "Meses sem registros: " + ", ".join(missing) + ".",
             ])
-        lines.extend([
-            "",
-            "REGRA OBRIGATÓRIA: apresente somente os meses acima. "
-            "Não estime, não projete e não complete meses ausentes.",
-        ])
         return "\n".join(lines)
 
     def _format_results(self, results: list[Dict[str, Any]], function_name: str, client_filter: Optional[str] = None, pagina: int = 1) -> str:
@@ -3156,6 +3155,26 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 logger.warning(f"[PROTEÇÃO] Usando periodo=None para buscar TODOS os contratos e filtrar por campos específicos")
                 periodo = None  # Força periodo=None
 
+        # Em uma série mensal, a pergunta original é a fonte do intervalo.
+        # Isso impede que uma chamada fragmentada do modelo (ex.: "julho 2026")
+        # reduza "segundo semestre de 2026" a um único mês.
+        series_period_override = None
+        if self._is_monthly_series_request():
+            series_source = self.user_query_original or self.user_query or ""
+            parsed_series = self._parse_periodo_vendas(series_source)
+            if (
+                parsed_series
+                and parsed_series.get("mes_inicio")
+                and parsed_series.get("mes_fim")
+                and parsed_series["mes_inicio"] != parsed_series["mes_fim"]
+            ):
+                series_period_override = parsed_series
+                logger.info(
+                    "[VENDAS SÉRIE] Intervalo completo da pergunta prevalece: %s a %s",
+                    parsed_series["mes_inicio"],
+                    parsed_series["mes_fim"],
+                )
+
         # Extrai nome do cliente da pergunta original do usuário
         client_filter = cliente
         if not client_filter and self.user_query:
@@ -3208,8 +3227,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 periodo_fixacao["mes_inicio"],
                 periodo_fixacao["mes_fim"],
             )
-        elif periodo and not periodo_emissao:
-            parsed = self._parse_periodo_vendas(periodo)
+        elif (periodo or series_period_override) and not periodo_emissao:
+            parsed = series_period_override or self._parse_periodo_vendas(periodo)
             logger.info(f"[VENDAS] Período convertido para meses: {parsed}")
             if parsed:
                 procedure_params["MesIni"] = parsed["mes_inicio"]
@@ -5399,6 +5418,13 @@ Argumentos específicos:
 - mes_fixacao (opcional): índice ou mês de fixação. Aceita H/K/N/U/Z com dois
   dígitos de ano e meses por extenso ou numéricos (ex.: U26, K27, julho/26,
   09/2026). É enviado como @MesFixIni e @MesFixFim.
+
+SÉRIES MENSAIS:
+- Faça exatamente UMA chamada para todo o intervalo solicitado.
+- Nunca faça uma chamada separada para cada mês.
+- Exemplo: "vendas mês a mês do segundo semestre de 2026" deve chamar
+  pesquisa_vendas(periodo="segundo semestre de 2026") uma única vez.
+- O código separará os resultados por mesEmbarque e declarará meses ausentes.
 
 MESES/ÍNDICES DE FIXAÇÃO:
 - H = março

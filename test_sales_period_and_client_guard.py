@@ -94,6 +94,17 @@ def test_sales_purchase_volume_comparison_is_not_detected_as_client():
     assert sql_tools._extract_client_name(query) is None
 
 
+def test_second_semester_is_never_detected_as_client():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    query = (
+        "Aron, mostre as vendas mês a mês do segundo semestre de 2026, "
+        "com contratos, sacas e valor total."
+    )
+
+    assert sql_tools._extract_client_name(query) is None
+
+
 def test_partial_monthly_sales_output_names_missing_months():
     SQLTools = _load_sql_tools_with_stubs()
     sql_tools = SQLTools.__new__(SQLTools)

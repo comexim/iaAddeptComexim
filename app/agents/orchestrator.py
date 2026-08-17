@@ -1285,6 +1285,26 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 self.message_history.add_ai_message(output)
                 return output
 
+            # Quebras mensais de vendas precisam de uma única consulta para o
+            # intervalo completo. Isso evita seis tool calls independentes e
+            # garante que os meses ausentes sejam tratados pelo agregador
+            # determinístico, sem qualquer preenchimento pelo modelo.
+            monthly_sales_series = (
+                not scheduling_intent
+                and bool(re.search(r'\b(?:vendas?|contratos?|embarques?)\b', normalized_current))
+                and sql_tools._is_monthly_series_request()
+            )
+            if monthly_sales_series:
+                logger.info(
+                    "[FORCE TOOL] Série mensal de vendas detectada; "
+                    "executando uma única consulta para o intervalo completo"
+                )
+                output = sql_tools._pesquisa_vendas(periodo=message)
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                logger.info("Resposta mensal determinística gerada: %s...", output[:100])
+                return output
+
             if self._should_force_vendas_market_query(message):
                 periodo_forcado = self._extract_sales_period_from_message(message)
                 if not periodo_forcado:
