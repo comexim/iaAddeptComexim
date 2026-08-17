@@ -98,6 +98,8 @@ async def _executar_relatorio(relatorio: dict) -> None:
     from app.services.whatsapp import WhatsAppService
     from app.services.formatter import response_formatter
     from app.services.email import email_service
+    from app.core.config import settings
+    from app.services.query_trace import reset_query_trace, start_query_trace
 
     telefone = relatorio["telefone"]
     descricao = relatorio["descricao"]
@@ -107,6 +109,7 @@ async def _executar_relatorio(relatorio: dict) -> None:
     dia_semana = relatorio.get("dia_semana")
     dia_mes = relatorio.get("dia_mes")
     canal = relatorio.get("canal", "whatsapp")
+    trace_token = start_query_trace(f"scheduler:{relatorio_id}", settings.app_env)
 
     logger.info(f"[SCHEDULER] Executando relatório '{descricao}' para {telefone} via {canal}")
 
@@ -254,6 +257,7 @@ async def _executar_relatorio(relatorio: dict) -> None:
                 last_run=agora.isoformat(),
             )
             logger.info(f"[SCHEDULER] Próxima execução de '{descricao}': {next_run.strftime('%d/%m/%Y %H:%M')}")
+        reset_query_trace(trace_token)
 
 
 async def verificar_e_executar_relatorios() -> None:

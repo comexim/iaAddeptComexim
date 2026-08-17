@@ -3,8 +3,11 @@ Cliente SQL Server para consultas no banco de dados Protheus
 """
 import pyodbc
 import logging
+import time
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from app.core.config import settings
+from app.services.query_trace import log_database_execution
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +51,9 @@ class SQLServerClient:
         Returns:
             Lista de dicionários com resultados
         """
+        executed_at = datetime.now(timezone.utc).isoformat()
+        started_clock = time.perf_counter()
+
         # Parâmetros que devem ser passados PARA a função (não como WHERE)
         FUNCTION_PARAMETERS = {
             "IA_Vendas": [],  # Vendas NÃO aceita parâmetros, mesEmbarque vai no WHERE
@@ -188,6 +194,14 @@ class SQLServerClient:
                 results.append(row_dict)
 
             logger.info(f"Query executada com sucesso. {len(results)} registros retornados.")
+            log_database_execution(
+                source_kind="function",
+                source_name=function_name,
+                parameters=filters,
+                record_count=len(results),
+                executed_at=executed_at,
+                duration_ms=(time.perf_counter() - started_clock) * 1000,
+            )
             return results
 
         except pyodbc.Error as e:
@@ -226,6 +240,9 @@ class SQLServerClient:
         Returns:
             Lista de dicionários com resultados
         """
+        executed_at = datetime.now(timezone.utc).isoformat()
+        started_clock = time.perf_counter()
+
         # Monta comando EXEC com parâmetros nomeados
         if params:
             param_strings = []
@@ -306,6 +323,15 @@ class SQLServerClient:
             if not all_results:
                 logger.warning(f"Procedure {procedure_name} executou mas nenhum result set retornou dados")
                 logger.warning(f"Verifique se a procedure tem SELECT ou se tem SET NOCOUNT ON")
+
+            log_database_execution(
+                source_kind="procedure",
+                source_name=procedure_name,
+                parameters=params,
+                record_count=len(all_results),
+                executed_at=executed_at,
+                duration_ms=(time.perf_counter() - started_clock) * 1000,
+            )
 
             return all_results
 

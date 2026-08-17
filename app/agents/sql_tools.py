@@ -55,6 +55,7 @@ from app.services.financial_record_display import (
     supplier_display,
     zero_value_classification,
 )
+from app.services.query_trace import log_query_processing
 from app.services.stock_metrics import (
     build_longshort_snapshot,
     build_stock_snapshot,
@@ -1656,10 +1657,12 @@ class SQLTools:
 
         total_records = len(results)
         original_count = total_records
+        trace_filters: Dict[str, Any] = {}
 
         # ESTRATÉGIA 1: Se cliente específico foi identificado, filtra
         if client_filter:
             results = self._filter_by_client(results, client_filter)
+            trace_filters["cliente"] = client_filter
 
             if not results:
                 return f"Nenhum contrato encontrado para o cliente '{client_filter}' no período consultado."
@@ -1941,6 +1944,7 @@ class SQLTools:
             # Atualiza total de registros após filtros
             if filtros_aplicados:
                 total_records = len(results)
+                trace_filters["filtros_automaticos"] = list(filtros_aplicados)
                 logger.info(f"[FILTROS APLICADOS] {', '.join(filtros_aplicados)}")
                 if not results:
                     return "Não foram encontrados registros para esse período."
@@ -1952,6 +1956,15 @@ class SQLTools:
             ):
                 market_label = "mercado interno" if any(term in query_lower for term in ["mercado interno", "mercado nacional"]) else "mercado externo"
                 totals = aggregate_sales_totals(results)
+                log_query_processing(
+                    source_name=function_name,
+                    original_count=original_count,
+                    final_count=len(results),
+                    post_filters={"mercado": market_label},
+                    calculated_totals=totals,
+                    unit="sacas",
+                    currency="USD",
+                )
                 return (
                     f"No período consultado, vendemos no {market_label} "
                     f"{format_pt_br(totals['sacas'])} sacas, no valor total de "
@@ -1966,7 +1979,59 @@ class SQLTools:
                     and not self._is_monthly_series_request()
                     and any(term in query_lower for term in ["volume total", "total da safra", "quanto compr", "quantas sacas"])
                 ):
+                    purchase_metrics = aggregate_purchases(results)
+                    log_query_processing(
+                        source_name=function_name,
+                        original_count=original_count,
+                        final_count=len(results),
+                        post_filters={"safra": safra_detectada},
+                        calculated_totals=purchase_metrics,
+                        unit="sacas/kg",
+                        currency=",".join(
+                            item["moeda"] for item in purchase_metrics["totais_por_moeda"]
+                        ) or "N/I",
+                    )
                     return self._format_purchase_total_summary(results, safra_detectada)
+
+        trace_totals: Dict[str, Any] = {}
+        trace_unit = None
+        trace_currency = None
+        if function_name in ("IA_Compras", "IA_ComprasPar"):
+            purchase_metrics = aggregate_purchases(results)
+            trace_totals = {
+                "pedidos": purchase_metrics["total_contratos"],
+                "peso_kg": purchase_metrics["peso_total_kg"],
+                "por_moeda": purchase_metrics["totais_por_moeda"],
+            }
+            trace_unit = "sacas/kg"
+            currencies = [item["moeda"] for item in purchase_metrics["totais_por_moeda"]]
+            trace_currency = ",".join(currencies) if currencies else "N/I"
+        elif function_name == "IA_Vendas":
+            sales_metrics = aggregate_sales_totals(results)
+            trace_totals = sales_metrics
+            trace_unit = "sacas"
+            trace_currency = "USD"
+        elif function_name == "IA_Estoque":
+            stock_metrics = build_stock_snapshot(results)
+            trace_totals = {
+                "total_sacas": stock_metrics["total_sacas"],
+                "sacas_consumo": stock_metrics["sacas_consumo"],
+                "sacas_exportacao": stock_metrics["sacas_exportacao"],
+                "peso_kg": stock_metrics["peso_kg"],
+                "total_lotes": stock_metrics["total_lotes"],
+            }
+            trace_filters["duplicatas_exatas_removidas"] = stock_metrics["duplicatas_exatas"]
+            trace_unit = "sacas/kg"
+
+        log_query_processing(
+            source_name=function_name,
+            original_count=original_count,
+            final_count=len(results),
+            post_filters=trace_filters,
+            calculated_totals=trace_totals,
+            unit=trace_unit,
+            currency=trace_currency,
+        )
 
         # Séries mensais são montadas somente depois dos filtros determinísticos
         # (cliente, filial, mercado, fixação etc.) terem sido aplicados.
@@ -3897,6 +3962,22 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 elif limite > 0:
                     result_list = result_list[:limite]
 
+            log_query_processing(
+                source_name=procedure_name,
+                original_count=len(result_list),
+                final_count=len(result_list),
+                post_filters={"fornecedor": fornecedor, "limite": limite},
+                calculated_totals={
+                    "valor_total": sum(
+                        (payable_decimal(row.get("valor") or row.get("valorStr")) for row in result_list),
+                        Decimal("0"),
+                    )
+                },
+                status_criterion="pagamentos efetuados",
+                unit="títulos",
+                currency="BRL",
+            )
+
             # Se poucos registros (<= 50), retorna todos
             if len(result_list) <= 50:
                 def convert_decimals(obj):
@@ -4180,6 +4261,16 @@ IMPORTANTE:
                 logger.info("[CONTAS A PAGAR][PERÍODO] %s", contexto_periodo)
 
             if not result_list:
+                log_query_processing(
+                    source_name=procedure_name,
+                    original_count=0,
+                    final_count=0,
+                    post_filters={"natureza": natureza, "fornecedor": fornecedor},
+                    calculated_totals={"valor_total": 0},
+                    status_criterion="títulos atualmente pendentes",
+                    unit="títulos",
+                    currency="BRL",
+                )
                 return append_period_context(append_scope_notice(
                     "Nenhuma conta a pagar encontrada para o período especificado.",
                     aviso_escopo,
@@ -4196,6 +4287,20 @@ IMPORTANTE:
             complete_total = sum(
                 (payable_decimal(r.get("valor")) for r in complete_result_list),
                 Decimal("0"),
+            )
+            log_query_processing(
+                source_name=procedure_name,
+                original_count=len(result_list) + duplicate_count,
+                final_count=len(result_list),
+                post_filters={
+                    "natureza": natureza,
+                    "fornecedor": fornecedor,
+                    "duplicados_idProtheus_removidos": duplicate_count,
+                },
+                calculated_totals={"valor_total": complete_total},
+                status_criterion="títulos atualmente pendentes",
+                unit="títulos",
+                currency="BRL",
             )
             full_reconciliation = reconcile_payables(
                 complete_result_list,
@@ -4814,6 +4919,15 @@ IMPORTANTE:
             return "Nenhum dado de posição Long/Short foi encontrado."
 
         snapshot = build_longshort_snapshot(results[0])
+        log_query_processing(
+            source_name="usp_LS_FILIAIS",
+            original_count=len(results),
+            final_count=1,
+            post_filters={"snapshot": "primeira linha da mesma execução"},
+            calculated_totals=snapshot,
+            status_criterion="posição atual",
+            unit="sacas/lotes",
+        )
         return format_longshort_snapshot(snapshot)
 
     def _pesquisa_contas_a_receber_vencidas(
@@ -4855,6 +4969,22 @@ IMPORTANTE:
         try:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
             self._salvar_resultado_scheduler(result_list)
+
+            log_query_processing(
+                source_name=function_name,
+                original_count=len(result_list),
+                final_count=len(result_list),
+                post_filters={"cliente": cliente, "somente_negativas": somente_negativas},
+                calculated_totals={
+                    "saldo_total": sum(
+                        (payable_decimal(row.get("saldo")) for row in result_list),
+                        Decimal("0"),
+                    )
+                },
+                status_criterion="vencidos que permanecem em aberto atualmente",
+                unit="títulos",
+                currency="BRL",
+            )
 
             if not result_list:
                 return append_scope_notice(
@@ -5113,6 +5243,32 @@ IMPORTANTE:
 
             # O anexo deve conter somente o período pedido e os demais filtros.
             self._salvar_resultado_scheduler(result_list)
+
+            log_query_processing(
+                source_name=function_name,
+                original_count=len(result_list),
+                final_count=len(result_list),
+                post_filters={
+                    "vencimento_inicio": periodo_inicio,
+                    "vencimento_fim": periodo_fim,
+                    "cliente": cliente,
+                    "contrato": contrato,
+                    "dias_uteis": uses_business_days(data_vencimento),
+                },
+                calculated_totals={
+                    "valor_total": sum(
+                        (payable_decimal(row.get("valor")) for row in result_list),
+                        Decimal("0"),
+                    ),
+                    "saldo_total": sum(
+                        (payable_decimal(row.get("saldo")) for row in result_list),
+                        Decimal("0"),
+                    ),
+                },
+                status_criterion="títulos atualmente pendentes",
+                unit="títulos",
+                currency="BRL",
+            )
 
             if not result_list:
                 msg = "Nenhuma conta a receber encontrada"

@@ -14,6 +14,7 @@ from app.services.formatter import response_formatter
 from app.core.redis_client import redis_client
 from app.agents.orchestrator import AgentOrchestrator
 from app.core.config import settings
+from app.services.query_trace import reset_query_trace, start_query_trace
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,7 +25,7 @@ class WebhookRequest(BaseModel):
     body: dict  # Payload genérico do Evolution
 
 
-async def process_message_flow(phone: str, message_text: str, session_id: str):
+async def process_message_flow(phone: str, message_text: str, session_id: str, message_id: str = ""):
     """
     Fluxo completo de processamento de mensagem
 
@@ -33,6 +34,7 @@ async def process_message_flow(phone: str, message_text: str, session_id: str):
         message_text: Texto da mensagem
         session_id: ID da sessão (chatid completo)
     """
+    trace_token = start_query_trace(message_id, settings.app_env)
     try:
         # 1. Autenticação
         logger.info(f"Iniciando processamento para {phone}")
@@ -93,6 +95,8 @@ async def process_message_flow(phone: str, message_text: str, session_id: str):
             )
         except:
             pass
+    finally:
+        reset_query_trace(trace_token)
 
 
 @router.post("/webhook")
@@ -109,8 +113,13 @@ async def evolution_webhook(request: dict, background_tasks: BackgroundTasks):
         Status da operação
     """
     try:
-        # DEBUG: Log completo do payload recebido
-        logger.info(f"[WEBHOOK] Payload recebido: {request}")
+        # Não registrar payload completo: integrações podem enviar tokens e
+        # outros dados sensíveis. O identificador é capturado após o parse.
+        logger.info(
+            "[WEBHOOK] Payload recebido: event=%r campos=%s",
+            request.get("EventType") or request.get("event"),
+            sorted(key for key in request.keys() if key not in {"token", "authorization"}),
+        )
 
         # Detecta se é UAZAPI ou Evolution API
         is_uazapi = "EventType" in request and "message" in request
@@ -191,7 +200,8 @@ async def evolution_webhook(request: dict, background_tasks: BackgroundTasks):
             process_message_flow,
             message.phone_number,
             text.strip(),
-            message.chatid
+            message.chatid,
+            message.message_id,
         )
 
         logger.info(f"[WEBHOOK] Processamento agendado com sucesso")
