@@ -48,6 +48,13 @@ from app.services.financial_period_context import (
     resolve_business_day_range,
     uses_business_days,
 )
+from app.services.financial_record_display import (
+    format_zero_value_records,
+    prepare_financial_record,
+    split_zero_value_records,
+    supplier_display,
+    zero_value_classification,
+)
 from app.services.stock_metrics import (
     build_longshort_snapshot,
     build_stock_snapshot,
@@ -92,6 +99,24 @@ class SQLTools:
                         logger.info(f"[CONTEXTO REDIS] Contrato carregado: {contrato_redis}")
             except Exception as e:
                 logger.debug(f"[CONTEXTO REDIS] Não foi possível carregar contrato: {e}")
+
+    @staticmethod
+    def _log_financial_field_anomalies(rows: list[Dict[str, Any]], source: str) -> None:
+        """Registra a origem dos campos sem alterar a linha devolvida pelo banco."""
+        for index, row in enumerate(rows, 1):
+            supplier = str(row.get("fornecedor") or "").strip()
+            nature = str(row.get("natureza") or "").strip()
+            description = str(row.get("descricao") or row.get("descrição") or "").strip()
+            if not supplier:
+                logger.info(
+                    "[%s][CAMPO VAZIO] registro=%s fornecedor_original=%r natureza=%r descricao=%r valor=%r",
+                    source, index, row.get("fornecedor"), nature, description, row.get("valor"),
+                )
+            elif nature and supplier.casefold() == nature.casefold():
+                logger.info(
+                    "[%s][ORIGEM BANCO] registro=%s fornecedor e natureza vieram iguais: %r; valor=%r",
+                    source, index, supplier, row.get("valor"),
+                )
 
     def _run_coroutine(self, coro):
         """Executa coroutine de forma segura independente do estado do event loop."""
@@ -3859,6 +3884,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         # Executa stored procedure
         try:
             result_list = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            self._log_financial_field_anomalies(result_list or [], "CONTAS PAGAS")
             self._salvar_resultado_scheduler(result_list)
 
             if not result_list:
@@ -3878,7 +3904,8 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                         return float(obj)
                     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
-                formatted = json.dumps(result_list, ensure_ascii=False, indent=2, default=convert_decimals)
+                display_rows = [prepare_financial_record(row) for row in result_list]
+                formatted = json.dumps(display_rows, ensure_ascii=False, indent=2, default=convert_decimals)
 
                 return f"""Resultados da consulta usp_IA_ContasPagas:
 
@@ -3889,7 +3916,8 @@ Dados completos:
 
 CAMPOS DISPONÍVEIS:
 - numero: Número do título/documento
-- fornecedor: Nome do fornecedor/beneficiário
+- fornecedor: Valor original do banco; pode estar vazio
+- fornecedor_exibicao: Nome para resposta; quando o original está vazio, é "Fornecedor não informado"
 - valor: Valor principal pago
 - valorStr: Valor em formato string
 - moeda: Tipo de moeda (BRL/USD/EUR)
@@ -3905,10 +3933,14 @@ CAMPOS DISPONÍVEIS:
 - aprovador: Primeiro aprovador
 - aprovador2: Segundo aprovador
 - filial: Código da filial
+- valor_zerado: indica registro com valor igual a zero
+- classificacao_valor_zero: ajuste cambial/contábil quando há evidência no texto, ou registro sem valor
 
-Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis."""
+Analise TODOS os {len(result_list)} registros acima e responda com base nos campos disponíveis.
+Nunca use natureza ou descrição como fornecedor. Identifique explicitamente os registros zerados."""
 
-            # Se muitos registros (> 50), agrega por fornecedor
+            # Se muitos registros (> 50), agrega por fornecedor. Zeros ficam
+            # fora do ranking e são exibidos separadamente.
             from collections import defaultdict
             por_fornecedor = defaultdict(lambda: {
                 "valor_total": 0,
@@ -3918,9 +3950,10 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
             })
 
             total_geral = 0
+            ranking_rows, zero_rows = split_zero_value_records(result_list)
 
-            for r in result_list:
-                fornecedor = r.get("fornecedor", "").strip() or "SEM FORNECEDOR"
+            for r in ranking_rows:
+                fornecedor = supplier_display(r)
                 valor = r.get("valor", 0)
 
                 # Converte valor para float
@@ -3943,15 +3976,23 @@ Analise TODOS os {len(result_list)} registros acima e responda com base nos camp
                 por_fornecedor[fornecedor]["valor_total"] += valor
                 por_fornecedor[fornecedor]["quantidade"] += 1
 
-                natureza = r.get("natureza", "").strip()
+                natureza = str(r.get("natureza") or "").strip()
                 if natureza:
                     por_fornecedor[fornecedor]["naturezas"].add(natureza)
 
-                banco = r.get("banco", "").strip()
+                banco = str(r.get("banco") or "").strip()
                 if banco:
                     por_fornecedor[fornecedor]["bancos"].add(banco)
 
                 total_geral += valor
+
+            # Zeros não alteram o total, mas continuam visíveis e preservados.
+            zero_notice = ""
+            if zero_rows:
+                zero_notice = (
+                    f"\n\nREGISTROS COM VALOR ZERO (fora do ranking): {len(zero_rows)}\n"
+                    + format_zero_value_records(zero_rows)
+                )
 
             # Converte sets para listas para JSON
             # Ordena por VALOR ABSOLUTO (maiores pagamentos primeiro) e limita aos top 50
@@ -3982,7 +4023,7 @@ Total de fornecedores únicos: {len(por_fornecedor)}
 Valor total pago: R$ {total_geral:,.2f}
 
 Top {len(fornecedores_list)} maiores fornecedores (por valor):
-{formatted}
+{formatted}{zero_notice}
 
 CAMPOS DISPONÍVEIS POR FORNECEDOR:
 - fornecedor: Nome do fornecedor/beneficiário
@@ -4083,6 +4124,7 @@ IMPORTANTE:
         # Executa stored procedure
         try:
             result_list = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            self._log_financial_field_anomalies(result_list or [], "CONTAS A PAGAR")
             aviso_escopo = current_open_scope_notice(
                 periodo_inicio,
                 periodo_fim,
@@ -4203,11 +4245,13 @@ IMPORTANTE:
                     total_geral += valor
                     num = str(r.get('numero', '')).strip()
                     parc = str(r.get('parcela', '')).strip()
-                    forn = str(r.get('fornecedor', '')).strip()
+                    forn = supplier_display(r)
                     nat = str(r.get('natureza', '')).strip()
                     venc = str(r.get('vencimento', '')).strip()
                     fil = str(r.get('filial', '')).strip()
-                    linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}")
+                    zero_label = zero_value_classification(r)
+                    zero_suffix = f" | {zero_label}" if zero_label else ""
+                    linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}{zero_suffix}")
 
                 detail_reconciliation = reconcile_payables(
                     result_list,
@@ -4252,6 +4296,8 @@ TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
 {tabela_str}
 
 Analise os {len(result_list)} registros acima e responda com base nos dados fornecidos.
+Fornecedor e natureza são campos separados; nunca copie natureza/descrição para fornecedor.
+As classificações após o vencimento identificam registros com valor zero.
 {partial_instruction}""", aviso_escopo), contexto_periodo)
 
             # Agrega por dia de vencimento E por fornecedor
@@ -4265,9 +4311,10 @@ Analise os {len(result_list)} registros acima e responda com base nos dados forn
             })
 
             total_geral = 0
+            _, zero_rows = split_zero_value_records(result_list)
 
             for r in result_list:
-                fornecedor = r.get("fornecedor", "").strip() or "SEM FORNECEDOR"
+                fornecedor = supplier_display(r)
                 vencimento = str(r.get("vencimento", "")).strip() or "SEM DATA"
                 valor = r.get("valor", 0)
 
@@ -4292,16 +4339,17 @@ Analise os {len(result_list)} registros acima e responda com base nos dados forn
                 por_dia[vencimento]["valor_total"] += valor
                 por_dia[vencimento]["quantidade"] += 1
 
-                # Agrega por fornecedor
-                por_fornecedor[fornecedor]["valor_total"] += valor
-                por_fornecedor[fornecedor]["quantidade"] += 1
+                # Registros zerados não participam do ranking de fornecedores.
+                if valor != 0:
+                    por_fornecedor[fornecedor]["valor_total"] += valor
+                    por_fornecedor[fornecedor]["quantidade"] += 1
 
-                natureza = r.get("natureza", "").strip()
-                if natureza:
-                    por_fornecedor[fornecedor]["naturezas"].add(natureza)
+                    natureza = str(r.get("natureza") or "").strip()
+                    if natureza:
+                        por_fornecedor[fornecedor]["naturezas"].add(natureza)
 
-                if vencimento != "SEM DATA":
-                    por_fornecedor[fornecedor]["vencimentos"].append(vencimento)
+                    if vencimento != "SEM DATA":
+                        por_fornecedor[fornecedor]["vencimentos"].append(vencimento)
 
                 total_geral += valor
 
@@ -4336,6 +4384,12 @@ Analise os {len(result_list)} registros acima e responda com base nos dados forn
 
             formatted_por_dia = json.dumps(dias_list, ensure_ascii=False, indent=2, default=convert_decimals)
             formatted_por_fornecedor = json.dumps(fornecedores_list, ensure_ascii=False, indent=2, default=convert_decimals)
+            zero_notice = ""
+            if zero_rows:
+                zero_notice = (
+                    f"\n\nREGISTROS COM VALOR ZERO (fora do ranking): {len(zero_rows)}\n"
+                    + format_zero_value_records(zero_rows)
+                )
 
             return append_period_context(append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
 
@@ -4347,7 +4401,7 @@ TOTAIS POR DIA DE VENCIMENTO:
 {formatted_por_dia}
 
 Top {len(fornecedores_list)} maiores fornecedores (por valor):
-{formatted_por_fornecedor}
+{formatted_por_fornecedor}{zero_notice}
 
 IMPORTANTE:
 1. Estas são contas PENDENTES (a pagar no futuro)

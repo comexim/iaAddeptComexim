@@ -294,6 +294,12 @@ REGRA DE CALENDÁRIO PARA CONTAS A PAGAR E A RECEBER:
 - Passe integralmente para a ferramenta expressões como "próximos 7 dias", "últimos 7 dias", "esta semana", "próxima semana", "dias úteis" e "dias corridos".
 - Não remova os qualificadores "úteis" ou "corridos" do argumento.
 - Preserve na resposta o contexto determinístico devolvido pela ferramenta: datas inicial/final, inclusão de fins de semana e todos os dias consultados sem registros.
+
+REGRA PARA CAMPOS FINANCEIROS VAZIOS E VALORES ZERO:
+- Fornecedor, natureza e descrição são campos independentes. Nunca copie natureza ou descrição para preencher fornecedor.
+- Quando fornecedor vier vazio, use somente "Fornecedor não informado" na exibição.
+- Preserve o valor original do banco e a classificação determinística de registros zerados devolvida pela ferramenta.
+- Registros com valor zero não participam de rankings de maiores títulos/fornecedores; apresente-os separadamente quando existirem.
 - Estoque → CHAMAR pesquisa_estoque()
 - Conversões entre sacas e quilos nunca devem ser calculadas pelo modelo. Use o peso real retornado pela ferramenta; quando a ferramenta aplicar o padrão de 60 kg/saca por ausência de peso real, informe explicitamente esse fator. Preserve e apresente composições com pesos/unidades diferentes.
 - Orçamento → CHAMAR pesquisa_orcamento()
