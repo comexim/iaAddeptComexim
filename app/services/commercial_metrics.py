@@ -214,15 +214,14 @@ def aggregate_sales_totals(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
-    """Agrega somente campos do esquema de compras."""
-    unique: Dict[str, Dict[str, Any]] = {}
-    for index, row in enumerate(rows):
-        identifier = str(
-            row.get("numero") or row.get("solicitacao") or row.get("pedido") or index
-        ).strip()
-        branch = str(row.get("filial") or "").strip()
-        key = f"{identifier}|{branch}"
-        unique.setdefault(key, row)
+    """Agrega cada registro retornado pelo esquema de compras.
+
+    O número do pedido não é uma chave única confiável: a procedure pode
+    devolver várias linhas legítimas com o mesmo ``numero``. Portanto, uma
+    linha só poderia ser eliminada se a fonte fornecesse uma chave técnica
+    inequívoca; na ausência dela, todos os registros devem ser preservados.
+    """
+    source_rows = list(rows)
 
     totals_by_currency = defaultdict(lambda: {"value": Decimal("0"), "quantity": Decimal("0")})
     suppliers = defaultdict(lambda: {
@@ -231,7 +230,7 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     })
     total_weight = Decimal("0")
 
-    for row in unique.values():
+    for row in source_rows:
         currency = row_currency(row)
         value = _decimal(row.get("valor") or row.get("valorTotal") or row.get("valorContrato"))
         quantity = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
@@ -272,7 +271,7 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     supplier_totals.sort(key=lambda item: abs(item["valor"]), reverse=True)
 
     return {
-        "total_contratos": len(unique),
+        "total_contratos": len(source_rows),
         "peso_total_kg": float(total_weight),
         "kg_por_saca_real": (
             float(total_weight / sum(

@@ -34,6 +34,31 @@ def test_purchase_aggregation_uses_purchase_fields_and_weighted_average():
     assert result["fornecedores"][0]["fornecedor"] == "Cafe B"
 
 
+def test_purchase_aggregation_preserves_rows_with_the_same_order_number():
+    rows = [
+        {
+            "numero": "001380", "fornecedor": "COMEXIM OURO FINO",
+            "sacas": 338.9830508475, "peso": 20000, "valorTotal": 143873.67,
+        },
+        {
+            "numero": "001380", "fornecedor": "COMEXIM OURO FINO",
+            "sacas": 338.9830508475, "peso": 20000, "valorTotal": 143873.67,
+        },
+        {
+            "numero": "001380", "fornecedor": "COMEXIM OURO FINO",
+            "sacas": 338.9830508475, "peso": 20000, "valorTotal": 143873.67,
+        },
+    ]
+
+    result = aggregate_purchases(rows)
+
+    assert result["total_contratos"] == 3
+    assert result["peso_total_kg"] == 60000.0
+    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1016.94915254
+    assert result["totais_por_moeda"][0]["valor_total"] == 431621.01
+    assert result["fornecedores"][0]["contratos"] == 3
+
+
 def test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl():
     result = aggregate_purchases(
         [{"numero": "1", "fornecedor": "Cafe A", "sacas": 2, "valor": 900}]
