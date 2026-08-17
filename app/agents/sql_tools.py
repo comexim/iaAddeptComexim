@@ -26,6 +26,7 @@ from app.services.commercial_metrics import (
     filter_sales_by_market,
     format_pt_br,
     month_keys_between,
+    parse_last_weekday_date,
     reconcile_monthly_commercial_series,
     sales_branch_name,
 )
@@ -297,14 +298,24 @@ class SQLTools:
             ])
 
         prefixo = f"Volume total da safra {safra_code}" if safra_code else "Volume total de compras"
+        query = self._remove_accents((self.user_query_original or self.user_query or "").lower())
+        include_suppliers = any(term in query for term in ("fornecedor", "fornecedores", "quem vendeu", "de quem"))
         fornecedores = []
-        for item in metrics["fornecedores"]:
+        suppliers_to_show = metrics["fornecedores"][:20] if include_suppliers else []
+        for item in suppliers_to_show:
             fornecedores.append(
                 f"- {item['fornecedor']}: {format_pt_br(item['quantidade'])} sacas | "
                 f"{format_pt_br(item['peso_kg'])} kg | {item['contratos']} pedido(s)"
             )
         relacao = metrics.get("kg_por_saca_real")
         relacao_texto = format_pt_br(relacao) if relacao is not None else "N/A"
+        supplier_section = ""
+        if fornecedores:
+            supplier_section = "\n\nPrincipais fornecedores:\n" + "\n".join(fornecedores)
+            omitted = len(metrics["fornecedores"]) - len(suppliers_to_show)
+            if omitted > 0:
+                supplier_section += f"\n\nOutros {omitted} fornecedor(es) não foram exibidos neste resumo."
+
         return (
             "Resumo de compras\n\n"
             f"{prefixo}: {metrics['total_contratos']} pedido(s).\n"
@@ -312,8 +323,7 @@ class SQLTools:
             f"Peso total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
             f"Peso médio por saca: {relacao_texto} kg/saca\n"
             + "\n".join(linhas)
-            + "\n\nTodos os fornecedores:\n"
-            + "\n".join(fornecedores)
+            + supplier_section
         )
 
     def _is_purchase_total_query(self) -> bool:
@@ -3682,6 +3692,12 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         texto = unicodedata.normalize("NFKD", str(periodo).lower().strip()).encode("ascii", "ignore").decode("ascii")
         agora = date_parser.get_current_date()
+        ultimo_dia_semana = parse_last_weekday_date(periodo, agora)
+        if ultimo_dia_semana:
+            return {
+                "data_inicio": ultimo_dia_semana,
+                "data_fim": ultimo_dia_semana,
+            }
         numeros = {
             "um": 1, "uma": 1, "dois": 2, "duas": 2, "tres": 3,
             "quatro": 4, "cinco": 5, "seis": 6, "sete": 7,

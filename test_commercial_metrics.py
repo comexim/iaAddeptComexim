@@ -1,3 +1,5 @@
+from datetime import date
+
 from app.services.commercial_metrics import (
     aggregate_purchases,
     aggregate_sales_by_branch,
@@ -7,6 +9,7 @@ from app.services.commercial_metrics import (
     filter_sales_by_market,
     format_pt_br,
     month_keys_between,
+    parse_last_weekday_date,
     reconcile_monthly_commercial_series,
 )
 
@@ -60,6 +63,12 @@ def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
 
 def test_pt_br_number_format_is_stable():
     assert format_pt_br(102218.95) == "102.218,95"
+
+
+def test_last_weekday_expression_resolves_previous_occurrence():
+    assert parse_last_weekday_date("última quinta-feira", date(2026, 8, 17)) == "20260813"
+    assert parse_last_weekday_date("sexta passada", date(2026, 8, 17)) == "20260814"
+    assert parse_last_weekday_date("última segunda-feira", date(2026, 8, 17)) == "20260810"
 
 
 def test_sales_branch_mapping_and_aggregation():
@@ -214,6 +223,7 @@ if __name__ == "__main__":
     test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
     test_purchase_aggregation_uses_real_weight_without_converting_sacks()
     test_pt_br_number_format_is_stable()
+    test_last_weekday_expression_resolves_previous_occurrence()
     test_sales_branch_mapping_and_aggregation()
     test_sales_branch_detection_from_query()
     test_sales_market_filters_use_mercado_column()

@@ -5,7 +5,7 @@ banco e calcula totais sem misturar o esquema de vendas com o de compras.
 """
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Iterable, List, Optional
 
@@ -14,6 +14,32 @@ SALES_BRANCHES = {
     "60": "CUSA",
     "61": "CEU",
 }
+
+WEEKDAYS_PT = {
+    "segunda": 0,
+    "terca": 1,
+    "quarta": 2,
+    "quinta": 3,
+    "sexta": 4,
+    "sabado": 5,
+    "domingo": 6,
+}
+
+
+def parse_last_weekday_date(expression: Any, today: date | datetime) -> Optional[str]:
+    """Resolve 'última quinta-feira' como a ocorrência anterior, em YYYYMMDD."""
+    text = normalize_text(expression).replace("-", " ")
+    if not any(term in text for term in ("ultima", "ultimo", "passada", "passado")):
+        return None
+    current = today.date() if isinstance(today, datetime) else today
+    for weekday_name, weekday_number in WEEKDAYS_PT.items():
+        if weekday_name not in text:
+            continue
+        days_back = (current.weekday() - weekday_number) % 7
+        if days_back == 0:
+            days_back = 7
+        return (current - timedelta(days=days_back)).strftime("%Y%m%d")
+    return None
 
 
 def _decimal(value: Any) -> Decimal:
