@@ -199,19 +199,26 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
         unique.setdefault(key, row)
 
     totals_by_currency = defaultdict(lambda: {"value": Decimal("0"), "quantity": Decimal("0")})
-    suppliers = defaultdict(lambda: {"value": Decimal("0"), "quantity": Decimal("0"), "contracts": 0})
+    suppliers = defaultdict(lambda: {
+        "value": Decimal("0"), "quantity": Decimal("0"),
+        "weight": Decimal("0"), "contracts": 0,
+    })
+    total_weight = Decimal("0")
 
     for row in unique.values():
         currency = row_currency(row)
         value = _decimal(row.get("valor") or row.get("valorTotal") or row.get("valorContrato"))
         quantity = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
+        weight = _decimal(row.get("peso") or row.get("pesoKg") or row.get("peso_kg"))
         supplier = str(row.get("fornecedor") or row.get("produtor") or "SEM FORNECEDOR").strip()
 
         totals_by_currency[currency]["value"] += value
         totals_by_currency[currency]["quantity"] += quantity
         suppliers[supplier]["value"] += value
         suppliers[supplier]["quantity"] += quantity
+        suppliers[supplier]["weight"] += weight
         suppliers[supplier]["contracts"] += 1
+        total_weight += weight
 
     currency_totals: List[Dict[str, Any]] = []
     for currency in sorted(totals_by_currency):
@@ -231,6 +238,7 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
             "fornecedor": supplier,
             "contratos": values["contracts"],
             "quantidade": float(values["quantity"]),
+            "peso_kg": float(values["weight"]),
             "valor": float(values["value"]),
         }
         for supplier, values in suppliers.items()
@@ -239,6 +247,15 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
 
     return {
         "total_contratos": len(unique),
+        "peso_total_kg": float(total_weight),
+        "kg_por_saca_real": (
+            float(total_weight / sum(
+                (item["quantity"] for item in totals_by_currency.values()),
+                Decimal("0"),
+            ))
+            if total_weight and any(item["quantity"] for item in totals_by_currency.values())
+            else None
+        ),
         "totais_por_moeda": currency_totals,
         "fornecedores": supplier_totals,
     }

@@ -1511,6 +1511,19 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     )
                     break
 
+            # Totais de compras já foram somados deterministicamente no backend.
+            # Retorna a tool integralmente para impedir nova soma ou conversão pelo LLM.
+            for msg in reversed(current_turn_messages):
+                if (
+                    isinstance(msg, ToolMessage)
+                    and str(msg.content).startswith("RESUMO DETERMINÍSTICO DE COMPRAS")
+                ):
+                    output = msg.content
+                    logger.info(
+                        "[COMPRAS] Retornando total determinístico integral da tool"
+                    )
+                    break
+
             # Garante que output é sempre string
             if isinstance(output, list):
                 # Se for lista, pega apenas content type "text"

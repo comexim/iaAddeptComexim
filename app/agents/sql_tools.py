@@ -262,20 +262,42 @@ class SQLTools:
         linhas = []
         for total in metrics["totais_por_moeda"]:
             currency = total["moeda"]
-            currency_label = currency if currency != "N/I" else "moeda nÃ£o informada"
+            currency_label = currency if currency != "N/I" else "moeda não informada"
             media = total["media_ponderada"]
             media_label = format_pt_br(media) if media is not None else "N/A"
             linhas.append(
                 f"- {currency_label}: {format_pt_br(total['quantidade_total'])} sacas, "
                 f"valor {format_pt_br(total['valor_total'])}, "
-                f"mÃ©dia ponderada {media_label}"
+                f"média ponderada {media_label}"
             )
 
         prefixo = f"Volume total da safra {safra_code}" if safra_code else "Volume total de compras"
+        fornecedores = []
+        for item in metrics["fornecedores"]:
+            fornecedores.append(
+                f"- {item['fornecedor']}: {format_pt_br(item['quantidade'])} sacas | "
+                f"{format_pt_br(item['peso_kg'])} kg | {item['contratos']} pedido(s)"
+            )
+        relacao = metrics.get("kg_por_saca_real")
+        relacao_texto = format_pt_br(relacao) if relacao is not None else "N/A"
         return (
+            "RESUMO DETERMINÍSTICO DE COMPRAS\n\n"
             f"{prefixo}: {metrics['total_contratos']} contrato(s)/pedido(s).\n"
+            f"Total de sacas: {format_pt_br(sum(item['quantidade_total'] for item in metrics['totais_por_moeda']))}\n"
+            f"Peso real total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
+            f"Relação real do banco: {relacao_texto} kg/saca (peso ÷ sacas; nenhuma conversão estimada).\n"
             + "\n".join(linhas)
+            + "\n\nTodos os fornecedores:\n"
+            + "\n".join(fornecedores)
+            + "\n\nObservação: quando a moeda estiver como 'moeda não informada', não rotule o valor como R$ ou outra moeda."
         )
+
+    def _is_purchase_total_query(self) -> bool:
+        query = self._remove_accents((self.user_query_original or self.user_query or "").lower())
+        return any(term in query for term in (
+            "quanto compr", "quantas sacas", "volume total", "total de compras",
+            "peso total", "quanto cafe", "compramos de cafe",
+        ))
 
     def _extract_client_name(self, query: str) -> Optional[str]:
         """
@@ -1928,6 +1950,11 @@ class SQLTools:
         monthly_series = self._format_monthly_commercial_series(results, function_name)
         if monthly_series is not None:
             return monthly_series
+
+        # Totais de compras são sempre calculados no código, mesmo quando a
+        # procedure retorna 50 registros ou menos. O modelo não soma linhas.
+        if function_name in ("IA_Compras", "IA_ComprasPar") and self._is_purchase_total_query():
+            return self._format_purchase_total_summary(results)
 
         # Estoque é sempre calculado e formatado deterministicamente, qualquer
         # que seja a quantidade de linhas. Isso elimina a antiga bifurcação em

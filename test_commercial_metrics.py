@@ -39,6 +39,25 @@ def test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl():
     assert result["totais_por_moeda"][0]["moeda"] == "N/I"
 
 
+def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
+    result = aggregate_purchases([
+        {
+            "numero": "027370", "fornecedor": "Cafe A", "sacas": 244.0677966102,
+            "peso": 14400, "valorTotal": 384000,
+        },
+        {
+            "numero": "027371", "fornecedor": "Cafe B", "sacas": 1128.813559322,
+            "peso": 66600, "valorTotal": 1998000,
+        },
+    ])
+
+    assert result["total_contratos"] == 2
+    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1372.88135593
+    assert result["peso_total_kg"] == 81000.0
+    assert round(result["kg_por_saca_real"], 2) == 59.0
+    assert result["totais_por_moeda"][0]["valor_total"] == 2382000.0
+
+
 def test_pt_br_number_format_is_stable():
     assert format_pt_br(102218.95) == "102.218,95"
 
@@ -193,6 +212,7 @@ def test_purchase_reconciliation_detects_month_greater_than_period():
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
     test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
+    test_purchase_aggregation_uses_real_weight_without_converting_sacks()
     test_pt_br_number_format_is_stable()
     test_sales_branch_mapping_and_aggregation()
     test_sales_branch_detection_from_query()
