@@ -7,6 +7,7 @@ from app.services.commercial_metrics import (
     filter_sales_by_market,
     format_pt_br,
     month_keys_between,
+    reconcile_monthly_commercial_series,
 )
 
 
@@ -133,6 +134,62 @@ def test_purchase_monthly_series_uses_only_returned_months():
     assert result["meses_com_dados"][0]["totais_por_moeda"][0]["valor_total"] == 1200.0
 
 
+def test_monthly_reconciliation_detects_contract_repeated_across_months():
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/08", "sacas": 10, "valorTotal": 1000},
+    ]
+    series = build_monthly_commercial_series(rows, "sales", ["2026/07", "2026/08"])
+
+    reconciliation = reconcile_monthly_commercial_series(rows, "sales", series)
+
+    assert reconciliation["valido"] is False
+    assert reconciliation["agregado"]["contratos"] == 1
+    assert reconciliation["soma_meses"]["contratos"] == 2
+    assert reconciliation["diferencas"]["contratos"] == 1
+    assert "contratos" in reconciliation["violacoes"]
+
+
+def test_monthly_reconciliation_detects_row_without_month():
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "2", "filial": "05", "cliente": "B", "mesEmbarque": None, "sacas": 20, "valorTotal": 3000},
+    ]
+    series = build_monthly_commercial_series(rows, "sales", ["2026/07"])
+
+    reconciliation = reconcile_monthly_commercial_series(rows, "sales", series)
+
+    assert reconciliation["valido"] is False
+    assert reconciliation["diferencas"]["sacas"] == -20
+    assert reconciliation["diferencas"]["valor_usd"] == -3000
+
+
+def test_monthly_reconciliation_accepts_justifiable_rounding_difference():
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+    ]
+    series = build_monthly_commercial_series(rows, "sales", ["2026/07"])
+    series["meses_com_dados"][0]["sacas"] = 10.005
+    series["meses_com_dados"][0]["valor_usd"] = 1000.005
+
+    reconciliation = reconcile_monthly_commercial_series(rows, "sales", series)
+
+    assert reconciliation["valido"] is True
+
+
+def test_purchase_reconciliation_detects_month_greater_than_period():
+    rows = [
+        {"numero": "1", "filial": "05", "emissao": "20260115", "sacas": 10, "valor": 1000, "moeda": "BRL"},
+    ]
+    series = build_monthly_commercial_series(rows, "purchases", ["2026/01"])
+    series["meses_com_dados"][0]["totais_por_moeda"][0]["quantidade_total"] = 11
+
+    reconciliation = reconcile_monthly_commercial_series(rows, "purchases", series)
+
+    assert reconciliation["valido"] is False
+    assert "mes_maior_quantidade:2026/01:BRL" in reconciliation["violacoes"]
+
+
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
     test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
@@ -144,4 +201,8 @@ if __name__ == "__main__":
     test_sales_monthly_series_reports_missing_months_without_filling_them()
     test_monthly_series_with_no_rows_contains_no_fabricated_values()
     test_purchase_monthly_series_uses_only_returned_months()
+    test_monthly_reconciliation_detects_contract_repeated_across_months()
+    test_monthly_reconciliation_detects_row_without_month()
+    test_monthly_reconciliation_accepts_justifiable_rounding_difference()
+    test_purchase_reconciliation_detects_month_greater_than_period()
     print("commercial_metrics: OK")

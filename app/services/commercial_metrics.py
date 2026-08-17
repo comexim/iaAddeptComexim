@@ -327,3 +327,131 @@ def build_monthly_commercial_series(
         "meses_com_dados": months,
         "meses_sem_registros": [month for month in expected if month not in present],
     }
+
+
+def reconcile_monthly_commercial_series(
+    rows: Iterable[Dict[str, Any]],
+    kind: str,
+    series: Dict[str, Any],
+    quantity_tolerance: Decimal = Decimal("0.01"),
+    value_tolerance: Decimal = Decimal("0.01"),
+) -> Dict[str, Any]:
+    """Reconcilia total do conjunto com a soma da decomposição mensal."""
+    source_rows = list(rows)
+    months = series.get("meses_com_dados", [])
+
+    if kind == "sales":
+        aggregate = aggregate_sales_totals(source_rows)
+        monthly = {
+            "contratos": sum(int(item.get("contratos") or 0) for item in months),
+            "sacas": sum((_decimal(item.get("sacas")) for item in months), Decimal("0")),
+            "valor_usd": sum((_decimal(item.get("valor_usd")) for item in months), Decimal("0")),
+        }
+        aggregate_decimal = {
+            "contratos": int(aggregate["contratos"]),
+            "sacas": _decimal(aggregate["sacas"]),
+            "valor_usd": _decimal(aggregate["valor_usd"]),
+        }
+        differences = {
+            key: monthly[key] - aggregate_decimal[key]
+            for key in ("contratos", "sacas", "valor_usd")
+        }
+        violations = []
+        if differences["contratos"] != 0:
+            violations.append("contratos")
+        if abs(differences["sacas"]) > quantity_tolerance:
+            violations.append("sacas")
+        if abs(differences["valor_usd"]) > value_tolerance:
+            violations.append("valor_usd")
+
+        for item in months:
+            if int(item.get("contratos") or 0) > aggregate_decimal["contratos"]:
+                violations.append(f"mes_maior_contratos:{item['mes']}")
+            if _decimal(item.get("sacas")) - aggregate_decimal["sacas"] > quantity_tolerance:
+                violations.append(f"mes_maior_sacas:{item['mes']}")
+            if _decimal(item.get("valor_usd")) - aggregate_decimal["valor_usd"] > value_tolerance:
+                violations.append(f"mes_maior_valor:{item['mes']}")
+
+        return {
+            "valido": not violations,
+            "agregado": aggregate_decimal,
+            "soma_meses": monthly,
+            "diferencas": differences,
+            "violacoes": violations,
+        }
+
+    aggregate = aggregate_purchases(source_rows)
+    aggregate_by_currency = {
+        item["moeda"]: {
+            "valor": _decimal(item["valor_total"]),
+            "quantidade": _decimal(item["quantidade_total"]),
+        }
+        for item in aggregate["totais_por_moeda"]
+    }
+    monthly_by_currency = defaultdict(lambda: {
+        "valor": Decimal("0"), "quantidade": Decimal("0")
+    })
+    monthly_contracts = 0
+    for month in months:
+        monthly_contracts += int(month.get("total_contratos") or 0)
+        for item in month.get("totais_por_moeda", []):
+            currency = item["moeda"]
+            monthly_by_currency[currency]["valor"] += _decimal(item["valor_total"])
+            monthly_by_currency[currency]["quantidade"] += _decimal(item["quantidade_total"])
+
+    differences_by_currency = {}
+    violations = []
+    for currency in sorted(set(aggregate_by_currency) | set(monthly_by_currency)):
+        aggregate_item = aggregate_by_currency.get(
+            currency, {"valor": Decimal("0"), "quantidade": Decimal("0")}
+        )
+        monthly_item = monthly_by_currency.get(
+            currency, {"valor": Decimal("0"), "quantidade": Decimal("0")}
+        )
+        differences_by_currency[currency] = {
+            "valor": monthly_item["valor"] - aggregate_item["valor"],
+            "quantidade": monthly_item["quantidade"] - aggregate_item["quantidade"],
+        }
+        if abs(differences_by_currency[currency]["valor"]) > value_tolerance:
+            violations.append(f"valor:{currency}")
+        if abs(differences_by_currency[currency]["quantidade"]) > quantity_tolerance:
+            violations.append(f"quantidade:{currency}")
+
+    contract_difference = monthly_contracts - int(aggregate["total_contratos"])
+    if contract_difference != 0:
+        violations.append("contratos")
+
+    aggregate_contracts = int(aggregate["total_contratos"])
+    for month in months:
+        month_key = month.get("mes", "N/I")
+        if int(month.get("total_contratos") or 0) > aggregate_contracts:
+            violations.append(f"mes_maior_contratos:{month_key}")
+        for item in month.get("totais_por_moeda", []):
+            currency = item["moeda"]
+            aggregate_item = aggregate_by_currency.get(
+                currency, {"valor": Decimal("0"), "quantidade": Decimal("0")}
+            )
+            if _decimal(item.get("valor_total")) - aggregate_item["valor"] > value_tolerance:
+                violations.append(f"mes_maior_valor:{month_key}:{currency}")
+            if (
+                _decimal(item.get("quantidade_total")) - aggregate_item["quantidade"]
+                > quantity_tolerance
+            ):
+                violations.append(f"mes_maior_quantidade:{month_key}:{currency}")
+
+    return {
+        "valido": not violations,
+        "agregado": {
+            "contratos": int(aggregate["total_contratos"]),
+            "por_moeda": aggregate_by_currency,
+        },
+        "soma_meses": {
+            "contratos": monthly_contracts,
+            "por_moeda": dict(monthly_by_currency),
+        },
+        "diferencas": {
+            "contratos": contract_difference,
+            "por_moeda": differences_by_currency,
+        },
+        "violacoes": violations,
+    }

@@ -149,3 +149,27 @@ def test_unmapped_monthly_series_fails_closed_instead_of_estimating():
 
     assert "Não foi possível montar esta série mensal de forma determinística" in output
     assert "nenhum mês ou valor foi completado" in output
+
+
+def test_monthly_sales_divergence_is_blocked_before_answer():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Vendas mês a mês do segundo semestre"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._series_expected_months = ["2026/07", "2026/08"]
+    sql_tools._series_date_fields = ("mesEmbarque",)
+    sql_tools._series_query_context = {
+        "procedure": "usp_IA_Vendas",
+        "params": {"MesIni": "2026/07", "MesFim": "2026/08"},
+    }
+    rows = [
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
+        {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/08", "sacas": 10, "valorTotal": 1000},
+    ]
+
+    output = sql_tools._format_results(rows, "IA_Vendas")
+
+    assert "Foi encontrada uma inconsistência na reconciliação mensal" in output
+    assert "Total agregado: 1 contrato(s)" in output
+    assert "Soma dos meses: 2 contrato(s)" in output
+    assert "Vendas por mês:" not in output

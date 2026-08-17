@@ -23,6 +23,7 @@ from app.services.commercial_metrics import (
     filter_sales_by_market,
     format_pt_br,
     month_keys_between,
+    reconcile_monthly_commercial_series,
     sales_branch_name,
 )
 from app.services.stock_metrics import (
@@ -45,6 +46,7 @@ class SQLTools:
         self.ultimo_contrato_consultado = None  # Armazena último contrato consultado (para contexto)
         self._series_expected_months = []
         self._series_date_fields = None
+        self._series_query_context = {}
 
         # Carrega último contrato do Redis (se disponível)
         if self.session_id:
@@ -1398,6 +1400,43 @@ class SQLTools:
         missing = series["meses_sem_registros"]
         if not present:
             return "Não foram encontrados registros para esse período."
+
+        reconciliation = reconcile_monthly_commercial_series(results, kind, series)
+        if not reconciliation["valido"]:
+            logger.error(
+                "[RECONCILIAÇÃO MENSAL] Inconsistência detectada. contexto=%s "
+                "agregado=%s soma_meses=%s diferencas=%s violacoes=%s",
+                getattr(self, "_series_query_context", {}),
+                reconciliation["agregado"],
+                reconciliation["soma_meses"],
+                reconciliation["diferencas"],
+                reconciliation["violacoes"],
+            )
+            if kind == "sales":
+                aggregate = reconciliation["agregado"]
+                monthly = reconciliation["soma_meses"]
+                difference = reconciliation["diferencas"]
+                return (
+                    "Foi encontrada uma inconsistência na reconciliação mensal. "
+                    "Os valores divergentes não serão apresentados como corretos.\n\n"
+                    f"Total agregado: {aggregate['contratos']} contrato(s) | "
+                    f"{format_pt_br(aggregate['sacas'])} sacas | "
+                    f"USD {format_pt_br(aggregate['valor_usd'])}\n"
+                    f"Soma dos meses: {monthly['contratos']} contrato(s) | "
+                    f"{format_pt_br(monthly['sacas'])} sacas | "
+                    f"USD {format_pt_br(monthly['valor_usd'])}\n"
+                    f"Diferença: {difference['contratos']} contrato(s) | "
+                    f"{format_pt_br(difference['sacas'])} sacas | "
+                    f"USD {format_pt_br(difference['valor_usd'])}"
+                )
+
+            return (
+                "Foi encontrada uma inconsistência na reconciliação mensal de compras. "
+                "Os valores divergentes não serão apresentados como corretos. "
+                f"Diferença na quantidade de contratos: "
+                f"{reconciliation['diferencas']['contratos']}. "
+                "As diferenças por moeda foram registradas no log técnico."
+            )
 
         lines = [
             "Vendas por mês:" if kind == "sales" else "Compras por mês:",
@@ -3263,6 +3302,10 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             return error_msg
 
         logger.info(f"[VENDAS] Executando {procedure_name} com parâmetros: {procedure_params}")
+        self._series_query_context = {
+            "procedure": procedure_name,
+            "params": dict(procedure_params),
+        }
 
         try:
             results = sql_client.execute_procedure(procedure_name, procedure_params or None)
@@ -3454,6 +3497,10 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             return error_msg
 
         logger.info(f"[COMPRAS] Executando {procedure_name} com parâmetros: {procedure_params}")
+        self._series_query_context = {
+            "procedure": procedure_name,
+            "params": dict(procedure_params),
+        }
 
         try:
             results = sql_client.execute_procedure(procedure_name, procedure_params or None)
