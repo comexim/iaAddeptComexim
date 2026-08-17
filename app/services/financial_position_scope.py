@@ -61,3 +61,42 @@ def append_scope_notice(text: str, notice: str) -> str:
         return text
     return f"{text.rstrip()}\n\n⚠️ Escopo da consulta: {notice}"
 
+
+def build_receivables_current_open_query(
+    requested_start: str,
+    requested_end: str,
+    *,
+    today: Union[date, datetime],
+) -> tuple[dict[str, str], Optional[str], Optional[str]]:
+    """Planeja a consulta de recebíveis e o recorte local do vencimento.
+
+    Para períodos encerrados até hoje, consulta a posição atual acumulada desde
+    1999 e preserva o período pedido para filtragem local. Para períodos futuros,
+    consulta diretamente o intervalo solicitado. O filtro de tipo é obrigatório.
+    """
+    current = today.date() if isinstance(today, datetime) else today
+    requested_end_date = _parse_compact_date(requested_end, end=True)
+    if requested_end_date and requested_end_date <= current:
+        return (
+            {
+                "data_inicio": "19990101",
+                "data_fim": current.strftime("%Y%m%d"),
+                "tipo": "Receber",
+            },
+            requested_start,
+            requested_end,
+        )
+    return (
+        {
+            "data_inicio": requested_start,
+            "data_fim": requested_end,
+            "tipo": "Receber",
+        },
+        None,
+        None,
+    )
+
+
+def compact_financial_date(value: object) -> str:
+    """Normaliza datas SQL/ISO para YYYYMMDD antes de aplicar filtros locais."""
+    return "".join(character for character in str(value or "") if character.isdigit())[:8]

@@ -37,6 +37,8 @@ from app.services.accounts_payable_metrics import (
 from app.services.financial_position_scope import (
     CURRENT_OPEN_PAST_NOTICE,
     append_scope_notice,
+    build_receivables_current_open_query,
+    compact_financial_date,
     current_open_scope_notice,
 )
 from app.services.stock_metrics import (
@@ -4845,7 +4847,8 @@ IMPORTANTE:
 
         # NOVA LÓGICA: Detecta se deve usar IA_ContasAReceberPar ou IA_ContasAReceber
         function_name = "IA_ContasAReceber"
-        filters = None
+        filters = {"tipo": "Receber"}
+        vencimento_inicio_filter = None
         data_fim_filter = None
         periodo_inicio = None
         periodo_fim = None
@@ -4863,7 +4866,8 @@ IMPORTANTE:
                 function_name = "IA_ContasAReceberPar"
                 filters = {
                     "data_inicio": um_ano_atras.strftime('%Y%m%d'),
-                    "data_fim": hoje_sp.strftime('%Y%m%d')
+                    "data_fim": hoje_sp.strftime('%Y%m%d'),
+                    "tipo": "Receber",
                 }
                 periodo_inicio = filters["data_inicio"]
                 periodo_fim = filters["data_fim"]
@@ -4878,17 +4882,12 @@ IMPORTANTE:
                 inicio = None
                 fim = None
 
-                # Prioridade 1: Se tem mes_embarque (mês), usa como intervalo
-                if "mes_embarque" in parsed:
-                    inicio = parsed["mes_embarque"]
-                    fim = parsed["mes_embarque"]
-                    logger.info(f"[CONTAS A RECEBER] Mês detectado: {inicio}")
-                # Prioridade 2: Se tem data_inicio e data_fim
-                elif "data_inicio" in parsed and "data_fim" in parsed:
+                # Datas de vencimento têm prioridade. O campo mes_embarque é
+                # apenas metadado do parser e não pode substituir YYYYMMDD.
+                if "data_inicio" in parsed and "data_fim" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed["data_fim"]
                     logger.info(f"[CONTAS A RECEBER] Período detectado ({inicio} até {fim})")
-                # Prioridade 3: Se tem apenas data_inicio
                 elif "data_inicio" in parsed:
                     inicio = parsed["data_inicio"]
                     fim = parsed.get("data_fim", inicio)
@@ -4898,14 +4897,24 @@ IMPORTANTE:
                 if inicio and fim:
                     periodo_inicio, periodo_fim = inicio, fim
                     function_name = "IA_ContasAReceberPar"
-                    filters = {
-                        "data_inicio": inicio,
-                        "data_fim": fim
-                    }
-                    logger.info(f"[CONTAS A RECEBER] Usando IA_ContasAReceberPar('{inicio}', '{fim}')")
+                    filters, vencimento_inicio_filter, data_fim_filter = (
+                        build_receivables_current_open_query(
+                            inicio,
+                            fim,
+                            today=date_parser.get_current_date(),
+                        )
+                    )
+                    logger.info(
+                        "[CONTAS A RECEBER] Usando IA_ContasAReceberPar('%s', '%s') "
+                        "WHERE tipo='Receber'; recorte local vencimentoReal=%s..%s",
+                        filters["data_inicio"],
+                        filters["data_fim"],
+                        vencimento_inicio_filter,
+                        data_fim_filter,
+                    )
                 else:
                     # Mantém lógica antiga de filtro manual para compatibilidade
-                    filters = {"vencimentoReal": parsed["data_inicio"]}
+                    filters = {"vencimentoReal": parsed["data_inicio"], "tipo": "Receber"}
                     if "data_fim" in parsed:
                         data_fim_filter = parsed["data_fim"]
         else:
@@ -4932,15 +4941,26 @@ IMPORTANTE:
                 periodo_fim,
                 "posicao_atual_filtrada_data_passada" if aviso_escopo else "posicao_atual",
             )
-            self._salvar_resultado_scheduler(result_list)
-
-            # Aplica filtro manual de data_fim se necessário
-            # IMPORTANTE: Se data_inicio == data_fim (mesmo dia), filtra para retornar APENAS aquele dia
-            if result_list and data_fim_filter:
+            # A função retorna a posição atual acumulada. Para uma data passada,
+            # recorta em código somente o vencimento solicitado.
+            if result_list and vencimento_inicio_filter and data_fim_filter:
                 original_count = len(result_list)
-                # Filtra: vencimentoReal >= data_inicio AND vencimentoReal <= data_fim
-                result_list = [r for r in result_list if r.get("vencimentoReal", "") <= data_fim_filter]
-                logger.info(f"[CONTAS A RECEBER] Filtro manual aplicado: {original_count} → {len(result_list)} registros")
+                result_list = [
+                    r for r in result_list
+                    if vencimento_inicio_filter
+                    <= compact_financial_date(r.get("vencimentoReal"))
+                    <= data_fim_filter
+                ]
+                logger.info(
+                    "[CONTAS A RECEBER] Recorte local de vencimentoReal %s..%s: %s → %s registros",
+                    vencimento_inicio_filter,
+                    data_fim_filter,
+                    original_count,
+                    len(result_list),
+                )
+
+            # O anexo deve conter somente o período pedido, depois do recorte.
+            self._salvar_resultado_scheduler(result_list)
 
             # Aplica filtro por cliente se fornecido
             if result_list and cliente:
