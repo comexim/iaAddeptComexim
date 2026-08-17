@@ -26,6 +26,11 @@ from app.services.commercial_metrics import (
     reconcile_monthly_commercial_series,
     sales_branch_name,
 )
+from app.services.accounts_payable_metrics import (
+    deduplicate_payables,
+    payable_decimal,
+    reconcile_payables,
+)
 from app.services.stock_metrics import (
     certificate_matches,
     detect_certificate_from_query,
@@ -3907,38 +3912,52 @@ IMPORTANTE:
             if not result_list:
                 return "Nenhuma conta a pagar encontrada para o período especificado."
 
-            # DEDUPULICAÇÃO: Remove títulos duplicados (mesmo numero+parcela+filial+fornecedor+valor)
-            # Bug: stored procedure retorna mesmo título 2x com naturezas diferentes
-            # IMPORTANTE: Incluir fornecedor+valor porque mesmo número pode ter fornecedores diferentes (rateio)
-            titulos_vistos = set()
-            result_dedup = []
+            result_list, duplicate_count = deduplicate_payables(result_list)
+            if duplicate_count:
+                logger.info(
+                    "[CONTAS A PAGAR] Deduplicação: %s título(s) duplicado(s) removido(s)",
+                    duplicate_count,
+                )
 
-            for r in result_list:
-                # Chave única: numero + parcela + filial + fornecedor + valor + natureza
-                # IMPORTANTE: Incluir natureza porque mesmo título pode ter naturezas diferentes (rateio legítimo)
-                # Exemplo 1: 000040226 pode ter SERGIO HAZAN e RENAN M HAZAN (fornecedores diferentes)
-                # Exemplo 2: 102295 pode ter TARIFAS BANCARIAS e COMPRA DE CAFE (naturezas diferentes, mesmo fornecedor)
-                fornecedor = str(r.get('fornecedor', '')).strip()
-                valor = float(r.get('valor', 0) or 0)
-                natureza = str(r.get('natureza', '')).strip()
-                chave = f"{r.get('numero', '')}_{r.get('parcela', '')}_{r.get('filial', '')}_{fornecedor}_{valor}_{natureza}"
-
-                if chave not in titulos_vistos:
-                    titulos_vistos.add(chave)
-                    result_dedup.append(r)
-                else:
-                    logger.warning(f"[CONTAS A PAGAR] Título duplicado removido: {r.get('numero')} - {fornecedor} - R$ {valor}")
-
-            if len(result_dedup) < len(result_list):
-                logger.info(f"[CONTAS A PAGAR] Dedupulicação: {len(result_list)} → {len(result_dedup)} registros ({len(result_list) - len(result_dedup)} duplicatas removidas)")
-                result_list = result_dedup
+            complete_result_list = result_list
+            complete_total = sum(
+                (payable_decimal(r.get("valor")) for r in complete_result_list),
+                Decimal("0"),
+            )
+            full_reconciliation = reconcile_payables(
+                complete_result_list,
+                aggregate_total=complete_total,
+                declared_count=len(complete_result_list),
+            )
+            if not full_reconciliation["valido"]:
+                logger.error(
+                    "[CONTAS A PAGAR][RECONCILIAÇÃO] Inconsistência. params=%s "
+                    "total=%s soma_detalhes=%s diferenca=%s quantidade_declarada=%s "
+                    "quantidade_detalhada=%s violacoes=%s",
+                    procedure_params,
+                    full_reconciliation["total"],
+                    full_reconciliation["soma_detalhes"],
+                    full_reconciliation["diferenca"],
+                    full_reconciliation["quantidade_declarada"],
+                    full_reconciliation["quantidade_detalhada"],
+                    full_reconciliation["violacoes"],
+                )
+                return (
+                    "Foi encontrada uma inconsistência na reconciliação das contas a pagar. "
+                    "O resultado não será apresentado como confiável.\n\n"
+                    f"Total informado: R$ {complete_total:,.2f}\n"
+                    f"Soma dos títulos: R$ {full_reconciliation['soma_detalhes']:,.2f}\n"
+                    f"Diferença: R$ {full_reconciliation['diferenca']:,.2f}"
+                )
 
             # Consultas somente por fornecedor retornam 10 registros distintos por padrão.
+            partial_listing = False
             if fornecedor and not data_vencimento and not data_emissao:
                 if limite is None:
                     result_list = result_list[:10]
                 elif limite > 0:
                     result_list = result_list[:limite]
+                partial_listing = len(result_list) < len(complete_result_list)
 
             # O anexo do e-mail deve refletir o resultado final, depois dos
             # filtros e da deduplicacao aplicados nesta consulta.
@@ -3946,23 +3965,10 @@ IMPORTANTE:
 
             # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
             if len(result_list) <= 50:
-                total_geral = 0
+                total_geral = Decimal("0")
                 linhas = []
                 for r in result_list:
-                    valor = r.get("valor", 0)
-                    if isinstance(valor, Decimal):
-                        valor = float(valor)
-                    elif isinstance(valor, str):
-                        try:
-                            valor = float(valor)
-                        except:
-                            try:
-                                valor_limpo = valor.replace("R$", "").replace(",", "").strip()
-                                valor = float(valor_limpo)
-                            except:
-                                valor = 0
-                    elif not isinstance(valor, (int, float)):
-                        valor = 0
+                    valor = payable_decimal(r.get("valor"))
                     total_geral += valor
                     num = str(r.get('numero', '')).strip()
                     parc = str(r.get('parcela', '')).strip()
@@ -3972,16 +3978,50 @@ IMPORTANTE:
                     fil = str(r.get('filial', '')).strip()
                     linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}")
 
+                detail_reconciliation = reconcile_payables(
+                    result_list,
+                    aggregate_total=complete_total if not partial_listing else total_geral,
+                    declared_count=len(result_list),
+                    partial=partial_listing,
+                    complete_count=len(complete_result_list),
+                )
+                if not detail_reconciliation["valido"]:
+                    logger.error(
+                        "[CONTAS A PAGAR][RECONCILIAÇÃO] Detalhe divergente. params=%s dados=%s",
+                        procedure_params,
+                        detail_reconciliation,
+                    )
+                    return (
+                        "Foi encontrada uma inconsistência entre o total e os títulos das "
+                        "contas a pagar. O resultado não será apresentado como confiável."
+                    )
+
                 tabela_str = "\n".join(linhas)
+                partial_notice = ""
+                total_complete_notice = ""
+                if partial_listing:
+                    partial_notice = (
+                        f"LISTAGEM PARCIAL: exibindo {len(result_list)} de "
+                        f"{len(complete_result_list)} títulos.\n"
+                    )
+                    total_complete_notice = f"Valor total do conjunto completo: R$ {complete_total:,.2f}\n"
+                partial_instruction = (
+                    "A listagem é parcial. Não afirme que os títulos exibidos representam "
+                    "todo o conjunto."
+                    if partial_listing
+                    else "A listagem contém todos os títulos usados no total informado."
+                )
                 return f"""Resultados da consulta usp_IA_ContasAPagar:
 
-Total de registros: {len(result_list)}
-Valor total a pagar: R$ {total_geral:,.2f}
+{partial_notice}Total de títulos detalhados: {len(result_list)}
+Valor dos títulos detalhados: R$ {total_geral:,.2f}
+{total_complete_notice}
 
 TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
 {tabela_str}
 
-Analise TODOS os {len(result_list)} registros acima e responda com base nos dados fornecidos."""
+Analise os {len(result_list)} registros acima e responda com base nos dados fornecidos.
+{partial_instruction}"""
 
             # Agrega por dia de vencimento E por fornecedor
             from collections import defaultdict
