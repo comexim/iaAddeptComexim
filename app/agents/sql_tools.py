@@ -289,11 +289,7 @@ class SQLTools:
         linhas = []
         for total in metrics["totais_por_moeda"]:
             currency = total["moeda"]
-            currency_label = (
-                currency
-                if currency != "N/I"
-                else "moeda não informada na origem; considerada USD"
-            )
+            currency_label = currency
             media = total["media_ponderada"]
             media_label = format_pt_br(media) if media is not None else "N/A"
             linhas.extend([
@@ -2303,11 +2299,7 @@ Exemplos corretos:
                 totals_lines = []
                 for total in metrics["totais_por_moeda"]:
                     currency = total["moeda"]
-                    currency_label = (
-                        currency
-                        if currency != "N/I"
-                        else "moeda não informada na origem; considerada USD"
-                    )
+                    currency_label = currency
                     average = total["media_ponderada"]
                     average_label = (
                         format_pt_br(average) if average is not None else "N/A"
@@ -2335,8 +2327,7 @@ FORNECEDORES (ordenados pelo valor dos registros de compra):
 REGRAS OBRIGATÓRIAS:
 - Estes dados são exclusivamente de COMPRAS. Não os apresente como vendas.
 - Não some valores de moedas diferentes.
-- "N/I" significa que a origem não informou moeda; considere USD pela regra de negócio,
-  mas informe explicitamente que a moeda não veio preenchida na origem.
+- Quando a origem não informar a moeda, os valores de compras devem ser considerados BRL.
 - A média oficial é a média ponderada: valor total dividido pela quantidade total.
 - Formate números no padrão pt-BR."""
 

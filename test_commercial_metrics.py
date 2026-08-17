@@ -26,8 +26,6 @@ def test_purchase_aggregation_uses_purchase_fields_and_weighted_average():
     assert result["totais_por_moeda"] == [
         {
             "moeda": "BRL",
-            "moeda_considerada": "BRL",
-            "moeda_informada": True,
             "valor_total": 7000.0,
             "quantidade_total": 40.0,
             "media_ponderada": 175.0,
@@ -61,14 +59,12 @@ def test_purchase_aggregation_preserves_rows_with_the_same_order_number():
     assert result["fornecedores"][0]["contratos"] == 3
 
 
-def test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl():
+def test_purchase_aggregation_defaults_missing_currency_to_brl():
     result = aggregate_purchases(
         [{"numero": "1", "fornecedor": "Cafe A", "sacas": 2, "valor": 900}]
     )
 
-    assert result["totais_por_moeda"][0]["moeda"] == "N/I"
-    assert result["totais_por_moeda"][0]["moeda_considerada"] == "USD"
-    assert result["totais_por_moeda"][0]["moeda_informada"] is False
+    assert result["totais_por_moeda"][0]["moeda"] == "BRL"
 
 
 def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
@@ -249,7 +245,7 @@ def test_purchase_reconciliation_detects_month_greater_than_period():
 
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
-    test_purchase_aggregation_does_not_relabel_unknown_currency_as_brl()
+    test_purchase_aggregation_defaults_missing_currency_to_brl()
     test_purchase_aggregation_uses_real_weight_without_converting_sacks()
     test_pt_br_number_format_is_stable()
     test_last_weekday_expression_resolves_previous_occurrence()

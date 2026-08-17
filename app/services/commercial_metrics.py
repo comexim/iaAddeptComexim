@@ -79,7 +79,9 @@ def row_currency(row: Dict[str, Any]) -> str:
     for field in ("moeda", "currency", "moedaContrato", "moedaFixacao"):
         if row.get(field) not in (None, ""):
             return normalize_currency(row[field])
-    return "N/I"
+    # Regra de negócio das compras: quando a origem não envia a moeda,
+    # os valores devem ser tratados como reais.
+    return "BRL"
 
 
 def normalize_text(value: Any) -> str:
@@ -252,11 +254,6 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
         currency_totals.append(
             {
                 "moeda": currency,
-                # A origem continua identificada como N/I para não ocultar a
-                # ausência do campo, mas a regra de negócio interpreta esse
-                # grupo como USD quando precisar apresentar a unidade monetária.
-                "moeda_considerada": "USD" if currency == "N/I" else currency,
-                "moeda_informada": currency != "N/I",
                 "valor_total": float(item["value"]),
                 "quantidade_total": float(item["quantity"]),
                 "media_ponderada": float(weighted_average) if weighted_average is not None else None,
