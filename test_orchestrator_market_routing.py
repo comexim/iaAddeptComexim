@@ -29,8 +29,18 @@ def test_successful_fixacao_tool_always_offers_hedge():
     assert "oferta de Hedge aplicada deterministicamente" in source
 
 
+def test_retry_after_ota_preserves_pending_contract_and_value():
+    source = ORCHESTRATOR.read_text(encoding="utf-8")
+
+    assert "retry_after_external_adjustment" in source
+    assert "repetindo fixação pendente" in source
+    assert "pending_fixacao.is_awaiting_confirmation()" in source
+    assert "pending_fixacao.cadastrar_valor_contrato" in source
+
+
 if __name__ == "__main__":
     test_sales_market_query_forces_vendas_tool_route()
     test_sales_market_route_requires_period()
     test_successful_fixacao_tool_always_offers_hedge()
+    test_retry_after_ota_preserves_pending_contract_and_value()
     print("orchestrator_market_routing: OK")

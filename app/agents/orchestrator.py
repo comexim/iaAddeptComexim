@@ -863,6 +863,47 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         """
         try:
             normalized_user_message = _normalize_query_text(message)
+
+            # Depois de uma recusa funcional (por exemplo, Exige OTA), a
+            # fixação confirmada permanece no Redis. Frases que informam que
+            # o ajuste externo foi concluído devem repetir exatamente essa
+            # operação, sem apagar contrato/valor nem pedir o número de novo.
+            retry_after_external_adjustment = (
+                bool(re.search(r'\b(?:ja\s+)?(?:ajustei|corrigi|arrumei|regularizei)\b', normalized_user_message))
+                and bool(re.search(r'\b(?:fixar|fixe|fixa|contrato)\b', normalized_user_message))
+            )
+            if retry_after_external_adjustment:
+                import asyncio
+                from app.agents.fixacao_tools import FixacaoTools
+                from app.agents.hedge_tools import HedgeTools
+
+                pending_fixacao = FixacaoTools(self.session_id or "default")
+                if pending_fixacao.is_awaiting_confirmation():
+                    logger.info(
+                        "[FIXACAO FLOW] Ajuste externo informado; repetindo fixação pendente "
+                        "com contrato e valor preservados"
+                    )
+                    result = await asyncio.to_thread(
+                        pending_fixacao.cadastrar_valor_contrato,
+                        confirmar_envio=True,
+                    )
+                    if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
+                        hedge_pending = HedgeTools(self.session_id or "default")
+                        output = (
+                            "Valor do contrato cadastrado com sucesso.\n\n"
+                            "Gostaria que eu fizesse o Hedge da bolsa?"
+                            + hedge_pending.recommendation_message(hedge_pending.load())
+                        )
+                    elif result.startswith("ERRO_API:"):
+                        output = result.replace(
+                            "ERRO_API:", "Não foi possível concluir o cadastro:", 1
+                        ).strip()
+                    else:
+                        output = result
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+
             new_fixacao_request = re.search(
                 r'\b(?:cadastrar|inserir|registrar|lancar|adicionar)\b.*\bvalor\b.*\bcontrato\b|'
                 r'\b(?:fixar|fixe|fixa)\b.*\bcontrato\b',

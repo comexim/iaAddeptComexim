@@ -267,6 +267,9 @@ class HedgeTools:
             account = self.parse_account(account_text, allow_descriptions=True)
             if account:
                 data["account"], data["accountDescricao"] = account
+                # No cadastro Z03 usado pela Comexim, corretora e conta
+                # representam a mesma opção da lista fixa.
+                data["corret"], data["corretDescricao"] = account
 
         broker_context = re.search(r'\bcorret(?:ora)?\b', normalized)
         known_broker_hint = re.search(
@@ -282,6 +285,7 @@ class HedgeTools:
             broker = self.parse_known_broker(broker_text)
             if broker:
                 data["corret"], data["corretDescricao"] = broker
+                data["account"], data["accountDescricao"] = broker
 
         if "aa" in normalized:
             if re.search(r'\b(?:sim|com|s)\b', normalized):
