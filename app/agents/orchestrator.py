@@ -181,6 +181,15 @@ def _schedule_tool_succeeded(messages: Sequence[BaseMessage]) -> bool:
     return False
 
 
+def _fixacao_tool_succeeded(messages: Sequence[BaseMessage]) -> bool:
+    """Detecta o sucesso real da Z24 no turno, sem depender do texto do LLM."""
+    return any(
+        isinstance(message, ToolMessage)
+        and str(getattr(message, "content", "")).startswith("FIXACAO_CADASTRADA_SUCESSO:")
+        for message in messages
+    )
+
+
 def _current_turn_messages(
     messages: Sequence[BaseMessage],
     user_message: str,
@@ -1474,6 +1483,25 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     output = last_message.content
             else:
                 output = "Desculpe, não consegui gerar uma resposta."
+
+            # A fixação também pode ser reenviada pela própria tool em frases
+            # como "já ajustei, fixe agora". Nesse caminho não passa pelo
+            # atalho de confirmação acima. Se a Z24 confirmou o cadastro,
+            # substitui a resposta livre do modelo pela continuação obrigatória
+            # do fluxo de Hedge já preparada por FixacaoTools.
+            if _fixacao_tool_succeeded(current_turn_messages):
+                from app.agents.hedge_tools import HedgeTools
+
+                hedge_pending = HedgeTools(self.session_id or "default")
+                output = (
+                    "Valor do contrato cadastrado com sucesso.\n\n"
+                    "Gostaria que eu fizesse o Hedge da bolsa?"
+                    + hedge_pending.recommendation_message(hedge_pending.load())
+                )
+                logger.info(
+                    "[FIXACAO FLOW] Sucesso da Z24 detectado na ToolMessage; "
+                    "oferta de Hedge aplicada deterministicamente"
+                )
 
             # Cancelamentos são operações determinísticas. Preserve o retorno
             # real da ferramenta para que o LLM não o transforme em criação ou
