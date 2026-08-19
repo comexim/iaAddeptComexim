@@ -657,7 +657,15 @@ class AgentOrchestrator:
         stage = data.get("stage")
 
         if stage == "offered":
-            offered_yes = yes or bool(re.match(r'^(?:sim|s|ok)\b', normalized))
+            offered_yes = (
+                yes
+                or bool(re.match(r'^(?:sim|s|ok)\b', normalized))
+                or bool(re.search(
+                    r'\b(?:faca|fazer|execute|realize|pode\s+fazer|quero)\b.*\bhedge\b|'
+                    r'\bhedge\b.*\b(?:faca|fazer|execute|realize|por\s+favor)\b',
+                    normalized,
+                ))
+            )
             if offered_yes:
                 hedge.start_collecting()
                 data = hedge.load()
@@ -684,7 +692,10 @@ class AgentOrchestrator:
                     missing = hedge.next_missing(data)
                     if missing:
                         return hedge.question_for(missing)
-            if no:
+            # "não" só cancela aqui enquanto ainda responde à oferta. Depois
+            # que a coleta começa, ele pode ser o valor legítimo de Lançamento
+            # com AA e deve ser processado por remember_from_text.
+            if no and not offered_yes:
                 hedge.clear()
                 return "Tudo bem. O Hedge da bolsa não será realizado."
             if not offered_yes:

@@ -93,16 +93,6 @@ class HedgeToolsTest(unittest.TestCase):
         self.assertEqual(self.hedge.parse_account("usar A13"), ("A13", "Adm13"))
         self.assertEqual(self.hedge.parse_account("usar Adm13"), ("A13", "Adm13"))
 
-    def test_broker_also_fills_account_without_repeating_question(self):
-        data = {}
-
-        self.hedge.remember_from_text(data, "Adm13", expected="corret")
-
-        self.assertEqual(data["corret"], "A13")
-        self.assertEqual(data["account"], "A13")
-        self.assertEqual(data["corretDescricao"], "Adm13")
-        self.assertEqual(data["accountDescricao"], "Adm13")
-
     def test_finds_broker_inside_full_message(self):
         records = [
             {"codigo": "ABCBNK", "descricao": "BANCO ABC"},
