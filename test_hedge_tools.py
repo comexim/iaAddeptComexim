@@ -29,6 +29,11 @@ if "app.core.config" not in sys.modules:
     )
     sys.modules["app.core.config"] = config_stub
 
+if "app.core.database" not in sys.modules:
+    database_stub = types.ModuleType("app.core.database")
+    database_stub.sql_client = MagicMock()
+    sys.modules["app.core.database"] = database_stub
+
 from app.agents.hedge_tools import HedgeTools
 from app.core.fixacao_api_client import FixacaoApiClient
 
@@ -97,6 +102,31 @@ class HedgeToolsTest(unittest.TestCase):
             "SET 2026, 1 lote, corretora Sucden Financial, A13 e AA sim", records
         )
         self.assertEqual(result, ("SUCDEN", "SUCden Financial"))
+
+    def test_reads_two_digit_year_when_month_is_informed(self):
+        data = {}
+
+        self.hedge.remember_from_text(
+            data, "hedge em julho/26 corretora ADM13", expected="mesfix"
+        )
+
+        self.assertEqual(data["mesfix"], "JUL")
+        self.assertEqual(data["anofix"], "2026")
+        self.assertEqual(data["corret"], "A13")
+
+    def test_recommends_lots_and_fixation_period_from_same_sales_row(self):
+        rows = [{"sacas": 865, "mesFixacao": "202607"}]
+
+        with patch(
+            "app.agents.hedge_tools.sql_client.execute_procedure", return_value=rows
+        ):
+            result = self.hedge.recommend_lots("333/26")
+
+        self.assertEqual(result["lotesRecomendados"], 3)
+        self.assertEqual(result["mesfixRecomendado"], "JUL")
+        self.assertEqual(result["anofixRecomendado"], "2026")
+        message = self.hedge.recommendation_message(result)
+        self.assertIn("Mês/ano de fixação recomendado: julho/2026", message)
 
 
 class HedgeApiResponseTest(unittest.IsolatedAsyncioTestCase):

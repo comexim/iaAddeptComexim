@@ -24,6 +24,13 @@ class HedgeTools:
         "set": "SET", "setembro": "SET",
         "dez": "DEZ", "dezembro": "DEZ",
     }
+    MONTH_NUMBERS = {
+        "03": "MAR", "05": "MAI", "07": "JUL", "09": "SET", "12": "DEZ",
+    }
+    MONTH_NAMES = {
+        "MAR": "março", "MAI": "maio", "JUL": "julho",
+        "SET": "setembro", "DEZ": "dezembro",
+    }
     ACCOUNTS = {
         "a13": ("A13", "Adm13"), "adm13": ("A13", "Adm13"),
         "rjo": ("RJO", "RJObrien"), "rjobrien": ("RJO", "RJObrien"),
@@ -71,12 +78,12 @@ class HedgeTools:
 
     @staticmethod
     def recommend_lots(contract: str) -> Optional[Dict[str, Any]]:
-        """Consulta as sacas do contrato e calcula uma sugestao nao vinculante."""
+        """Sugere lotes e mês/ano usando a mesma consulta do contrato."""
         try:
             rows = sql_client.execute_procedure(
                 "usp_IA_Vendas", {"Contrato": str(contract).strip()}
             )
-            quantities = []
+            candidates = []
             for row in rows or []:
                 raw = next(
                     (value for key, value in row.items() if str(key).lower() == "sacas"),
@@ -86,8 +93,8 @@ class HedgeTools:
                     continue
                 quantity = Decimal(str(raw).replace(",", "."))
                 if quantity > 0:
-                    quantities.append(quantity)
-            if not quantities:
+                    candidates.append((quantity, row))
+            if not candidates:
                 logger.warning(
                     "[HEDGE] Contrato %s sem quantidade de sacas para recomendacao",
                     contract,
@@ -96,17 +103,44 @@ class HedgeTools:
 
             # A procedure pode repetir o total do contrato em mais de uma linha;
             # por isso usamos a maior quantidade encontrada, sem somar duplicatas.
-            sacks = max(quantities)
+            sacks, reference_row = max(candidates, key=lambda item: item[0])
             lots = int(
                 (sacks / Decimal("288.300235169045")).quantize(
                     Decimal("1"), rounding=ROUND_HALF_UP
                 )
             )
-            logger.info(
-                "[HEDGE] Recomendacao para contrato %s: %s sacas = %s lotes",
-                contract, sacks, lots,
+            result = {"sacasContrato": float(sacks), "lotesRecomendados": lots}
+
+            raw_fixation_month = next(
+                (
+                    value for key, value in reference_row.items()
+                    if str(key).lower() in {
+                        "mesfixacao", "mesfix", "mesfixacaobolsa", "mesanofixacao"
+                    }
+                    and value not in (None, "")
+                ),
+                None,
             )
-            return {"sacasContrato": float(sacks), "lotesRecomendados": lots}
+            fixation_digits = re.sub(r'\D', '', str(raw_fixation_month or ""))
+            if len(fixation_digits) == 6:
+                if fixation_digits[:4].startswith("20"):
+                    year, month_number = fixation_digits[:4], fixation_digits[4:]
+                else:
+                    month_number, year = fixation_digits[:2], fixation_digits[2:]
+                month_code = HedgeTools.MONTH_NUMBERS.get(month_number)
+                if month_code:
+                    result.update({
+                        "mesfixRecomendado": month_code,
+                        "anofixRecomendado": year,
+                    })
+
+            logger.info(
+                "[HEDGE] Recomendacao para contrato %s: %s sacas = %s lotes; "
+                "vencimento=%s/%s",
+                contract, sacks, lots,
+                result.get("mesfixRecomendado"), result.get("anofixRecomendado"),
+            )
+            return result
         except (InvalidOperation, TypeError, ValueError) as exc:
             logger.warning("[HEDGE] Quantidade invalida no contrato %s: %s", contract, exc)
         except Exception as exc:
@@ -118,11 +152,19 @@ class HedgeTools:
     @staticmethod
     def recommendation_message(data: Dict[str, Any]) -> str:
         lots = data.get("lotesRecomendados")
-        if lots is None:
+        month = data.get("mesfixRecomendado")
+        year = data.get("anofixRecomendado")
+        if lots is None and not (month and year):
             return ""
+        suggestions = []
+        if lots is not None:
+            suggestions.append(f"Quantidade de lotes recomendada: {lots} lotes")
+        if month and year:
+            month_name = HedgeTools.MONTH_NAMES.get(month, month)
+            suggestions.append(f"Mês/ano de fixação recomendado: {month_name}/{year}")
         return (
-            f"\n\nQuantidade de lotes recomendada: {lots} lotes. "
-            "Você pode informar outra quantidade; se não informar, usarei essa recomendação."
+            "\n\n" + "\n".join(suggestions) + ". "
+            "Você pode informar outros dados; nos campos que não informar, usarei essas recomendações."
         )
 
     def start_collecting(self):
@@ -197,12 +239,21 @@ class HedgeTools:
             data["mesfix"] = month
 
         year_match = re.search(r'\b(20\d{2})\b', normalized)
+        if not year_match and month:
+            short_year_match = re.search(
+                r'\b(?:mar(?:co)?|mai(?:o)?|jul(?:ho)?|set(?:embro)?|dez(?:embro)?)'
+                r'\s*(?:/|-|de)?\s*(\d{2})\b',
+                normalized,
+            )
+            if short_year_match:
+                year_match = short_year_match
         if year_match and (
             expected == "anofix"
             or hedge_details_context
             or re.search(r'\bano(?:\s+da)?\s+fixacao\b', normalized)
         ):
-            data["anofix"] = year_match.group(1)
+            informed_year = year_match.group(1)
+            data["anofix"] = informed_year if len(informed_year) == 4 else f"20{informed_year}"
 
         lots_match = re.search(r'\b(\d+)\s*lotes?\b', normalized)
         if lots_match:

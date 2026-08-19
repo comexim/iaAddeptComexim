@@ -675,6 +675,10 @@ class AgentOrchestrator:
                 # não informa lotes, usa automaticamente a sugestão calculada.
                 if "lotes" not in data and data.get("lotesRecomendados") is not None:
                     data["lotes"] = int(data["lotesRecomendados"])
+                if "mesfix" not in data and data.get("mesfixRecomendado"):
+                    data["mesfix"] = data["mesfixRecomendado"]
+                if "anofix" not in data and data.get("anofixRecomendado"):
+                    data["anofix"] = str(data["anofixRecomendado"])
                 hedge.save(data)
                 if yes:
                     missing = hedge.next_missing(data)
