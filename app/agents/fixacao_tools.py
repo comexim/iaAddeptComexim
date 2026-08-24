@@ -134,13 +134,18 @@ class FixacaoTools:
                 "usp_IA_Vendas", {"Contrato": str(contract).strip()}
             )
             for row in rows or []:
-                raw = next(
-                    (
-                        value for key, value in row.items()
-                        if str(key).lower() == "tipovalor" and value not in (None, "")
-                    ),
-                    None,
-                )
+                raw = None
+                for key, value in row.items():
+                    normalized_key = unicodedata.normalize("NFKD", str(key).lower())
+                    normalized_key = "".join(
+                        char for char in normalized_key
+                        if not unicodedata.combining(char) and char.isalnum()
+                    )
+                    if normalized_key in {
+                        "tipovalor", "tipodevalor", "unidadedovalor", "unidadevalor"
+                    } and value not in (None, ""):
+                        raw = value
+                        break
                 if raw is not None:
                     value_type = re.sub(r'\s+', ' ', str(raw)).strip().upper()
                     if value_type:
@@ -149,6 +154,12 @@ class FixacaoTools:
                             contract, value_type,
                         )
                         return value_type
+            if rows:
+                logger.warning(
+                    "[FIXACAO FLOW] tipoValor não encontrado no contrato %s; campos retornados=%s",
+                    contract,
+                    sorted(str(key).strip() for key in rows[0].keys()),
+                )
         except Exception as exc:
             # A ausência dessa informação muda somente a apresentação; nunca
             # deve impedir a fixação do contrato.

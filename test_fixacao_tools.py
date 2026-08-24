@@ -172,6 +172,17 @@ class FixacaoToolsTest(unittest.TestCase):
         self.assertIn("Valor da fixação: 230,50 CTS/LB", summary)
         self.assertNotIn("R$", summary)
 
+    def test_contract_value_type_accepts_column_name_variations(self):
+        database_stub = types.ModuleType("app.core.database")
+        database_stub.sql_client = types.SimpleNamespace(
+            execute_procedure=lambda *_args, **_kwargs: [{"tipo_Valor ": "CTS/LB"}]
+        )
+
+        with patch.dict(sys.modules, {"app.core.database": database_stub}):
+            value_type = FixacaoTools._load_contract_value_type("205/26")
+
+        self.assertEqual(value_type, "CTS/LB")
+
     def test_novo_cadastro_pode_limpar_estado_anterior(self):
         self.fake.data[self.tool.key] = json.dumps({
             "contratodeVenda": "012302", "valorFixacao": 214.30,
