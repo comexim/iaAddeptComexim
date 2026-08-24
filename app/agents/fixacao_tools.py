@@ -4,6 +4,7 @@ import json
 import math
 import re
 import unicodedata
+import logging
 from typing import Any, Dict, Optional
 
 import redis
@@ -11,6 +12,9 @@ from langchain_core.tools import StructuredTool
 
 from app.core.config import settings
 from app.core.fixacao_api_client import fixacao_api_client
+
+
+logger = logging.getLogger(__name__)
 
 
 class FixacaoTools:
@@ -86,11 +90,13 @@ class FixacaoTools:
         """Formata o cadastro pendente para resposta direta ao usuario."""
         data = self._load()
         valor = f"{float(data['valorFixacao']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        unidade = str(data.get("tipoValorContrato") or "").strip()
+        valor_exibido = f"{valor} {unidade}".strip()
         lines = [
             "Aqui está o resumo atualizado dos dados:",
             "",
             f"Contrato de venda: {data['contratodeVenda']}",
-            f"Valor da fixação: R$ {valor}",
+            f"Valor da fixação: {valor_exibido}",
         ]
         if "diferencial" in data:
             lines.append(f"Diferencial: {data['diferencial']:g}")
@@ -104,10 +110,13 @@ class FixacaoTools:
         return "\n".join(lines)
 
     def _summary(self, data: Dict[str, Any]) -> str:
+        unidade = str(data.get("tipoValorContrato") or "").strip()
+        valor = f"{float(data['valorFixacao']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        valor_exibido = f"{valor} {unidade}".strip()
         lines = [
             "RESUMO PARA CONFIRMACAO:",
             f"Contrato de venda: {data['contratodeVenda']}",
-            f"Valor da fixacao: {data['valorFixacao']}",
+            f"Valor da fixacao: {valor_exibido}",
         ]
         for key in ("diferencial", "tipoValor", "fixadorPreco"):
             if key in data:
@@ -115,9 +124,44 @@ class FixacaoTools:
         lines.extend(["", "Pergunte se o usuario confirma explicitamente o envio destes dados para a API."])
         return "\n".join(lines)
 
+    @staticmethod
+    def _load_contract_value_type(contract: str) -> Optional[str]:
+        """Lê o tipoValor oficial do contrato sem inferir unidade monetária."""
+        try:
+            from app.core.database import sql_client
+
+            rows = sql_client.execute_procedure(
+                "usp_IA_Vendas", {"Contrato": str(contract).strip()}
+            )
+            for row in rows or []:
+                raw = next(
+                    (
+                        value for key, value in row.items()
+                        if str(key).lower() == "tipovalor" and value not in (None, "")
+                    ),
+                    None,
+                )
+                if raw is not None:
+                    value_type = re.sub(r'\s+', ' ', str(raw)).strip().upper()
+                    if value_type:
+                        logger.info(
+                            "[FIXACAO FLOW] tipoValor do contrato %s: %s",
+                            contract, value_type,
+                        )
+                        return value_type
+        except Exception as exc:
+            # A ausência dessa informação muda somente a apresentação; nunca
+            # deve impedir a fixação do contrato.
+            logger.warning(
+                "[FIXACAO FLOW] Não foi possível consultar tipoValor de %s: %s",
+                contract, exc,
+            )
+        return None
+
     def cadastrar_valor_contrato(self, contratode_venda: Optional[str] = None, valor_fixacao: Optional[float] = None, diferencial: Optional[float] = None, tipo_valor: Optional[str] = None, fixador_preco: Optional[str] = None, confirmar_envio: bool = False) -> str:
         """Coleta, confirma e envia uma fixacao de contrato para a API CMX."""
         data = self._load()
+        previous_contract = data.get("contratodeVenda")
         novos = {"contratodeVenda": contratode_venda, "valorFixacao": valor_fixacao, "diferencial": diferencial, "tipoValor": tipo_valor, "fixadorPreco": fixador_preco}
         changed = False
         for key, value in novos.items():
@@ -154,6 +198,14 @@ class FixacaoTools:
                 # Repetir exatamente o mesmo dado nao e uma alteracao.
                 if previous != value:
                     changed = True
+        if contratode_venda is not None and data.get("contratodeVenda") != previous_contract:
+            data.pop("tipoValorContrato", None)
+        if "contratodeVenda" in data and (
+            contratode_venda is not None or "tipoValorContrato" not in data
+        ):
+            contract_value_type = self._load_contract_value_type(data["contratodeVenda"])
+            if contract_value_type:
+                data["tipoValorContrato"] = contract_value_type
         if changed:
             data["aguardando_confirmacao"] = False
         missing = [self.LABELS[key] for key in self.REQUIRED if key not in data]

@@ -267,6 +267,7 @@ class HedgeTools:
             account = self.parse_account(account_text, allow_descriptions=True)
             if account:
                 data["account"], data["accountDescricao"] = account
+                data["corret"], data["corretDescricao"] = account
 
         broker_context = re.search(r'\bcorret(?:ora)?\b', normalized)
         known_broker_hint = re.search(
@@ -282,6 +283,9 @@ class HedgeTools:
             broker = self.parse_known_broker(broker_text)
             if broker:
                 data["corret"], data["corretDescricao"] = broker
+                # Regra do fluxo Z03: a opção escolhida como corretora também
+                # deve ser enviada no campo account.
+                data["account"], data["accountDescricao"] = broker
 
         if "aa" in normalized:
             if re.search(r'\b(?:sim|com|s)\b', normalized):
@@ -356,12 +360,18 @@ class HedgeTools:
 
     @staticmethod
     def question_for(field: str) -> str:
+        broker_options = (
+            "Adm13, RJObrien, NDF, Adm14, Sucden, HedgePoint, "
+            "Marex Fut, Marex OTC, FCStone ou BTGPactual"
+        )
         questions = {
             "mesfix": "Qual é o mês da fixação do Hedge? Opções: março, maio, julho, setembro ou dezembro.",
             "anofix": "Qual é o ano da fixação do Hedge?",
             "lotes": "Quantos lotes deseja lançar no Hedge?",
-            "corret": "Qual é a corretora da bolsa?",
-            "account": "Qual conta deseja usar? Opções: Adm13, RJObrien, NDF, Adm14, Sucden, HedgePoint, Marex Fut, Marex OTC, FCStone ou BTGPactual.",
+            "corret": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
+            # Compatibilidade com estados antigos que possam ter corretora sem
+            # account: pergunta novamente pela corretora e sincroniza ambos.
+            "account": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
             "lancaa": "O lançamento será com AA? Responda sim ou não.",
         }
         return questions[field]

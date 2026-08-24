@@ -1,6 +1,58 @@
 import json
+import sys
+import types
 import unittest
 from unittest.mock import AsyncMock, patch
+
+if "redis" not in sys.modules:
+    redis_stub = types.ModuleType("redis")
+    redis_stub.from_url = lambda *_args, **_kwargs: None
+    sys.modules["redis"] = redis_stub
+
+if "langchain_core.tools" not in sys.modules:
+    langchain_core_stub = types.ModuleType("langchain_core")
+    tools_stub = types.ModuleType("langchain_core.tools")
+
+    class StructuredToolStub:
+        @classmethod
+        def from_function(cls, **kwargs):
+            return kwargs
+
+    tools_stub.StructuredTool = StructuredToolStub
+    sys.modules["langchain_core"] = langchain_core_stub
+    sys.modules["langchain_core.tools"] = tools_stub
+
+if "app.core.config" not in sys.modules:
+    core_stub = types.ModuleType("app.core")
+    core_stub.__path__ = []
+    config_stub = types.ModuleType("app.core.config")
+    config_stub.settings = types.SimpleNamespace(redis_url="redis://localhost")
+    fixacao_client_stub = types.ModuleType("app.core.fixacao_api_client")
+    fixacao_client_stub.fixacao_api_client = types.SimpleNamespace(
+        cadastrar_fixacao=AsyncMock()
+    )
+    sys.modules["app.core"] = core_stub
+    sys.modules["app.core.config"] = config_stub
+    sys.modules["app.core.fixacao_api_client"] = fixacao_client_stub
+
+if "app.agents.hedge_tools" not in sys.modules:
+    import app.agents as agents_package
+
+    hedge_tools_stub = types.ModuleType("app.agents.hedge_tools")
+
+    class HedgeToolsStub:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def clear(self):
+            pass
+
+        def prepare_offer(self, **_kwargs):
+            pass
+
+    hedge_tools_stub.HedgeTools = HedgeToolsStub
+    sys.modules["app.agents.hedge_tools"] = hedge_tools_stub
+    agents_package.hedge_tools = hedge_tools_stub
 
 from app.agents.fixacao_tools import FixacaoTools
 
@@ -25,11 +77,13 @@ class FixacaoToolsTest(unittest.TestCase):
         self.tool = FixacaoTools("teste")
         self.redis_patch = patch.object(self.tool, "_redis", return_value=self.fake)
         self.redis_patch.start()
-        self.hedge_offer_patch = patch("app.agents.hedge_tools.HedgeTools.prepare_offer")
-        self.hedge_offer_patch.start()
+        self.value_type_patch = patch.object(
+            self.tool, "_load_contract_value_type", return_value=None
+        )
+        self.value_type_patch.start()
 
     def tearDown(self):
-        self.hedge_offer_patch.stop()
+        self.value_type_patch.stop()
         self.redis_patch.stop()
 
     def test_coleta_todos_campos_e_exige_confirmacao(self):
@@ -58,7 +112,7 @@ class FixacaoToolsTest(unittest.TestCase):
         send = AsyncMock(return_value={"ok": True})
         with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
             result = self.tool.cadastrar_valor_contrato(valor_fixacao=400, confirmar_envio=True)
-            self.assertTrue(result.startswith("CONFIRMACAO_INVALIDA:"))
+            self.assertTrue(result.startswith("AGUARDANDO_CONFIRMACAO:"))
             self.assertEqual(send.await_count, 0)
 
             result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
@@ -77,9 +131,12 @@ class FixacaoToolsTest(unittest.TestCase):
             result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
             self.assertTrue(result.startswith("ERRO_API:"))
             self.assertIn("Contrato ja fixado em 17/07/2026", result)
-            # Regra temporaria: apos falha, a fixacao e encerrada para que um
-            # "sim" subsequente pertença exclusivamente à oferta do Hedge.
-            self.assertIsNone(self.fake.get(self.tool.key))
+            # Após falha funcional, preserva contrato e valor para permitir
+            # "já ajustei, fixe agora" sem perguntar tudo novamente.
+            pending = json.loads(self.fake.get(self.tool.key))
+            self.assertEqual(pending["contratodeVenda"], "012324")
+            self.assertEqual(pending["valorFixacao"], 150.20)
+            self.assertTrue(pending["aguardando_confirmacao"])
 
     def test_chamada_sem_parametros_nao_confirma(self):
         self.fake.data[self.tool.key] = json.dumps({
@@ -103,6 +160,17 @@ class FixacaoToolsTest(unittest.TestCase):
         summary = self.tool.format_pending_summary()
         self.assertIn("Fixador do preço: Importador (I)", summary)
         self.assertIn("Você confirma o envio", summary)
+
+    def test_confirmation_uses_contract_value_type_without_currency_symbol(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "108/26", "valorFixacao": 230.50,
+            "tipoValorContrato": "CTS/LB", "aguardando_confirmacao": True,
+        })
+
+        summary = self.tool.format_pending_summary()
+
+        self.assertIn("Valor da fixação: 230,50 CTS/LB", summary)
+        self.assertNotIn("R$", summary)
 
     def test_novo_cadastro_pode_limpar_estado_anterior(self):
         self.fake.data[self.tool.key] = json.dumps({

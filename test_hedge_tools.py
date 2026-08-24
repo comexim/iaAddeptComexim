@@ -93,6 +93,20 @@ class HedgeToolsTest(unittest.TestCase):
         self.assertEqual(self.hedge.parse_account("usar A13"), ("A13", "Adm13"))
         self.assertEqual(self.hedge.parse_account("usar Adm13"), ("A13", "Adm13"))
 
+    def test_selected_broker_is_also_used_as_account(self):
+        data = {}
+
+        self.hedge.remember_from_text(data, "Adm13", expected="corret")
+
+        self.assertEqual(data["corret"], "A13")
+        self.assertEqual(data["account"], "A13")
+        self.assertEqual(data["corretDescricao"], "Adm13")
+        self.assertEqual(data["accountDescricao"], "Adm13")
+        self.assertIn("Adm13", self.hedge.question_for("corret"))
+        self.assertEqual(
+            self.hedge.question_for("account"), self.hedge.question_for("corret")
+        )
+
     def test_finds_broker_inside_full_message(self):
         records = [
             {"codigo": "ABCBNK", "descricao": "BANCO ABC"},
