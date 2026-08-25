@@ -1,5 +1,6 @@
 import sys
 import types
+from datetime import date
 
 
 def _load_sql_tools_with_stubs(rows):
@@ -44,6 +45,9 @@ def _load_sql_tools_with_stubs(rows):
     class DateParser:
         def parse_natural_date(self, value):
             return {"data_inicio": "20260101", "data_fim": "20260713"}
+
+        def get_current_date(self):
+            return date(2026, 8, 25)
 
     date_parser_mod.date_parser = DateParser()
     sys.modules["app.utils.sql_validator"] = validator_mod
@@ -107,3 +111,46 @@ def test_overdue_receivables_by_client_excludes_negative_balances():
     assert "Cafe Jandaia MG: R$ 80.000,00" in response
     assert "Rothfos Corporation" not in response
     assert "-22.888,74" not in response
+
+
+def _build_overdue_tool(rows):
+    SQLTools, user = _load_sql_tools_with_stubs(rows)
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user = user
+    sql_tools.session_id = None
+    sql_tools.user_query_original = "Qual o total de contas a receber vencidas hoje?"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._salvar_resultado_scheduler = lambda _results: None
+    return sql_tools
+
+
+def test_dedicated_overdue_report_separates_totals_and_clients_by_currency():
+    rows = [
+        {"cliente": "Cliente A", "saldo": 1000, "contrato": "1/26", "moeda": "US$"},
+        {"cliente": "Cliente A", "saldo": -250, "contrato": "2/26", "moeda": "US$"},
+        {"cliente": "Cliente A", "saldo": 400, "contrato": "3/26", "moeda": "EU$"},
+        {"cliente": "Cliente B", "saldo": 600, "contrato": "4/26", "moeda": "EU$"},
+    ]
+    response = _build_overdue_tool(rows)._pesquisa_contas_a_receber_vencidas()
+
+    assert "Saldo total vencido por moeda:" in response
+    assert "- EU$: 1.000,00" in response
+    assert "- US$: 750,00" in response
+    assert "Cliente A: EU$ 400,00; US$ 750,00 | 3 contrato(s)" in response
+    assert "Cliente B: EU$ 600,00 | 1 contrato(s)" in response
+    assert "Saldo total vencido: R$" not in response
+
+
+def test_overdue_client_contract_details_use_each_record_currency():
+    rows = [
+        {"cliente": "Cliente A", "saldo": 100, "contrato": "1/26", "moeda": "US$"},
+        {"cliente": "Cliente A", "saldo": 50, "contrato": "1/26", "moeda": "EU$"},
+        {"cliente": "Cliente A", "saldo": 25, "contrato": "2/26", "moeda": "US$"},
+    ]
+    response = _build_overdue_tool(rows)._pesquisa_contas_a_receber_vencidas(
+        cliente="Cliente A"
+    )
+
+    assert "Saldo líquido por moeda: EU$ 50,00; US$ 125,00" in response
+    assert "- 1/26: EU$ 50,00; US$ 100,00 (2 título(s))" in response
+    assert "- 2/26: US$ 25,00 (1 título(s))" in response

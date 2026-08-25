@@ -4986,28 +4986,6 @@ IMPORTANTE:
             result_list = sql_client.execute_function(f"dbo.{function_name}", filters)
             self._salvar_resultado_scheduler(result_list)
 
-            log_query_processing(
-                source_name=function_name,
-                original_count=len(result_list),
-                final_count=len(result_list),
-                post_filters={"cliente": cliente, "somente_negativas": somente_negativas},
-                calculated_totals={
-                    "saldo_total": sum(
-                        (payable_decimal(row.get("saldo")) for row in result_list),
-                        Decimal("0"),
-                    )
-                },
-                status_criterion="vencidos que permanecem em aberto atualmente",
-                unit="títulos",
-                currency="BRL",
-            )
-
-            if not result_list:
-                return append_scope_notice(
-                    "Nenhuma conta a receber vencida encontrada.",
-                    CURRENT_OPEN_PAST_NOTICE,
-                )
-
             def numero(valor: Any) -> Decimal:
                 if valor is None:
                     return Decimal("0")
@@ -5023,41 +5001,82 @@ IMPORTANTE:
                 except (TypeError, ValueError, ArithmeticError):
                     return Decimal("0")
 
+            def moeda_da_linha(row: Dict[str, Any]) -> str:
+                # O banco fornece a sigla/simbolo pronto para exibicao (por
+                # exemplo, US$ e EU$). Nao convertemos nem presumimos que
+                # moedas diferentes possam ser somadas.
+                return str(row.get("moeda") or "Moeda não informada").strip()
+
+            def saldos_formatados(saldos: Dict[str, Decimal]) -> str:
+                return "; ".join(
+                    f"{moeda} {format_pt_br(saldo)}"
+                    for moeda, saldo in sorted(saldos.items(), key=lambda item: item[0].casefold())
+                )
+
             from collections import defaultdict
 
-            total_saldo = sum(numero(row.get("saldo")) for row in result_list)
+            totais_por_moeda = defaultdict(lambda: Decimal("0"))
+            for row in result_list:
+                totais_por_moeda[moeda_da_linha(row)] += numero(row.get("saldo"))
+
+            log_query_processing(
+                source_name=function_name,
+                original_count=len(result_list),
+                final_count=len(result_list),
+                post_filters={"cliente": cliente, "somente_negativas": somente_negativas},
+                calculated_totals={
+                    "saldo_total_por_moeda": dict(totais_por_moeda),
+                },
+                status_criterion="vencidos que permanecem em aberto atualmente",
+                unit="títulos",
+                currency=",".join(sorted(totais_por_moeda, key=str.casefold)),
+            )
+
+            if not result_list:
+                return append_scope_notice(
+                    "Nenhuma conta a receber vencida encontrada.",
+                    CURRENT_OPEN_PAST_NOTICE,
+                )
 
             # Em seguimentos por cliente, detalha todos os contratos encontrados.
             if cliente:
-                por_contrato = defaultdict(lambda: {"saldo": Decimal("0"), "titulos": 0})
+                por_contrato = defaultdict(
+                    lambda: {"saldos": defaultdict(lambda: Decimal("0")), "titulos": 0}
+                )
                 for row in result_list:
                     contrato = str(row.get("contrato") or "SEM CONTRATO").strip()
-                    por_contrato[contrato]["saldo"] += numero(row.get("saldo"))
+                    moeda = moeda_da_linha(row)
+                    por_contrato[contrato]["saldos"][moeda] += numero(row.get("saldo"))
                     por_contrato[contrato]["titulos"] += 1
 
                 contratos = sorted(
                     por_contrato.items(),
-                    key=lambda item: abs(item[1]["saldo"]),
-                    reverse=True,
+                    key=lambda item: item[0].casefold(),
                 )
                 linhas_contratos = [
-                    f"- {contrato}: R$ {format_pt_br(dados['saldo'])} ({dados['titulos']} título(s))"
+                    f"- {contrato}: {saldos_formatados(dados['saldos'])} "
+                    f"({dados['titulos']} título(s))"
                     for contrato, dados in contratos
                 ]
                 return append_scope_notice((
                     f"Contas a receber vencidas do cliente {cliente}:\n\n"
-                    f"Saldo líquido: R$ {format_pt_br(total_saldo)}\n"
+                    f"Saldo líquido por moeda: {saldos_formatados(totais_por_moeda)}\n"
                     f"Quantidade de contratos: {len(por_contrato)}\n\n"
                     "Todos os contratos:\n"
                     + "\n".join(linhas_contratos)
                 ), CURRENT_OPEN_PAST_NOTICE)
 
             por_cliente = defaultdict(
-                lambda: {"saldo": Decimal("0"), "contratos": set(), "titulos": 0}
+                lambda: {
+                    "saldos": defaultdict(lambda: Decimal("0")),
+                    "contratos": set(),
+                    "titulos": 0,
+                }
             )
             for row in result_list:
                 nome = str(row.get("cliente") or row.get("fornecedor") or "SEM IDENTIFICAÇÃO").strip()
-                por_cliente[nome]["saldo"] += numero(row.get("saldo"))
+                moeda = moeda_da_linha(row)
+                por_cliente[nome]["saldos"][moeda] += numero(row.get("saldo"))
                 contrato = str(row.get("contrato") or "").strip()
                 if contrato:
                     por_cliente[nome]["contratos"].add(contrato)
@@ -5065,12 +5084,18 @@ IMPORTANTE:
 
             clientes_ordenados = sorted(
                 por_cliente.items(),
-                key=lambda item: abs(item[1]["saldo"]),
-                reverse=True,
+                key=lambda item: item[0].casefold(),
             )
             linhas = [
-                f"- {nome}: R$ {format_pt_br(dados['saldo'])} | {len(dados['contratos'])} contrato(s)"
+                f"- {nome}: {saldos_formatados(dados['saldos'])} | "
+                f"{len(dados['contratos'])} contrato(s)"
                 for nome, dados in clientes_ordenados
+            ]
+            linhas_totais = [
+                f"- {moeda}: {format_pt_br(saldo)}"
+                for moeda, saldo in sorted(
+                    totais_por_moeda.items(), key=lambda item: item[0].casefold()
+                )
             ]
             titulo_lista = (
                 "Todos os clientes com contas negativas (créditos):"
@@ -5080,11 +5105,13 @@ IMPORTANTE:
             return append_scope_notice((
                 "Resultados de contas a receber vencidas:\n\n"
                 f"Total de registros: {len(result_list)}\n"
-                f"Saldo total vencido: R$ {format_pt_br(total_saldo)}\n"
+                "Saldo total vencido por moeda:\n"
+                + "\n".join(linhas_totais)
+                + "\n"
                 f"Total de clientes: {len(por_cliente)}\n\n"
                 f"{titulo_lista}\n"
                 + "\n".join(linhas)
-                + "\n\nO saldo total é líquido: inclui valores positivos e negativos (créditos do comprador). Todos os registros possuem tipo Receber."
+                + "\n\nOs saldos totais por moeda são líquidos: incluem valores positivos e negativos (créditos do comprador). Todos os registros possuem tipo Receber."
             ), CURRENT_OPEN_PAST_NOTICE)
         except Exception as e:
             logger.error("[CONTAS A RECEBER VENCIDAS] Erro na consulta: %s", e, exc_info=True)
@@ -6238,13 +6265,13 @@ Exemplos:
 - "Qual o total das contas a receber vencidas?"
 - "Me diga todas as contas a receber em atraso"
 
-A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final e tipo Receber. Ela soma o campo saldo incluindo valores negativos, que representam créditos do comprador. Não passe datas e não use pesquisa_contas_a_receber para essas perguntas.
+A ferramenta aplica internamente e sem argumentos a data inicial 19990101, a data atual como final e tipo Receber. Ela soma o campo saldo separadamente para cada valor do campo moeda, incluindo valores negativos, que representam créditos do comprador. Nunca some moedas diferentes. Não passe datas e não use pesquisa_contas_a_receber para essas perguntas.
 
 RESPOSTA E CONTINUIDADE:
 - Na consulta geral, retorne TODOS os clientes fornecidos pela ferramenta, sem limitar aos maiores.
-- Para cada cliente, informe exatamente: nome, saldo total líquido e quantidade de contratos.
+- Para cada cliente, informe exatamente: nome, saldo líquido por moeda e quantidade de contratos.
 - Se o usuário continuar com "me diga os contratos do cliente X", "e do cliente X?" ou equivalente, preserve o contexto de contas vencidas e chame novamente esta ferramenta com cliente="X".
-- Quando cliente for informado, a consulta adicionará WHERE cliente = 'X' e retornará TODOS os contratos desse cliente, com saldo e quantidade de títulos.
+- Quando cliente for informado, a consulta adicionará WHERE cliente = 'X' e retornará TODOS os contratos desse cliente, com saldo por moeda e quantidade de títulos.
 - Se o usuário pedir "contas negativas", "saldos negativos", "clientes com crédito" ou equivalente, chame com somente_negativas=true.
 - Nesse caso a consulta adicionará saldo < 0 e os valores negativos devem permanecer negativos na soma.
 
