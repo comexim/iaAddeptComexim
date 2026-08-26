@@ -2,7 +2,7 @@ from datetime import date
 
 from app.services.commercial_metrics import (
     aggregate_purchases,
-    aggregate_purchases_by_quality_and_differential,
+    aggregate_purchases_by_quality,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
     build_monthly_commercial_series,
@@ -87,29 +87,25 @@ def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
     assert result["totais_por_moeda"][0]["valor_total"] == 2382000.0
 
 
-def test_purchase_quality_uses_line_field_and_keeps_differentials_separate():
-    result = aggregate_purchases_by_quality_and_differential([
+def test_purchase_quality_uses_line_field_and_weights_differential_by_sacks():
+    result = aggregate_purchases_by_quality([
         {"numero": "1", "linha": "BICA CORRIDA", "diferencial": -48, "sacas": 10, "peso": 600},
         {"numero": "2", "linha": "BICA CORRIDA", "diferencial": -48, "sacas": 20, "peso": 1200},
         {"numero": "3", "linha": "BICA CORRIDA", "diferencial": -40, "sacas": 5, "peso": 300},
     ])
 
-    assert result == [
-        {
-            "linha": "BICA CORRIDA", "diferencial": -48.0, "pedidos": 2,
-            "sacas": 30.0, "peso_kg": 1800.0,
-            "sacas_consumo": 0.0, "sacas_exportacao": 0.0,
-        },
-        {
-            "linha": "BICA CORRIDA", "diferencial": -40.0, "pedidos": 1,
-            "sacas": 5.0, "peso_kg": 300.0,
-            "sacas_consumo": 0.0, "sacas_exportacao": 0.0,
-        },
-    ]
+    assert len(result) == 1
+    assert result[0]["linha"] == "BICA CORRIDA"
+    assert result[0]["pedidos"] == 3
+    assert result[0]["sacas"] == 35.0
+    assert result[0]["peso_kg"] == 2100.0
+    assert round(result[0]["diferencial_medio_ponderado"], 2) == -46.86
+    assert [item["identificador"] for item in result[0]["contratos"]] == ["1", "2", "3"]
+    assert [item["diferencial"] for item in result[0]["contratos"]] == [-48.0, -48.0, -40.0]
 
 
 def test_missing_purchase_line_is_explicit_and_never_ordinal():
-    result = aggregate_purchases_by_quality_and_differential([
+    result = aggregate_purchases_by_quality([
         {"numero": "1", "linha": "", "diferencial": -48, "sacas": 10},
     ])
 

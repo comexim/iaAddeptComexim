@@ -288,15 +288,15 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def aggregate_purchases_by_quality_and_differential(
+def aggregate_purchases_by_quality(
     rows: Iterable[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Agrupa compras pelo campo ``linha`` e pelo diferencial retornado.
+    """Agrupa compras por ``linha`` e pondera o diferencial pelas sacas.
 
     Em compras, "qualidade" e "linha" são o mesmo critério de negócio para
     esta consulta. ``linha`` nunca representa a posição ordinal do registro.
-    O diferencial permanece como dimensão do agrupamento para não inventar
-    médias entre condições comerciais distintas.
+    Cada registro permanece listado em ``contratos`` para que a composição da
+    média possa ser conferida.
     """
     grouped = defaultdict(lambda: {
         "pedidos": 0,
@@ -304,40 +304,59 @@ def aggregate_purchases_by_quality_and_differential(
         "peso_kg": Decimal("0"),
         "sacas_consumo": Decimal("0"),
         "sacas_exportacao": Decimal("0"),
+        "diferencial_vezes_sacas": Decimal("0"),
+        "sacas_com_diferencial": Decimal("0"),
+        "contratos": [],
     })
 
     for row in rows:
         quality = str(row.get("linha") or "NÃO INFORMADA").strip() or "NÃO INFORMADA"
+        quantity = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
+        weight = _decimal(row.get("peso") or row.get("pesoKg") or row.get("peso_kg"))
         raw_differential = row.get("diferencial")
         differential = None if raw_differential in (None, "") else _decimal(raw_differential)
-        key = (quality, differential)
-        grouped[key]["pedidos"] += 1
-        grouped[key]["sacas"] += _decimal(
-            row.get("sacas") or row.get("quantidade") or row.get("qtd")
-        )
-        grouped[key]["peso_kg"] += _decimal(
-            row.get("peso") or row.get("pesoKg") or row.get("peso_kg")
-        )
-        grouped[key]["sacas_consumo"] += _decimal(row.get("sacasConsumo"))
-        grouped[key]["sacas_exportacao"] += _decimal(row.get("sacasExportacao"))
+        values = grouped[quality]
+        values["pedidos"] += 1
+        values["sacas"] += quantity
+        values["peso_kg"] += weight
+        values["sacas_consumo"] += _decimal(row.get("sacasConsumo"))
+        values["sacas_exportacao"] += _decimal(row.get("sacasExportacao"))
+        if differential is not None and quantity > 0:
+            values["diferencial_vezes_sacas"] += differential * quantity
+            values["sacas_com_diferencial"] += quantity
+
+        identifier = str(
+            row.get("numero") or row.get("solicitacao") or row.get("contrato") or "SEM IDENTIFICADOR"
+        ).strip() or "SEM IDENTIFICADOR"
+        values["contratos"].append({
+            "identificador": identifier,
+            "fornecedor": str(row.get("fornecedor") or "").strip(),
+            "diferencial": float(differential) if differential is not None else None,
+            "sacas": float(quantity),
+            "peso_kg": float(weight),
+        })
 
     result = []
-    for (quality, differential), totals in grouped.items():
+    for quality, totals in grouped.items():
+        weighted_average = (
+            totals["diferencial_vezes_sacas"] / totals["sacas_com_diferencial"]
+            if totals["sacas_com_diferencial"]
+            else None
+        )
         result.append({
             "linha": quality,
-            "diferencial": float(differential) if differential is not None else None,
+            "diferencial_medio_ponderado": (
+                float(weighted_average) if weighted_average is not None else None
+            ),
             "pedidos": totals["pedidos"],
             "sacas": float(totals["sacas"]),
             "peso_kg": float(totals["peso_kg"]),
             "sacas_consumo": float(totals["sacas_consumo"]),
             "sacas_exportacao": float(totals["sacas_exportacao"]),
+            "contratos": totals["contratos"],
         })
 
-    result.sort(key=lambda item: (
-        str(item["linha"]).casefold(),
-        item["diferencial"] is None,
-        item["diferencial"] if item["diferencial"] is not None else 0,
-    ))
+    result.sort(key=lambda item: str(item["linha"]).casefold())
     return result
 
 

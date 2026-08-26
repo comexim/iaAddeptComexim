@@ -18,7 +18,7 @@ from app.models.user import UserPermissions
 from app.core.redis_client import redis_client
 from app.services.commercial_metrics import (
     aggregate_purchases,
-    aggregate_purchases_by_quality_and_differential,
+    aggregate_purchases_by_quality,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
     build_monthly_commercial_series,
@@ -343,7 +343,7 @@ class SQLTools:
 
     def _format_purchase_quality_summary(self, rows: list[Dict[str, Any]]) -> str:
         """Formata linha/qualidade sem permitir inferência por posição ordinal."""
-        groups = aggregate_purchases_by_quality_and_differential(rows)
+        groups = aggregate_purchases_by_quality(rows)
         if not groups:
             return "Não foram encontrados registros para esse período."
 
@@ -372,21 +372,38 @@ class SQLTools:
 
         lines = []
         for item in groups:
-            differential = (
-                format_pt_br(item["diferencial"])
-                if item["diferencial"] is not None
-                else "NÃO INFORMADO"
+            weighted_differential = (
+                format_pt_br(item["diferencial_medio_ponderado"])
+                if item["diferencial_medio_ponderado"] is not None
+                else "NÃO CALCULÁVEL"
             )
-            lines.append(
-                f"- {item['linha']} | diferencial {differential}: "
-                f"{format_pt_br(item['sacas'])} sacas | "
-                f"{format_pt_br(item['peso_kg'])} kg | {item['pedidos']} pedido(s)"
-            )
+            lines.extend([
+                f"{item['linha']} - diferencial médio ponderado: {weighted_differential}",
+                (
+                    f"Total da linha: {format_pt_br(item['sacas'])} sacas | "
+                    f"{format_pt_br(item['peso_kg'])} kg | {item['pedidos']} pedido(s)"
+                ),
+            ])
+            for contract in item["contratos"]:
+                differential = (
+                    format_pt_br(contract["diferencial"])
+                    if contract["diferencial"] is not None
+                    else "NÃO INFORMADO"
+                )
+                supplier = (
+                    f" | {contract['fornecedor']}" if contract["fornecedor"] else ""
+                )
+                lines.append(
+                    f"- Pedido {contract['identificador']}{supplier}: "
+                    f"diferencial {differential} | "
+                    f"{format_pt_br(contract['sacas'])} sacas"
+                )
+            lines.append("")
 
         return (
-            "Resumo de compras por qualidade (campo linha) e diferencial\n\n"
-            + "\n".join(lines)
-            + "\n\nQualidade foi agrupada exclusivamente pelo conteúdo do campo linha retornado pela procedure."
+            "Resumo de compras por qualidade (campo linha)\n\n"
+            + "\n".join(lines).rstrip()
+            + "\n\nO diferencial médio de cada linha foi ponderado pelas sacas dos pedidos listados."
         )
 
     def _extract_client_name(self, query: str) -> Optional[str]:
@@ -6224,7 +6241,7 @@ Esta ferramenta retorna informações sobre pedidos e contratos de compra, inclu
 REGRA CRÍTICA SOBRE LINHA/QUALIDADE:
 - Sempre leia o conteúdo do campo linha retornado pela procedure.
 - Linha não significa a posição ordinal do resultado. Um único registro não é "linha 1" nem "linha 01".
-- Em pedidos "por qualidade", agrupe pelo campo linha; quando solicitado "em diferencial", use também o campo diferencial.
+- Em pedidos "por qualidade em diferencial", agrupe pelo campo linha, calcule o diferencial médio ponderado pelas sacas e liste os pedidos que compõem cada média.
 
 Argumentos:
 - data_inicio (opcional): Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025", "últimos 7 dias")

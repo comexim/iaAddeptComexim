@@ -75,13 +75,20 @@ def test_purchase_total_by_quality_uses_line_and_differential():
     response = sql_tools._format_results([
         {
             "numero": "123", "linha": "BICA CORRIDA", "diferencial": -48,
-            "sacas": 457.63, "peso": 27000, "valor": 720000,
-        }
+            "sacas": 400, "peso": 24000, "valor": 720000,
+        },
+        {
+            "numero": "124", "linha": "BICA CORRIDA", "diferencial": -40,
+            "sacas": 100, "peso": 6000, "valor": 180000,
+        },
     ], "IA_Compras")
 
-    assert "Resumo de compras por qualidade (campo linha) e diferencial" in response
-    assert "BICA CORRIDA | diferencial -48,00" in response
-    assert "457,63 sacas" in response
+    assert "Resumo de compras por qualidade (campo linha)" in response
+    assert "BICA CORRIDA - diferencial médio ponderado: -46,40" in response
+    assert "Total da linha: 500,00 sacas" in response
+    assert "Pedido 123: diferencial -48,00 | 400,00 sacas" in response
+    assert "Pedido 124: diferencial -40,00 | 100,00 sacas" in response
+    assert "ponderado pelas sacas" in response
     assert "linha 01" not in response.lower()
 
 
