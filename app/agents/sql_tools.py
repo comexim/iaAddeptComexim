@@ -18,6 +18,7 @@ from app.models.user import UserPermissions
 from app.core.redis_client import redis_client
 from app.services.commercial_metrics import (
     aggregate_purchases,
+    aggregate_purchases_by_quality_and_differential,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
     build_monthly_commercial_series,
@@ -319,7 +320,7 @@ class SQLTools:
         return (
             "Resumo de compras\n\n"
             f"{prefixo}: {metrics['total_contratos']} pedido(s).\n"
-            f"Total de sacas: {format_pt_br(sum(item['quantidade_total'] for item in metrics['totais_por_moeda']))}\n"
+            f"Total de sacas: {format_pt_br(sum(item['quantidade_total'] for item in metrics['totais_por_moeda']))} sacas\n"
             f"Peso total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
             f"Peso médio por saca: {relacao_texto} kg/saca\n"
             + "\n".join(linhas)
@@ -332,6 +333,61 @@ class SQLTools:
             "quanto compr", "quantas sacas", "volume total", "total de compras",
             "peso total", "quanto cafe", "compramos de cafe",
         ))
+
+    def _is_purchase_quality_query(self) -> bool:
+        """Detecta pedidos em que qualidade significa o campo SQL ``linha``."""
+        query = self._remove_accents(
+            (self.user_query_original or self.user_query or "").lower()
+        )
+        return bool(re.search(r'\b(?:qualidade|qualidades|linha|linhas)\b', query))
+
+    def _format_purchase_quality_summary(self, rows: list[Dict[str, Any]]) -> str:
+        """Formata linha/qualidade sem permitir inferência por posição ordinal."""
+        groups = aggregate_purchases_by_quality_and_differential(rows)
+        if not groups:
+            return "Não foram encontrados registros para esse período."
+
+        query = self._remove_accents(
+            (self.user_query_original or self.user_query or "").lower()
+        )
+        asks_only_for_line = bool(re.search(
+            r'\b(?:qual|informe|mostre|diga).{0,20}\blinha\b|\blinha\s+dessa\s+compra\b',
+            query,
+        )) and not self._is_purchase_total_query()
+
+        if asks_only_for_line:
+            details = []
+            for row in rows:
+                identifier = str(
+                    row.get("numero") or row.get("solicitacao") or row.get("contrato") or ""
+                ).strip()
+                quality = str(row.get("linha") or "NÃO INFORMADA").strip() or "NÃO INFORMADA"
+                label = f"Compra {identifier}" if identifier else "Compra"
+                details.append(f"- {label}: linha/qualidade {quality}")
+            return (
+                "Resumo de compras — campo linha/qualidade\n\n"
+                + "\n".join(details)
+                + "\n\nOs valores acima foram lidos diretamente do campo linha retornado pela procedure."
+            )
+
+        lines = []
+        for item in groups:
+            differential = (
+                format_pt_br(item["diferencial"])
+                if item["diferencial"] is not None
+                else "NÃO INFORMADO"
+            )
+            lines.append(
+                f"- {item['linha']} | diferencial {differential}: "
+                f"{format_pt_br(item['sacas'])} sacas | "
+                f"{format_pt_br(item['peso_kg'])} kg | {item['pedidos']} pedido(s)"
+            )
+
+        return (
+            "Resumo de compras por qualidade (campo linha) e diferencial\n\n"
+            + "\n".join(lines)
+            + "\n\nQualidade foi agrupada exclusivamente pelo conteúdo do campo linha retornado pela procedure."
+        )
 
     def _extract_client_name(self, query: str) -> Optional[str]:
         """
@@ -2049,6 +2105,15 @@ class SQLTools:
         if monthly_series is not None:
             return monthly_series
 
+        # Em compras, "qualidade" significa exclusivamente o campo ``linha``
+        # retornado pela procedure. Esta saída determinística impede que o LLM
+        # trate linha como a posição 1, 2, 3... do resultado.
+        if (
+            function_name in ("IA_Compras", "IA_ComprasPar")
+            and self._is_purchase_quality_query()
+        ):
+            return self._format_purchase_quality_summary(results)
+
         # Totais de compras são sempre calculados no código, mesmo quando a
         # procedure retorna 50 registros ou menos. O modelo não soma linhas.
         if function_name in ("IA_Compras", "IA_ComprasPar") and self._is_purchase_total_query():
@@ -2997,13 +3062,15 @@ Você pode responder sobre QUALQUER um desses 34 campos.""",
             "IA_Compras": """
 COLUNAS DISPONÍVEIS EM COMPRAS:
 Verifique os campos retornados nos registros acima.
-Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, etc.
+Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, linha, diferencial, etc.
+REGRA OBRIGATÓRIA: em compras, "qualidade" significa o conteúdo do campo linha retornado pela procedure. O campo linha NÃO é a posição ordinal do registro. Nunca responda "linha 1", "linha 01" ou equivalente por haver apenas um resultado; leia exclusivamente registro["linha"].
 Analise cada campo e responda com base nos dados reais.""",
 
             "IA_ComprasPar": """
 COLUNAS DISPONÍVEIS EM COMPRAS:
 Verifique os campos retornados nos registros acima.
-Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, etc.
+Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, linha, diferencial, etc.
+REGRA OBRIGATÓRIA: em compras, "qualidade" significa o conteúdo do campo linha retornado pela procedure. O campo linha NÃO é a posição ordinal do registro. Nunca responda "linha 1", "linha 01" ou equivalente por haver apenas um resultado; leia exclusivamente registro["linha"].
 Analise cada campo e responda com base nos dados reais.""",
 
             "IA_ContasPagas": """
@@ -6149,10 +6216,15 @@ Esta ferramenta retorna informações sobre pedidos e contratos de compra, inclu
 - Quantidade (sacas e peso)
 - Preço e valor total
 - Safra
-- Qualidade (peneiras, defeitos, umidade, etc.)
+- Linha/qualidade: em compras, "qualidade" corresponde exatamente ao campo linha retornado pela procedure
 - Diferencial
 - Data de emissão e entrega
 - Sacas entregues vs a entregar
+
+REGRA CRÍTICA SOBRE LINHA/QUALIDADE:
+- Sempre leia o conteúdo do campo linha retornado pela procedure.
+- Linha não significa a posição ordinal do resultado. Um único registro não é "linha 1" nem "linha 01".
+- Em pedidos "por qualidade", agrupe pelo campo linha; quando solicitado "em diferencial", use também o campo diferencial.
 
 Argumentos:
 - data_inicio (opcional): Data/período inicial (ex: "janeiro 2025", "2025", "05/12/2025", "últimos 7 dias")

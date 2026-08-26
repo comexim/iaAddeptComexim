@@ -64,3 +64,37 @@ def test_safra_code_is_not_treated_as_contract_and_filters_purchases():
     assert "Volume total da safra 25/26" in response
     assert "150,00 sacas" in response
     assert "999" not in response
+
+
+def test_purchase_total_by_quality_uses_line_and_differential():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Total de compras de hoje por qualidade em diferencial"
+    sql_tools.user_query = sql_tools.user_query_original
+
+    response = sql_tools._format_results([
+        {
+            "numero": "123", "linha": "BICA CORRIDA", "diferencial": -48,
+            "sacas": 457.63, "peso": 27000, "valor": 720000,
+        }
+    ], "IA_Compras")
+
+    assert "Resumo de compras por qualidade (campo linha) e diferencial" in response
+    assert "BICA CORRIDA | diferencial -48,00" in response
+    assert "457,63 sacas" in response
+    assert "linha 01" not in response.lower()
+
+
+def test_purchase_line_followup_returns_database_field_not_result_position():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "qual a linha dessa compra?"
+    sql_tools.user_query = "Total de compras de hoje por qualidade em diferencial qual a linha dessa compra?"
+
+    response = sql_tools._format_results([
+        {"numero": "123", "linha": "BICA CORRIDA", "diferencial": -48, "sacas": 457.63}
+    ], "IA_Compras")
+
+    assert "Compra 123: linha/qualidade BICA CORRIDA" in response
+    assert "campo linha retornado pela procedure" in response
+    assert "linha/qualidade 01" not in response

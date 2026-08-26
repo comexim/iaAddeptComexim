@@ -288,6 +288,59 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def aggregate_purchases_by_quality_and_differential(
+    rows: Iterable[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Agrupa compras pelo campo ``linha`` e pelo diferencial retornado.
+
+    Em compras, "qualidade" e "linha" são o mesmo critério de negócio para
+    esta consulta. ``linha`` nunca representa a posição ordinal do registro.
+    O diferencial permanece como dimensão do agrupamento para não inventar
+    médias entre condições comerciais distintas.
+    """
+    grouped = defaultdict(lambda: {
+        "pedidos": 0,
+        "sacas": Decimal("0"),
+        "peso_kg": Decimal("0"),
+        "sacas_consumo": Decimal("0"),
+        "sacas_exportacao": Decimal("0"),
+    })
+
+    for row in rows:
+        quality = str(row.get("linha") or "NÃO INFORMADA").strip() or "NÃO INFORMADA"
+        raw_differential = row.get("diferencial")
+        differential = None if raw_differential in (None, "") else _decimal(raw_differential)
+        key = (quality, differential)
+        grouped[key]["pedidos"] += 1
+        grouped[key]["sacas"] += _decimal(
+            row.get("sacas") or row.get("quantidade") or row.get("qtd")
+        )
+        grouped[key]["peso_kg"] += _decimal(
+            row.get("peso") or row.get("pesoKg") or row.get("peso_kg")
+        )
+        grouped[key]["sacas_consumo"] += _decimal(row.get("sacasConsumo"))
+        grouped[key]["sacas_exportacao"] += _decimal(row.get("sacasExportacao"))
+
+    result = []
+    for (quality, differential), totals in grouped.items():
+        result.append({
+            "linha": quality,
+            "diferencial": float(differential) if differential is not None else None,
+            "pedidos": totals["pedidos"],
+            "sacas": float(totals["sacas"]),
+            "peso_kg": float(totals["peso_kg"]),
+            "sacas_consumo": float(totals["sacas_consumo"]),
+            "sacas_exportacao": float(totals["sacas_exportacao"]),
+        })
+
+    result.sort(key=lambda item: (
+        str(item["linha"]).casefold(),
+        item["diferencial"] is None,
+        item["diferencial"] if item["diferencial"] is not None else 0,
+    ))
+    return result
+
+
 def normalize_month_key(value: Any) -> Optional[str]:
     """Normaliza datas usuais do Protheus para YYYY/MM, sem inferir valores."""
     if value in (None, ""):
