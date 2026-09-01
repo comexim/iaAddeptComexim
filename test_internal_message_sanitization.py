@@ -1,4 +1,5 @@
 import importlib
+import asyncio
 import sys
 import types
 
@@ -91,3 +92,18 @@ def test_whatsapp_sanitizer_drops_internal_preference_message():
 
     assert service._sanitize_outbound_text("_[Preferência atualizada: nivel_detalhe → medio]_") == ""
     assert service._sanitize_outbound_text("OK\n\n[Preferencia atualizada: tom → profissional]") == "OK"
+
+
+def test_hedge_offer_and_recommendations_are_sent_as_one_message():
+    ResponseFormatter = _load_formatter()
+    formatter = ResponseFormatter.__new__(ResponseFormatter)
+    text = (
+        "Gostaria que eu fizesse o Hedge da bolsa?\n\n"
+        "Quantidade de lotes recomendada: 5 lotes\n"
+        "Mês/ano de fixação recomendado: dezembro/2026. "
+        "Você pode informar outros dados."
+    )
+
+    messages = asyncio.run(formatter.format_response(text))
+
+    assert messages == [text]

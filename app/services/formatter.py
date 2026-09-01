@@ -44,6 +44,12 @@ class ResponseFormatter:
         # Limpa links markdown/URLs antes de qualquer processamento
         text = self._limpar_markdown(text)
 
+        # O convite para Hedge e as recomendações formam uma única resposta.
+        # Não divida os parágrafos em vários envios do WhatsApp.
+        if self._is_hedge_offer_with_recommendation(text):
+            logger.info("Preservando convite e recomendações de Hedge em um único envio")
+            return [text.strip()]
+
         # Respostas de falha da Z24 sao deterministicas. Nao as envie ao LLM
         # formatador, pois ele pode acrescentar uma oferta de Hedge que so e
         # permitida depois da confirmacao de sucesso da fixacao.
@@ -118,6 +124,21 @@ class ResponseFormatter:
         normalized = unicodedata.normalize("NFKD", text)
         normalized = "".join(char for char in normalized if not unicodedata.combining(char))
         return "nao foi possivel concluir o cadastro:" in normalized.lower()
+
+    def _is_hedge_offer_with_recommendation(self, text: str) -> bool:
+        """Reconhece o bloco único de convite e recomendações do Hedge."""
+        import unicodedata
+        normalized = unicodedata.normalize("NFKD", str(text or ""))
+        normalized = "".join(
+            char for char in normalized if not unicodedata.combining(char)
+        ).lower()
+        return (
+            "hedge da bolsa?" in normalized
+            and (
+                "quantidade de lotes recomendada:" in normalized
+                or "mes/ano de fixacao recomendado:" in normalized
+            )
+        )
 
     def _remove_hedge_offer(self, text: str) -> str:
         """Remove defensivamente convites de Hedge de uma resposta de erro."""
