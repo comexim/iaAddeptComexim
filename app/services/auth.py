@@ -46,7 +46,7 @@ class AuthService:
                 telefone="35920000589",
                 nome="Cliente Comexim",
                 email="lucas.oliveira@comexim.com.br",
-                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+                direitos=["Financeiro", "Estoque", "Vendas", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
             )
 
         # BYPASS: Marco - Cliente com acesso TOTAL
@@ -167,6 +167,16 @@ class AuthService:
                 nome="Sérgio Hazan",
                 email="sergio@comexim.com.br",
                 direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+            )
+
+        # BYPASS: Ivan Hazan - acesso TOTAL
+        if phone == "13996951608":
+            logger.info(f"[BYPASS] {phone} Ivan Hazan - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="13996951608",
+                nome="Ivan Hazan",
+                email="ivan.hazan@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
             )
 
         # Verifica cache primeiro
