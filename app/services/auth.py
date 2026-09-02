@@ -56,7 +56,7 @@ class AuthService:
                 telefone="11915901500",
                 nome="Marco",
                 email="marco.souza@comexim.com.br",
-                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil"]
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
             )
 
         # BYPASS: Cliente teste com acesso TOTAL
