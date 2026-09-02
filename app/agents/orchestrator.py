@@ -1630,6 +1630,19 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     )
                     break
 
+            # Negativas de autorização são decisões determinísticas do backend.
+            # O LLM não pode suavizar a mensagem como uma falha técnica genérica.
+            for msg in reversed(current_turn_messages):
+                if (
+                    isinstance(msg, ToolMessage)
+                    and str(msg.content).startswith("Você não tem permissão")
+                ):
+                    output = msg.content
+                    logger.info(
+                        "[PERMISSÃO] Retornando negativa determinística da tool, sem paráfrase do LLM"
+                    )
+                    break
+
             # Garante que output é sempre string
             if isinstance(output, list):
                 # Se for lista, pega apenas content type "text"

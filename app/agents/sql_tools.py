@@ -3841,6 +3841,15 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             Dados de compras formatados
         """
         procedure_name = "usp_IA_Compras"
+
+        # Autoriza antes de interpretar filtros ou datas. Além de evitar
+        # trabalho desnecessário, garante que nenhum passo da consulta seja
+        # preparado para um usuário sem acesso ao módulo de Compras.
+        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
+        if not has_permission:
+            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
+            return error_msg
+
         procedure_params = {}
         self._series_expected_months = []
         self._series_date_fields = ("emissao", "dataEmissao", "dataemissao")
@@ -3872,11 +3881,6 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             self._series_expected_months = month_keys_between(
                 procedure_params["DataIni"], procedure_params["DataFim"]
             )
-
-        has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
-        if not has_permission:
-            logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
-            return error_msg
 
         logger.info(f"[COMPRAS] Executando {procedure_name} com parâmetros: {procedure_params}")
         self._series_query_context = {
