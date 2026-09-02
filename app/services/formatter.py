@@ -44,6 +44,11 @@ class ResponseFormatter:
         # Limpa links markdown/URLs antes de qualquer processamento
         text = self._limpar_markdown(text)
 
+        # Decisões de autorização nunca devem ser reescritas por IA.
+        if text.startswith("Você não tem permissão"):
+            logger.info("Preservando negativa de permissão sem formatação por IA")
+            return self._simple_split(text)
+
         # O convite para Hedge e as recomendações formam uma única resposta.
         # Não divida os parágrafos em vários envios do WhatsApp.
         if self._is_hedge_offer_with_recommendation(text):

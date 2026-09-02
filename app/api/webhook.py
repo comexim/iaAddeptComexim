@@ -15,6 +15,7 @@ from app.core.redis_client import redis_client
 from app.agents.orchestrator import AgentOrchestrator
 from app.core.config import settings
 from app.services.query_trace import reset_query_trace, start_query_trace
+from app.utils.permission_guard import get_early_permission_denial
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -69,6 +70,19 @@ async def process_message_flow(phone: str, message_text: str, session_id: str, m
         # 7. Junta todas as mensagens
         full_message = ", ".join(buffered_messages)
         logger.info(f"Processando mensagem completa: {full_message[:100]}...")
+
+        # Intenções de módulo explícitas não precisam de IA para serem
+        # autorizadas. Bloqueia antes de criar o orquestrador, consultar
+        # preferências ou chamar qualquer modelo e envia a decisão sem
+        # passar pelo formatador de IA.
+        permission_denial = get_early_permission_denial(user, full_message)
+        if permission_denial:
+            logger.warning(
+                "[PERMISSÃO] Solicitação bloqueada antes do orquestrador para %s",
+                phone,
+            )
+            await whatsapp_service.send_text_message(session_id, permission_denial)
+            return
 
         # 8. Cria orquestrador e processa
         orchestrator = AgentOrchestrator(user=user, session_id=phone)
