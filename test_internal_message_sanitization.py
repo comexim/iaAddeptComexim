@@ -100,8 +100,7 @@ def test_hedge_offer_and_recommendations_are_sent_as_one_message():
     text = (
         "Gostaria que eu fizesse o Hedge da bolsa?\n\n"
         "Quantidade de lotes recomendada: 5 lotes\n"
-        "Mês/ano de fixação recomendado: dezembro/2026. "
-        "Você pode informar outros dados."
+        "Mês/ano de fixação recomendado: dezembro/2026."
     )
 
     messages = asyncio.run(formatter.format_response(text))

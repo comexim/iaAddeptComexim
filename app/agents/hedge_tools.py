@@ -162,10 +162,7 @@ class HedgeTools:
         if month and year:
             month_name = HedgeTools.MONTH_NAMES.get(month, month)
             suggestions.append(f"Mês/ano de fixação recomendado: {month_name}/{year}")
-        return (
-            "\n\n" + "\n".join(suggestions) + ". "
-            "Você pode informar outros dados; nos campos que não informar, usarei essas recomendações."
-        )
+        return "\n\n" + "\n".join(suggestions) + "."
 
     def start_collecting(self):
         data = self.load()

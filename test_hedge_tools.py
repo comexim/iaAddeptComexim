@@ -141,6 +141,8 @@ class HedgeToolsTest(unittest.TestCase):
         self.assertEqual(result["anofixRecomendado"], "2026")
         message = self.hedge.recommendation_message(result)
         self.assertIn("Mês/ano de fixação recomendado: julho/2026", message)
+        self.assertNotIn("Você pode informar outros dados", message)
+        self.assertNotIn("usarei essas recomendações", message)
 
 
 class HedgeApiResponseTest(unittest.IsolatedAsyncioTestCase):
