@@ -74,7 +74,7 @@ class FakeRedis:
 class FixacaoToolsTest(unittest.TestCase):
     def setUp(self):
         self.fake = FakeRedis()
-        self.tool = FixacaoTools("teste")
+        self.tool = FixacaoTools("teste", has_permission=True)
         self.redis_patch = patch.object(self.tool, "_redis", return_value=self.fake)
         self.redis_patch.start()
         self.value_type_patch = patch.object(
@@ -103,6 +103,24 @@ class FixacaoToolsTest(unittest.TestCase):
                 "contratodeVenda": "011706",
                 "fixacaoContrato": [{"valorFixacao": 321.321}],
             })
+
+    def test_usuario_sem_permissao_nao_coleta_nem_envia_fixacao(self):
+        tool = FixacaoTools("sem-permissao", has_permission=False)
+        with patch.object(tool, "_redis", return_value=self.fake), patch(
+            "app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao",
+            new=AsyncMock(return_value={"ok": True}),
+        ) as send:
+            result = tool.cadastrar_valor_contrato(
+                contratode_venda="011706",
+                valor_fixacao=321.321,
+                confirmar_envio=True,
+            )
+
+            self.assertEqual(result, "Você não tem permissão para fixar contratos.")
+            self.assertEqual(send.await_count, 0)
+            self.assertIsNone(self.fake.get(tool.key))
+            self.assertFalse(tool.is_waiting_for_value())
+            self.assertFalse(tool.is_awaiting_confirmation())
 
     def test_correcao_exige_novo_resumo_e_nova_confirmacao(self):
         self.fake.data[self.tool.key] = json.dumps({

@@ -888,7 +888,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 from app.agents.fixacao_tools import FixacaoTools
                 from app.agents.hedge_tools import HedgeTools
 
-                pending_fixacao = FixacaoTools(self.session_id or "default")
+                pending_fixacao = FixacaoTools(
+                    self.session_id or "default",
+                    has_permission=self.user.has_permission("Fixacao"),
+                )
                 if pending_fixacao.is_awaiting_confirmation():
                     logger.info(
                         "[FIXACAO FLOW] Ajuste externo informado; repetindo fixação pendente "
@@ -924,9 +927,19 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 import asyncio
                 from app.agents.fixacao_tools import FixacaoTools
                 from app.agents.hedge_tools import HedgeTools
+
+                if not self.user.has_permission("Fixacao"):
+                    output = "Você não tem permissão para fixar contratos."
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+
                 logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
                 HedgeTools(self.session_id or "default").clear()
-                new_fixacao = FixacaoTools(self.session_id or "default")
+                new_fixacao = FixacaoTools(
+                    self.session_id or "default",
+                    has_permission=True,
+                )
                 new_fixacao.clear_pending()
 
                 contract_pattern = re.compile(
@@ -1080,7 +1093,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # valor da fixacao 200,32 e diferencial -12. O diferencial pode
             # ser negativo, positivo com sinal, ou positivo sem sinal.
             from app.agents.fixacao_tools import FixacaoTools
-            fixacao_collecting = FixacaoTools(self.session_id or "default")
+            fixacao_collecting = FixacaoTools(
+                self.session_id or "default",
+                has_permission=self.user.has_permission("Fixacao"),
+            )
             if fixacao_collecting.is_waiting_for_value():
                 value_with_differential = re.fullmatch(
                     r'\s*([+-]?\d+(?:[.,]\d+)?)\s+com\s+([+-]?\d+(?:[.,]\d+)?)\s*[.!]?\s*',
@@ -1116,7 +1132,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 import asyncio
                 from app.agents.fixacao_tools import FixacaoTools
 
-                fixacao = FixacaoTools(self.session_id or "default")
+                fixacao = FixacaoTools(
+                    self.session_id or "default",
+                    has_permission=self.user.has_permission("Fixacao"),
+                )
                 awaiting_fixacao = fixacao.is_awaiting_confirmation()
                 logger.info(
                     "[FIXACAO FLOW] Mensagem de confirmacao detectada; aguardando_confirmacao=%s",
@@ -1155,7 +1174,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # Atualizacoes opcionais de uma fixacao pendente sao processadas
             # diretamente, sem permitir chamada da API neste mesmo turno.
             from app.agents.fixacao_tools import FixacaoTools
-            fixacao_pending = FixacaoTools(self.session_id or "default")
+            fixacao_pending = FixacaoTools(
+                self.session_id or "default",
+                has_permission=self.user.has_permission("Fixacao"),
+            )
             if fixacao_pending.is_awaiting_confirmation():
                 normalized_message = _normalize_query_text(message)
                 optional_updates = {}

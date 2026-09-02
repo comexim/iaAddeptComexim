@@ -13,7 +13,8 @@ PermissionType = Literal[
     "Orçamento",
     "RH",
     "Fiscal",
-    "Contábil"
+    "Contábil",
+    "Fixacao"
 ]
 
 

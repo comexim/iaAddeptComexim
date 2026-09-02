@@ -6884,8 +6884,17 @@ EXEMPLOS DE USO:
         
         # Adiciona tool de criação de contratos ADA
         tools_list.append(self.get_ada_tool())
-        from app.agents.fixacao_tools import create_fixacao_tool
-        tools_list.append(create_fixacao_tool(self.session_id or "default"))
+        if self.user.has_permission("Fixacao"):
+            from app.agents.fixacao_tools import create_fixacao_tool
+            tools_list.append(create_fixacao_tool(
+                self.session_id or "default",
+                has_permission=True,
+            ))
+        else:
+            logger.info(
+                "Tool de fixação não disponibilizada para %s: permissão Fixacao ausente",
+                self.user.telefone,
+            )
         
         return tools_list
     

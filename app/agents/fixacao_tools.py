@@ -21,8 +21,9 @@ class FixacaoTools:
     REQUIRED = ("contratodeVenda", "valorFixacao")
     LABELS = {"contratodeVenda": "contrato de venda", "valorFixacao": "valor da fixacao", "diferencial": "diferencial", "tipoValor": "tipo do valor", "fixadorPreco": "fixador do preco"}
 
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, has_permission: bool = False):
         self.key = f"fixacao_pendente:{session_id}"
+        self.has_permission = has_permission
 
     def _redis(self):
         return redis.from_url(settings.redis_url, decode_responses=True)
@@ -36,11 +37,15 @@ class FixacaoTools:
 
     def is_awaiting_confirmation(self) -> bool:
         """Indica se os dados ja foram exibidos e aguardam confirmacao."""
+        if not self.has_permission:
+            return False
         data = self._load()
         return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
 
     def is_waiting_for_value(self) -> bool:
         """Indica contrato coletado que ainda aguarda o valor da fixacao."""
+        if not self.has_permission:
+            return False
         data = self._load()
         return "contratodeVenda" in data and "valorFixacao" not in data
 
@@ -171,6 +176,10 @@ class FixacaoTools:
 
     def cadastrar_valor_contrato(self, contratode_venda: Optional[str] = None, valor_fixacao: Optional[float] = None, diferencial: Optional[float] = None, tipo_valor: Optional[str] = None, fixador_preco: Optional[str] = None, confirmar_envio: bool = False) -> str:
         """Coleta, confirma e envia uma fixacao de contrato para a API CMX."""
+        if not self.has_permission:
+            logger.warning("Permissão Fixacao negada para a sessão %s", self.key)
+            return "Você não tem permissão para fixar contratos."
+
         data = self._load()
         previous_contract = data.get("contratodeVenda")
         novos = {"contratodeVenda": contratode_venda, "valorFixacao": valor_fixacao, "diferencial": diferencial, "tipoValor": tipo_valor, "fixadorPreco": fixador_preco}
@@ -275,5 +284,5 @@ class FixacaoTools:
         return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. Preserve exatamente o identificador informado: formatos sem barra, como 012276, serao enviados como contratodeVenda; formatos com barra, como 352/26, serao enviados como numeroVenda; se houver letra final, como 352/26A, a tool separa numeroVenda=352/26 e letraVenda=A. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
-def create_fixacao_tool(session_id: str) -> StructuredTool:
-    return FixacaoTools(session_id).get_tool()
+def create_fixacao_tool(session_id: str, has_permission: bool = False) -> StructuredTool:
+    return FixacaoTools(session_id, has_permission=has_permission).get_tool()
