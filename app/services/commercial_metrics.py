@@ -15,6 +15,7 @@ SALES_BRANCHES = {
     "60": "CUSA",
     "61": "CEU",
 }
+STANDARD_KG_PER_SACK = Decimal("60")
 
 TRUSTED_UNFIXED_SALES_PREFIX = "POSICAO_VENDAS_A_FIXAR_CONFIRMADA:\n"
 
@@ -245,8 +246,31 @@ def filter_unfixed_sales_position(rows: Iterable[Dict[str, Any]]) -> Dict[str, A
     }
 
 
-def normalize_sales_sacks_to_60kg(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
-    """Cria cópias das linhas com sacas calculadas por peso / 60 kg.
+def commercial_row_weight(row: Dict[str, Any]) -> Decimal:
+    """Obtém o peso real de uma linha comercial nos nomes conhecidos."""
+    return _decimal(row.get("peso") or row.get("pesoKg") or row.get("peso_kg"))
+
+
+def commercial_row_sacks(row: Dict[str, Any]) -> Decimal:
+    """Calcula sacas comerciais pelo peso real e pelo padrão de 60 kg."""
+    weight = commercial_row_weight(row)
+    if weight > 0:
+        return weight / STANDARD_KG_PER_SACK
+    return _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
+
+
+def commercial_component_sacks(row: Dict[str, Any], field: str) -> Decimal:
+    """Converte um componente de sacas mantendo sua proporção no total."""
+    component = _decimal(row.get(field))
+    weight = commercial_row_weight(row)
+    source_sacks = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
+    if weight > 0 and source_sacks > 0:
+        return component * (weight / STANDARD_KG_PER_SACK) / source_sacks
+    return component
+
+
+def normalize_commercial_sacks_to_60kg(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Cria cópias das linhas comerciais com sacas calculadas por peso / 60 kg.
 
     Quando a origem não fornece peso positivo, conserva o campo ``sacas`` e
     registra o fallback para auditoria.
@@ -258,10 +282,15 @@ def normalize_sales_sacks_to_60kg(rows: Iterable[Dict[str, Any]]) -> Dict[str, A
 
     for row in rows:
         normalized_row = dict(row)
-        weight = _decimal(row.get("peso"))
+        weight = commercial_row_weight(row)
         if weight > 0:
-            sacks = weight / Decimal("60")
+            sacks = weight / STANDARD_KG_PER_SACK
             normalized_row["sacas"] = sacks
+            for field in (
+                "sacasEntregues", "sacasSaldo", "sacasConsumo", "sacasExportacao"
+            ):
+                if row.get(field) not in (None, ""):
+                    normalized_row[field] = commercial_component_sacks(row, field)
             weight_based_rows += 1
         else:
             sacks = _decimal(row.get("sacas"))
@@ -274,7 +303,7 @@ def normalize_sales_sacks_to_60kg(rows: Iterable[Dict[str, Any]]) -> Dict[str, A
         "total_sacks": float(total_sacks),
         "weight_based_rows": weight_based_rows,
         "fallback_rows": fallback_rows,
-        "kg_per_sack": 60,
+        "kg_per_sack": int(STANDARD_KG_PER_SACK),
     }
 
 
@@ -350,7 +379,7 @@ def aggregate_sales_by_branch(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, 
         code = sales_branch_code(row.get("filial"))
         item = totals[code]
         item["contratos"] += 1
-        item["sacas"] += _decimal(row.get("sacas"))
+        item["sacas"] += commercial_row_sacks(row)
         item["valor_usd"] += _decimal(row.get("valorTotal"))
         if row.get("cliente"):
             item["clientes"].add(str(row["cliente"]).strip())
@@ -371,7 +400,7 @@ def aggregate_sales_by_branch(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, 
 
 
 def aggregate_sales_totals(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
-    """Agrega totais de vendas por contrato, com valorTotal em USD."""
+    """Agrega vendas por contrato em sacas de 60 kg e valorTotal em USD."""
     unique: Dict[str, Dict[str, Any]] = {}
     for index, row in enumerate(rows):
         contract = str(row.get("contrato") or index).strip()
@@ -385,7 +414,7 @@ def aggregate_sales_totals(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     clients = set()
 
     for row in unique.values():
-        total_sacas += _decimal(row.get("sacas"))
+        total_sacas += commercial_row_sacks(row)
         total_value_usd += _decimal(row.get("valorTotal"))
         if row.get("cliente"):
             clients.add(str(row["cliente"]).strip())
@@ -399,7 +428,7 @@ def aggregate_sales_totals(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
-    """Agrega cada registro retornado pelo esquema de compras.
+    """Agrega compras usando peso / 60 kg como quantidade comercial.
 
     O número do pedido não é uma chave única confiável: a procedure pode
     devolver várias linhas legítimas com o mesmo ``numero``. Portanto, uma
@@ -418,8 +447,8 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     for row in source_rows:
         currency = row_currency(row)
         value = _decimal(row.get("valor") or row.get("valorTotal") or row.get("valorContrato"))
-        quantity = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
-        weight = _decimal(row.get("peso") or row.get("pesoKg") or row.get("peso_kg"))
+        quantity = commercial_row_sacks(row)
+        weight = commercial_row_weight(row)
         supplier = str(row.get("fornecedor") or row.get("produtor") or "SEM FORNECEDOR").strip()
 
         totals_by_currency[currency]["value"] += value
@@ -466,6 +495,12 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
             if total_weight and any(item["quantity"] for item in totals_by_currency.values())
             else None
         ),
+        "sacas_calculadas_por_peso_60kg": sum(
+            1 for row in source_rows if commercial_row_weight(row) > 0
+        ),
+        "sacas_sem_peso_fallback": sum(
+            1 for row in source_rows if commercial_row_weight(row) <= 0
+        ),
         "totais_por_moeda": currency_totals,
         "fornecedores": supplier_totals,
     }
@@ -474,7 +509,7 @@ def aggregate_purchases(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
 def aggregate_purchases_by_quality(
     rows: Iterable[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Agrupa compras por ``linha`` e pondera o diferencial pelas sacas.
+    """Agrupa compras por ``linha`` e pondera o diferencial por sacas de 60 kg.
 
     Em compras, "qualidade" e "linha" são o mesmo critério de negócio para
     esta consulta. ``linha`` nunca representa a posição ordinal do registro.
@@ -494,16 +529,16 @@ def aggregate_purchases_by_quality(
 
     for row in rows:
         quality = str(row.get("linha") or "NÃO INFORMADA").strip() or "NÃO INFORMADA"
-        quantity = _decimal(row.get("sacas") or row.get("quantidade") or row.get("qtd"))
-        weight = _decimal(row.get("peso") or row.get("pesoKg") or row.get("peso_kg"))
+        quantity = commercial_row_sacks(row)
+        weight = commercial_row_weight(row)
         raw_differential = row.get("diferencial")
         differential = None if raw_differential in (None, "") else _decimal(raw_differential)
         values = grouped[quality]
         values["pedidos"] += 1
         values["sacas"] += quantity
         values["peso_kg"] += weight
-        values["sacas_consumo"] += _decimal(row.get("sacasConsumo"))
-        values["sacas_exportacao"] += _decimal(row.get("sacasExportacao"))
+        values["sacas_consumo"] += commercial_component_sacks(row, "sacasConsumo")
+        values["sacas_exportacao"] += commercial_component_sacks(row, "sacasExportacao")
         if differential is not None and quantity > 0:
             values["diferencial_vezes_sacas"] += differential * quantity
             values["sacas_com_diferencial"] += quantity

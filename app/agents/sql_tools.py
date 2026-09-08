@@ -31,7 +31,7 @@ from app.services.commercial_metrics import (
     format_pt_br,
     is_unfixed_sales_position_query,
     is_unfixed_sales_summary_query,
-    normalize_sales_sacks_to_60kg,
+    normalize_commercial_sacks_to_60kg,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
@@ -332,7 +332,9 @@ class SQLTools:
             f"{prefixo}: {metrics['total_contratos']} pedido(s).\n"
             f"Total de sacas: {format_pt_br(sum(item['quantidade_total'] for item in metrics['totais_por_moeda']))} sacas\n"
             f"Peso total: {format_pt_br(metrics['peso_total_kg'])} kg\n"
-            f"Peso médio por saca: {relacao_texto} kg/saca\n"
+            f"Relação usada no cálculo: {relacao_texto} kg/saca\n"
+            f"Linhas calculadas por peso ÷ 60 kg: {metrics['sacas_calculadas_por_peso_60kg']}\n"
+            f"Linhas sem peso usando sacas da origem: {metrics['sacas_sem_peso_fallback']}\n"
             + "\n".join(linhas)
             + supplier_section
         )
@@ -1752,6 +1754,25 @@ class SQLTools:
         original_count = total_records
         trace_filters: Dict[str, Any] = {}
 
+        if function_name in ("IA_Vendas", "IA_Compras", "IA_ComprasPar"):
+            sack_normalization = normalize_commercial_sacks_to_60kg(results)
+            results = sack_normalization["rows"]
+            trace_filters["sacas_calculadas_por_peso_60kg"] = sack_normalization[
+                "weight_based_rows"
+            ]
+            trace_filters["sacas_sem_peso_usando_origem"] = sack_normalization[
+                "fallback_rows"
+            ]
+            logger.info(
+                "[VOLUME COMERCIAL 60KG] fonte=%s, linhas_por_peso=%s, fallbacks=%s",
+                function_name,
+                sack_normalization["weight_based_rows"],
+                sack_normalization["fallback_rows"],
+            )
+            # O anexo e o relatório agendado precisam usar a mesma unidade de
+            # 60 kg apresentada na resposta interativa.
+            self._salvar_resultado_scheduler(results)
+
         # ESTRATÉGIA 1: Se cliente específico foi identificado, filtra
         if client_filter:
             results = self._filter_by_client(results, client_filter)
@@ -2109,7 +2130,7 @@ class SQLTools:
             self.user_query_original or self.user_query or ""
         ):
             collapse = collapse_replicated_sales_parent_volumes(results)
-            sack_normalization = normalize_sales_sacks_to_60kg(collapse["rows"])
+            sack_normalization = normalize_commercial_sacks_to_60kg(collapse["rows"])
             results = sack_normalization["rows"]
             total_records = len(results)
             # Substitui também o conjunto usado pelo relatório/anexo agendado;
@@ -3140,9 +3161,9 @@ IDENTIFICAÇÃO E CONTROLE:
 - emissao: data de emissão do contrato formato YYYYMMDD (ex: 20250710)
 
 QUANTIDADES E VOLUMES:
-- sacas: quantidade total de sacas do contrato
-- sacasEntregues: sacas já entregues ao cliente
-- sacasSaldo: saldo de sacas ainda não entregues (sacas - sacasEntregues)
+- sacas: quantidade comercial recalculada pelo código como peso ÷ 60 kg quando há peso
+- sacasEntregues: sacas já entregues ao cliente, ajustadas proporcionalmente para a base de 60 kg
+- sacasSaldo: saldo de sacas ainda não entregues, ajustado proporcionalmente para a base de 60 kg
 - peso: peso total em kg
 
 VALORES FINANCEIROS:
@@ -3203,6 +3224,7 @@ Você pode responder sobre QUALQUER um desses 34 campos.""",
 COLUNAS DISPONÍVEIS EM COMPRAS:
 Verifique os campos retornados nos registros acima.
 Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, linha, diferencial, etc.
+REGRA DE VOLUME: quando houver peso positivo, sacas é calculado pelo código como peso ÷ 60 kg. O valor de sacas retornado pela procedure não prevalece sobre o peso.
 REGRA OBRIGATÓRIA: em compras, "qualidade" significa o conteúdo do campo linha retornado pela procedure. O campo linha NÃO é a posição ordinal do registro. Nunca responda "linha 1", "linha 01" ou equivalente por haver apenas um resultado; leia exclusivamente registro["linha"].
 Analise cada campo e responda com base nos dados reais.""",
 
@@ -3210,6 +3232,7 @@ Analise cada campo e responda com base nos dados reais.""",
 COLUNAS DISPONÍVEIS EM COMPRAS:
 Verifique os campos retornados nos registros acima.
 Campos comuns: tipo, solicitacao, numero, peso, fornecedor, sacas, valor, emissao, linha, diferencial, etc.
+REGRA DE VOLUME: quando houver peso positivo, sacas é calculado pelo código como peso ÷ 60 kg. O valor de sacas retornado pela procedure não prevalece sobre o peso.
 REGRA OBRIGATÓRIA: em compras, "qualidade" significa o conteúdo do campo linha retornado pela procedure. O campo linha NÃO é a posição ordinal do registro. Nunca responda "linha 1", "linha 01" ou equivalente por haver apenas um resultado; leia exclusivamente registro["linha"].
 Analise cada campo e responda com base nos dados reais.""",
 

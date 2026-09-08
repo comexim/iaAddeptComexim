@@ -13,7 +13,7 @@ from app.services.commercial_metrics import (
     format_pt_br,
     is_unfixed_sales_position_query,
     is_unfixed_sales_summary_query,
-    normalize_sales_sacks_to_60kg,
+    normalize_commercial_sacks_to_60kg,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
@@ -61,7 +61,7 @@ def test_purchase_aggregation_preserves_rows_with_the_same_order_number():
 
     assert result["total_contratos"] == 3
     assert result["peso_total_kg"] == 60000.0
-    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1016.94915254
+    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1000.0
     assert result["totais_por_moeda"][0]["valor_total"] == 431621.01
     assert result["fornecedores"][0]["contratos"] == 3
 
@@ -74,7 +74,7 @@ def test_purchase_aggregation_defaults_missing_currency_to_brl():
     assert result["totais_por_moeda"][0]["moeda"] == "BRL"
 
 
-def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
+def test_purchase_aggregation_converts_real_weight_to_60kg_sacks():
     result = aggregate_purchases([
         {
             "numero": "027370", "fornecedor": "Cafe A", "sacas": 244.0677966102,
@@ -87,10 +87,23 @@ def test_purchase_aggregation_uses_real_weight_without_converting_sacks():
     ])
 
     assert result["total_contratos"] == 2
-    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1372.88135593
+    assert round(result["totais_por_moeda"][0]["quantidade_total"], 8) == 1350.0
     assert result["peso_total_kg"] == 81000.0
-    assert round(result["kg_por_saca_real"], 2) == 59.0
+    assert round(result["kg_por_saca_real"], 2) == 60.0
     assert result["totais_por_moeda"][0]["valor_total"] == 2382000.0
+
+
+def test_purchase_quality_totals_use_60kg_sacks_from_weight():
+    result = aggregate_purchases_by_quality([
+        {"numero": "1", "linha": "LN2", "peso": 8700, "sacas": 147.46},
+        {"numero": "2", "linha": "LN2", "peso": 9300, "sacas": 157.63},
+        {"numero": "3", "linha": "LN3", "peso": 57000, "sacas": 966.10},
+    ])
+
+    assert result[0]["linha"] == "LN2"
+    assert result[0]["sacas"] == 300.0
+    assert result[1]["linha"] == "LN3"
+    assert result[1]["sacas"] == 950.0
 
 
 def test_purchase_quality_uses_line_field_and_weights_differential_by_sacks():
@@ -172,6 +185,17 @@ def test_sales_totals_are_in_usd_and_deduplicated():
     assert result["contratos"] == 2
     assert result["sacas"] == 40.0
     assert result["valor_usd"] == 7000.0
+
+
+def test_sales_total_uses_60kg_sacks_when_weight_is_available():
+    result = aggregate_sales_totals([
+        {
+            "contrato": "105/21N", "filial": "05", "cliente": "MELITTA",
+            "peso": 30000, "sacas": 508.47, "valorTotal": 1000,
+        }
+    ])
+
+    assert result["sacas"] == 500.0
 
 
 def test_unfixed_parent_volume_is_counted_once_when_repeated_in_parcels():
@@ -260,16 +284,23 @@ def test_unfixed_position_combines_price_mode_and_effective_fixed_value():
 
 
 def test_unfixed_position_sacks_use_contract_weight_divided_by_60kg():
-    result = normalize_sales_sacks_to_60kg([
-        {"contrato": "1", "peso": 30000, "sacas": 508.47},
+    rows = [
+        {
+            "contrato": "1", "peso": 30000, "sacas": 508.47,
+            "sacasEntregues": 254.235, "sacasSaldo": 254.235,
+        },
         {"contrato": "2", "peso": None, "sacas": 10},
-    ])
+    ]
+    result = normalize_commercial_sacks_to_60kg(rows)
 
     assert float(result["rows"][0]["sacas"]) == 500.0
+    assert float(result["rows"][0]["sacasEntregues"]) == 250.0
+    assert float(result["rows"][0]["sacasSaldo"]) == 250.0
     assert result["rows"][1]["sacas"] == 10
     assert result["total_sacks"] == 510.0
     assert result["weight_based_rows"] == 1
     assert result["fallback_rows"] == 1
+    assert rows[0]["sacas"] == 508.47
 
 
 def test_sales_monthly_series_reports_missing_months_without_filling_them():
@@ -377,13 +408,15 @@ def test_purchase_reconciliation_detects_month_greater_than_period():
 if __name__ == "__main__":
     test_purchase_aggregation_uses_purchase_fields_and_weighted_average()
     test_purchase_aggregation_defaults_missing_currency_to_brl()
-    test_purchase_aggregation_uses_real_weight_without_converting_sacks()
+    test_purchase_aggregation_converts_real_weight_to_60kg_sacks()
+    test_purchase_quality_totals_use_60kg_sacks_from_weight()
     test_pt_br_number_format_is_stable()
     test_last_weekday_expression_resolves_previous_occurrence()
     test_sales_branch_mapping_and_aggregation()
     test_sales_branch_detection_from_query()
     test_sales_market_filters_use_mercado_column()
     test_sales_totals_are_in_usd_and_deduplicated()
+    test_sales_total_uses_60kg_sacks_when_weight_is_available()
     test_unfixed_parent_volume_is_counted_once_when_repeated_in_parcels()
     test_unfixed_parcels_with_distinct_volumes_are_preserved()
     test_unfixed_parcels_are_not_merged_across_branch_or_client()
