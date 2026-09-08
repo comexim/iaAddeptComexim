@@ -17,15 +17,19 @@ from app.utils.date_parser import date_parser
 from app.models.user import UserPermissions
 from app.core.redis_client import redis_client
 from app.services.commercial_metrics import (
+    TRUSTED_UNFIXED_SALES_PREFIX,
     aggregate_purchases,
     aggregate_purchases_by_quality,
     aggregate_sales_by_branch,
     aggregate_sales_totals,
     build_monthly_commercial_series,
+    collapse_replicated_sales_parent_volumes,
     detect_sales_branch_from_query,
     filter_sales_by_branch,
     filter_sales_by_market,
     format_pt_br,
+    is_unfixed_sales_position_query,
+    is_unfixed_sales_summary_query,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
@@ -2078,6 +2082,69 @@ class SQLTools:
                         ) or "N/I",
                     )
                     return self._format_purchase_total_summary(results, safra_detectada)
+
+        if function_name == "IA_Vendas" and is_unfixed_sales_position_query(
+            self.user_query_original or self.user_query or ""
+        ):
+            collapse = collapse_replicated_sales_parent_volumes(results)
+            results = collapse["rows"]
+            total_records = len(results)
+            # Substitui também o conjunto usado pelo relatório/anexo agendado;
+            # ele não pode conservar as parcelas infladas da resposta bruta.
+            self._salvar_resultado_scheduler(results)
+            trace_filters["parcelas_com_volume_replicado_removidas"] = collapse[
+                "collapsed_parcel_rows"
+            ]
+            trace_filters["contratos_pai_consolidados"] = collapse[
+                "collapsed_parent_contracts"
+            ]
+            if collapse["ambiguous_parent_contracts"]:
+                trace_filters["contratos_pai_com_volumes_distintos"] = collapse[
+                    "ambiguous_parent_contracts"
+                ]
+            logger.info(
+                "[VENDAS A FIXAR] Consolidação pai/parcela: linhas=%s -> %s, "
+                "parcelas_replicadas=%s, pais_consolidados=%s, ambiguos=%s",
+                collapse["source_rows"],
+                len(results),
+                collapse["collapsed_parcel_rows"],
+                collapse["collapsed_parent_contracts"],
+                collapse["ambiguous_parent_contracts"],
+            )
+
+            if is_unfixed_sales_summary_query(
+                self.user_query_original or self.user_query or ""
+            ):
+                sales_metrics = aggregate_sales_totals(results)
+                log_query_processing(
+                    source_name=function_name,
+                    original_count=original_count,
+                    final_count=len(results),
+                    post_filters=trace_filters,
+                    calculated_totals={
+                        "contratos": sales_metrics["contratos"],
+                        "sacas": sales_metrics["sacas"],
+                    },
+                    status_criterion="valorFixado nulo ou zero",
+                    unit="sacas",
+                )
+                ambiguous_notice = ""
+                if collapse["ambiguous_parent_contracts"]:
+                    ambiguous_notice = (
+                        "\nContratos-pai com parcelas de volumes diferentes, preservadas integralmente: "
+                        + ", ".join(collapse["ambiguous_parent_contracts"])
+                        + "."
+                    )
+                return (
+                    TRUSTED_UNFIXED_SALES_PREFIX
+                    + "Posição de vendas a fixar:\n\n"
+                    + f"Volume total: {format_pt_br(sales_metrics['sacas'])} sacas\n"
+                    + f"Contratos-pai/linhas consideradas: {sales_metrics['contratos']}\n"
+                    + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
+                    + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
+                    + ambiguous_notice
+                    + "\n\nCritério disponível nesta consulta: valorFixado nulo ou zero."
+                )
 
         trace_totals: Dict[str, Any] = {}
         trace_unit = None

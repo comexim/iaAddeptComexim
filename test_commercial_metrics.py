@@ -6,9 +6,12 @@ from app.services.commercial_metrics import (
     aggregate_sales_by_branch,
     aggregate_sales_totals,
     build_monthly_commercial_series,
+    collapse_replicated_sales_parent_volumes,
     detect_sales_branch_from_query,
     filter_sales_by_market,
     format_pt_br,
+    is_unfixed_sales_position_query,
+    is_unfixed_sales_summary_query,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
@@ -168,6 +171,67 @@ def test_sales_totals_are_in_usd_and_deduplicated():
     assert result["valor_usd"] == 7000.0
 
 
+def test_unfixed_parent_volume_is_counted_once_when_repeated_in_parcels():
+    rows = [
+        {"contrato": "138/21A", "filial": "05", "cliente": "A", "sacas": 508.47},
+        {"contrato": "138/21B", "filial": "05", "cliente": "A", "sacas": 508.47},
+        {"contrato": "138/21C", "filial": "05", "cliente": "A", "sacas": 508.47},
+        {"contrato": "138/21D", "filial": "05", "cliente": "A", "sacas": 508.47},
+    ]
+
+    collapsed = collapse_replicated_sales_parent_volumes(rows)
+    totals = aggregate_sales_totals(collapsed["rows"])
+
+    assert [row["contrato"] for row in collapsed["rows"]] == ["138/21A"]
+    assert collapsed["collapsed_parcel_rows"] == 3
+    assert collapsed["collapsed_parent_contracts"] == 1
+    assert totals["sacas"] == 508.47
+
+
+def test_unfixed_parcels_with_distinct_volumes_are_preserved():
+    rows = [
+        {"contrato": "200/26A", "filial": "05", "cliente": "A", "sacas": 300},
+        {"contrato": "200/26B", "filial": "05", "cliente": "A", "sacas": 200},
+    ]
+
+    collapsed = collapse_replicated_sales_parent_volumes(rows)
+
+    assert collapsed["rows"] == rows
+    assert collapsed["collapsed_parcel_rows"] == 0
+    assert collapsed["ambiguous_parent_contracts"] == ["200/26"]
+
+
+def test_unfixed_parcels_are_not_merged_across_branch_or_client():
+    rows = [
+        {"contrato": "300/26A", "filial": "05", "cliente": "A", "sacas": 100},
+        {"contrato": "300/26B", "filial": "60", "cliente": "A", "sacas": 100},
+        {"contrato": "300/26C", "filial": "05", "cliente": "B", "sacas": 100},
+    ]
+
+    collapsed = collapse_replicated_sales_parent_volumes(rows)
+
+    assert collapsed["rows"] == rows
+    assert collapsed["collapsed_parcel_rows"] == 0
+
+
+def test_unfixed_parcels_without_volume_are_preserved_for_audit():
+    rows = [
+        {"contrato": "400/26A", "filial": "05", "cliente": "A", "sacas": None},
+        {"contrato": "400/26B", "filial": "05", "cliente": "A", "sacas": None},
+    ]
+
+    collapsed = collapse_replicated_sales_parent_volumes(rows)
+
+    assert collapsed["rows"] == rows
+    assert collapsed["collapsed_parcel_rows"] == 0
+
+
+def test_detects_unfixed_position_and_summary_queries():
+    assert is_unfixed_sales_position_query("Contratos a fixar") is True
+    assert is_unfixed_sales_summary_query("Qual o volume total de vendas a fixar?") is True
+    assert is_unfixed_sales_summary_query("Liste os contratos a fixar") is False
+
+
 def test_sales_monthly_series_reports_missing_months_without_filling_them():
     rows = [
         {"contrato": "1", "filial": "05", "cliente": "A", "mesEmbarque": "2026/07", "sacas": 10, "valorTotal": 1000},
@@ -280,6 +344,11 @@ if __name__ == "__main__":
     test_sales_branch_detection_from_query()
     test_sales_market_filters_use_mercado_column()
     test_sales_totals_are_in_usd_and_deduplicated()
+    test_unfixed_parent_volume_is_counted_once_when_repeated_in_parcels()
+    test_unfixed_parcels_with_distinct_volumes_are_preserved()
+    test_unfixed_parcels_are_not_merged_across_branch_or_client()
+    test_unfixed_parcels_without_volume_are_preserved_for_audit()
+    test_detects_unfixed_position_and_summary_queries()
     test_sales_monthly_series_reports_missing_months_without_filling_them()
     test_monthly_series_with_no_rows_contains_no_fabricated_values()
     test_purchase_monthly_series_uses_only_returned_months()

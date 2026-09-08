@@ -21,6 +21,7 @@ from app.prompts.system_prompt import get_system_prompt, get_current_date_info
 from app.services.preference_learning import preference_learning
 from app.services.stock_metrics import format_standard_weight_conversion
 from app.services.accounts_payable_metrics import TRUSTED_PAYABLE_DETAIL_PREFIX
+from app.services.commercial_metrics import TRUSTED_UNFIXED_SALES_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,17 @@ def _trusted_payable_detail(messages: Sequence[BaseMessage]) -> Optional[str]:
         content = _message_content_as_text(message)
         if content.startswith(TRUSTED_PAYABLE_DETAIL_PREFIX):
             return content[len(TRUSTED_PAYABLE_DETAIL_PREFIX):]
+    return None
+
+
+def _trusted_unfixed_sales_position(messages: Sequence[BaseMessage]) -> Optional[str]:
+    """Obtém o volume a fixar consolidado no backend, sem novo cálculo do LLM."""
+    for message in reversed(messages):
+        if not isinstance(message, ToolMessage):
+            continue
+        content = _message_content_as_text(message)
+        if content.startswith(TRUSTED_UNFIXED_SALES_PREFIX):
+            return content[len(TRUSTED_UNFIXED_SALES_PREFIX):]
     return None
 
 
@@ -1598,6 +1610,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 output = trusted_payable_output
                 logger.info(
                     "[CONTAS A PAGAR] Retornando detalhe determinístico da tool, sem paráfrase do LLM"
+                )
+
+            trusted_unfixed_sales_output = _trusted_unfixed_sales_position(current_turn_messages)
+            if trusted_unfixed_sales_output is not None:
+                output = trusted_unfixed_sales_output
+                logger.info(
+                    "[VENDAS A FIXAR] Retornando posição consolidada da tool, sem recálculo do LLM"
                 )
 
             # Cancelamentos são operações determinísticas. Preserve o retorno

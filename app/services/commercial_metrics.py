@@ -7,6 +7,7 @@ banco e calcula totais sem misturar o esquema de vendas com o de compras.
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
+import re
 from typing import Any, Dict, Iterable, List, Optional
 
 SALES_BRANCHES = {
@@ -14,6 +15,8 @@ SALES_BRANCHES = {
     "60": "CUSA",
     "61": "CEU",
 }
+
+TRUSTED_UNFIXED_SALES_PREFIX = "POSICAO_VENDAS_A_FIXAR_CONFIRMADA:\n"
 
 WEEKDAYS_PT = {
     "segunda": 0,
@@ -144,6 +147,78 @@ def filter_sales_by_market(rows: Iterable[Dict[str, Any]], market: str) -> List[
             if row_market(row) == "EXTERNO"
         ]
     return list(rows)
+
+
+def sales_parent_contract(contract: Any) -> str:
+    """Remove somente a letra de parcela de contratos no formato 138/21A."""
+    normalized = str(contract or "").strip().upper().replace(" ", "")
+    match = re.fullmatch(r"(\d{1,6}/\d{2})[A-Z]+", normalized)
+    return match.group(1) if match else normalized
+
+
+def is_unfixed_sales_position_query(query: str) -> bool:
+    normalized = normalize_text(query)
+    return bool(re.search(r"\b(?:contratos?|vendas?|posicao)\s+a\s+fixar\b", normalized))
+
+
+def is_unfixed_sales_summary_query(query: str) -> bool:
+    normalized = normalize_text(query).strip(" .?!")
+    if not is_unfixed_sales_position_query(normalized):
+        return False
+    if normalized in {"contrato a fixar", "contratos a fixar", "venda a fixar", "vendas a fixar", "posicao a fixar"}:
+        return True
+    return bool(re.search(r"\b(total|volume|quantas?\s+sacas?)\b", normalized))
+
+
+def collapse_replicated_sales_parent_volumes(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Conta uma vez parcelas que repetem integralmente o volume do contrato-pai.
+
+    Parcelas com volumes diferentes permanecem separadas. Essa distinção evita
+    transformar uma consolidação legítima em deduplicação por semelhança.
+    """
+    source = list(rows)
+    groups = defaultdict(list)
+    for index, row in enumerate(source):
+        contract = str(row.get("contrato") or "").strip().upper()
+        parent = sales_parent_contract(contract) or f"__ROW_{index}"
+        key = (
+            parent,
+            sales_branch_code(row.get("filial")),
+            str(row.get("cliente") or "").strip().upper(),
+        )
+        groups[key].append(row)
+
+    collapsed_rows: List[Dict[str, Any]] = []
+    collapsed_parcel_rows = 0
+    collapsed_parent_contracts = 0
+    ambiguous_parent_contracts = []
+
+    for (parent, _, _), group in groups.items():
+        contracts = {str(row.get("contrato") or "").strip().upper() for row in group}
+        volumes = {_decimal(row.get("sacas")) for row in group}
+        is_parcel_family = len(contracts) > 1 and all(
+            sales_parent_contract(contract) == parent for contract in contracts
+        )
+        if is_parcel_family and len(volumes) == 1 and volumes != {Decimal("0")}:
+            representative = min(
+                group,
+                key=lambda row: str(row.get("contrato") or "").strip().upper(),
+            )
+            collapsed_rows.append(representative)
+            collapsed_parcel_rows += len(group) - 1
+            collapsed_parent_contracts += 1
+        else:
+            collapsed_rows.extend(group)
+            if is_parcel_family and len(volumes) > 1:
+                ambiguous_parent_contracts.append(parent)
+
+    return {
+        "rows": collapsed_rows,
+        "source_rows": len(source),
+        "collapsed_parcel_rows": collapsed_parcel_rows,
+        "collapsed_parent_contracts": collapsed_parent_contracts,
+        "ambiguous_parent_contracts": sorted(set(ambiguous_parent_contracts)),
+    }
 
 
 def aggregate_sales_by_branch(rows: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
