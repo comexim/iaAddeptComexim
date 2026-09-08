@@ -9,12 +9,15 @@ from app.services.commercial_metrics import (
     collapse_replicated_sales_parent_volumes,
     detect_sales_branch_from_query,
     filter_sales_by_market,
+    filter_unfixed_sales_position,
     format_pt_br,
     is_unfixed_sales_position_query,
     is_unfixed_sales_summary_query,
+    normalize_sales_sacks_to_60kg,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
+    sales_fixation_status,
 )
 
 
@@ -228,8 +231,45 @@ def test_unfixed_parcels_without_volume_are_preserved_for_audit():
 
 def test_detects_unfixed_position_and_summary_queries():
     assert is_unfixed_sales_position_query("Contratos a fixar") is True
+    assert is_unfixed_sales_position_query("Vendas não fixadas") is True
     assert is_unfixed_sales_summary_query("Qual o volume total de vendas a fixar?") is True
     assert is_unfixed_sales_summary_query("Liste os contratos a fixar") is False
+
+
+def test_unfixed_position_combines_price_mode_and_effective_fixed_value():
+    rows = [
+        {"contrato": "1", "precoFix": "A fixar", "valorFixado": 0, "sacasSaldo": 0},
+        {"contrato": "2", "precoFix": "A", "valorFixado": None},
+        {"contrato": "3", "precoFix": "Fixo", "valorFixado": 0},
+        {"contrato": "4", "precoFix": "A fixar", "valorFixado": 125},
+        {"contrato": "5", "precoFix": "", "valorFixado": 0},
+        {"contrato": "6", "precoFix": "A fixar", "valorFixado": "inválido"},
+    ]
+
+    result = filter_unfixed_sales_position(rows)
+
+    assert [row["contrato"] for row in result["rows"]] == ["1", "2"]
+    assert result["fixed_price_mode_excluded"] == 1
+    assert result["already_fixed_excluded"] == 1
+    assert result["invalid_mode_excluded"] == 1
+    assert result["invalid_value_excluded"] == 1
+    assert sales_fixation_status(rows[0]) == "unfixed"
+    assert sales_fixation_status(rows[2]) == "fixed"
+    assert sales_fixation_status(rows[3]) == "fixed"
+    assert sales_fixation_status(rows[4]) == "unknown"
+
+
+def test_unfixed_position_sacks_use_contract_weight_divided_by_60kg():
+    result = normalize_sales_sacks_to_60kg([
+        {"contrato": "1", "peso": 30000, "sacas": 508.47},
+        {"contrato": "2", "peso": None, "sacas": 10},
+    ])
+
+    assert float(result["rows"][0]["sacas"]) == 500.0
+    assert result["rows"][1]["sacas"] == 10
+    assert result["total_sacks"] == 510.0
+    assert result["weight_based_rows"] == 1
+    assert result["fallback_rows"] == 1
 
 
 def test_sales_monthly_series_reports_missing_months_without_filling_them():
@@ -349,6 +389,8 @@ if __name__ == "__main__":
     test_unfixed_parcels_are_not_merged_across_branch_or_client()
     test_unfixed_parcels_without_volume_are_preserved_for_audit()
     test_detects_unfixed_position_and_summary_queries()
+    test_unfixed_position_combines_price_mode_and_effective_fixed_value()
+    test_unfixed_position_sacks_use_contract_weight_divided_by_60kg()
     test_sales_monthly_series_reports_missing_months_without_filling_them()
     test_monthly_series_with_no_rows_contains_no_fabricated_values()
     test_purchase_monthly_series_uses_only_returned_months()

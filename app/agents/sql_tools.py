@@ -27,12 +27,15 @@ from app.services.commercial_metrics import (
     detect_sales_branch_from_query,
     filter_sales_by_branch,
     filter_sales_by_market,
+    filter_unfixed_sales_position,
     format_pt_br,
     is_unfixed_sales_position_query,
     is_unfixed_sales_summary_query,
+    normalize_sales_sacks_to_60kg,
     month_keys_between,
     parse_last_weekday_date,
     reconcile_monthly_commercial_series,
+    sales_fixation_status,
     sales_branch_name,
 )
 from app.services.accounts_payable_metrics import (
@@ -1805,43 +1808,62 @@ class SQLTools:
                     filtros_aplicados.append(f"mercado externo/MERCADO=EXTERNO ({results_antes} → {len(results)})")
                     logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado externo: {results_antes} → {len(results)}")
 
-                # Filtro: sem valor fixado / preço a fixar
-                # IMPORTANTE: "preço a fixar" significa que valorFixado = 0 ou null (preço ainda não foi fixado)
+                # A posição "a fixar" combina a modalidade de preço do contrato
+                # com o valor efetivamente fixado. Consultas literais por
+                # valorFixado continuam usando apenas esse campo.
                 if any(term in query_lower for term in ["sem valor fixado", "não tem valor fixado", "não fixado", "não fixados", "valor fixado null", "sem fixação", "preço a fixar", "preco a fixar", "a fixar"]):
                     results_antes = len(results)
-                    contagem_fixacao = {"nao_fixados": 0, "fixados": 0, "invalidos": 0}
-
-                    def normalizar_valor_fixado(valor):
-                        if valor is None or str(valor).strip() == "":
-                            return 0.0
-                        if isinstance(valor, str):
-                            texto = valor.strip().replace(" ", "")
-                            # Aceita tanto 1.234,56 quanto 1234.56.
-                            if "," in texto:
-                                texto = texto.replace(".", "").replace(",", ".")
-                            valor = texto
-                        return float(valor)
-
-                    def valor_nao_fixado(row):
-                        try:
-                            nao_fixado = normalizar_valor_fixado(row.get("valorFixado")) <= 0
-                            contagem_fixacao["nao_fixados" if nao_fixado else "fixados"] += 1
-                            return nao_fixado
-                        except (TypeError, ValueError):
-                            contagem_fixacao["invalidos"] += 1
-                            return False
-
-                    results = [r for r in results if valor_nao_fixado(r)]
-                    logger.info(
-                        "[FIXAÇÃO valorFixado] não fixados=%s, fixados=%s, inválidos=%s, total=%s",
-                        contagem_fixacao["nao_fixados"],
-                        contagem_fixacao["fixados"],
-                        contagem_fixacao["invalidos"],
-                        results_antes,
+                    consulta_posicao_a_fixar = is_unfixed_sales_position_query(
+                        self.user_query_original or self.user_query or ""
                     )
+                    if consulta_posicao_a_fixar:
+                        fixation_filter = filter_unfixed_sales_position(results)
+                        results = fixation_filter["rows"]
+                        trace_filters["modalidade_preco_fixo_excluida"] = fixation_filter[
+                            "fixed_price_mode_excluded"
+                        ]
+                        trace_filters["a_fixar_ja_fixados_excluidos"] = fixation_filter[
+                            "already_fixed_excluded"
+                        ]
+                        trace_filters["modalidade_preco_invalida_excluida"] = fixation_filter[
+                            "invalid_mode_excluded"
+                        ]
+                        trace_filters["valor_fixado_invalido_excluido"] = fixation_filter[
+                            "invalid_value_excluded"
+                        ]
+                        logger.info(
+                            "[POSIÇÃO A FIXAR] selecionados=%s, modalidade_fixa=%s, "
+                            "já_fixados=%s, modalidade_inválida=%s, valor_inválido=%s, total=%s",
+                            len(results),
+                            fixation_filter["fixed_price_mode_excluded"],
+                            fixation_filter["already_fixed_excluded"],
+                            fixation_filter["invalid_mode_excluded"],
+                            fixation_filter["invalid_value_excluded"],
+                            results_antes,
+                        )
+                        filter_label = "precoFix=A fixar e valorFixado nulo/zero"
+                    else:
+                        def valor_nao_fixado(row):
+                            valor = row.get("valorFixado")
+                            if valor is None or str(valor).strip() == "":
+                                return True
+                            try:
+                                if isinstance(valor, str) and "," in valor:
+                                    valor = valor.replace(".", "").replace(",", ".")
+                                return float(valor) <= 0
+                            except (TypeError, ValueError):
+                                return False
+
+                        results = [r for r in results if valor_nao_fixado(r)]
+                        filter_label = "valorFixado nulo/zero"
                     if len(results) < results_antes:
-                        filtros_aplicados.append(f"sem valor fixado ({results_antes} → {len(results)})")
-                        logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro 'sem valor fixado': {results_antes} → {len(results)}")
+                        filtros_aplicados.append(f"{filter_label} ({results_antes} → {len(results)})")
+                        logger.info(
+                            "[FILTRO AUTOMÁTICO] Aplicado filtro '%s': %s → %s",
+                            filter_label,
+                            results_antes,
+                            len(results),
+                        )
 
                 # Filtro: contratos já fixados. O único critério válido é valorFixado > 0.
                 elif any(term in query_lower for term in ["contratos fixados", "contratos já fixados", "vendas fixadas"]):
@@ -2087,7 +2109,8 @@ class SQLTools:
             self.user_query_original or self.user_query or ""
         ):
             collapse = collapse_replicated_sales_parent_volumes(results)
-            results = collapse["rows"]
+            sack_normalization = normalize_sales_sacks_to_60kg(collapse["rows"])
+            results = sack_normalization["rows"]
             total_records = len(results)
             # Substitui também o conjunto usado pelo relatório/anexo agendado;
             # ele não pode conservar as parcelas infladas da resposta bruta.
@@ -2097,6 +2120,12 @@ class SQLTools:
             ]
             trace_filters["contratos_pai_consolidados"] = collapse[
                 "collapsed_parent_contracts"
+            ]
+            trace_filters["sacas_calculadas_por_peso_60kg"] = sack_normalization[
+                "weight_based_rows"
+            ]
+            trace_filters["sacas_sem_peso_usando_origem"] = sack_normalization[
+                "fallback_rows"
             ]
             if collapse["ambiguous_parent_contracts"]:
                 trace_filters["contratos_pai_com_volumes_distintos"] = collapse[
@@ -2112,39 +2141,64 @@ class SQLTools:
                 collapse["ambiguous_parent_contracts"],
             )
 
-            if is_unfixed_sales_summary_query(
+            sales_metrics = aggregate_sales_totals(results)
+            log_query_processing(
+                source_name=function_name,
+                original_count=original_count,
+                final_count=len(results),
+                post_filters=trace_filters,
+                calculated_totals={
+                    "contratos": sales_metrics["contratos"],
+                    "sacas_60kg": sales_metrics["sacas"],
+                },
+                status_criterion="precoFix=A fixar e valorFixado nulo ou zero",
+                unit="sacas de 60 kg",
+            )
+            ambiguous_notice = ""
+            if collapse["ambiguous_parent_contracts"]:
+                ambiguous_notice = (
+                    "\nContratos-pai com parcelas de volumes diferentes, preservadas integralmente: "
+                    + ", ".join(collapse["ambiguous_parent_contracts"])
+                    + "."
+                )
+
+            response = (
+                TRUSTED_UNFIXED_SALES_PREFIX
+                + "Posição de vendas a fixar:\n\n"
+                + f"Volume total: {format_pt_br(sales_metrics['sacas'])} sacas de 60 kg\n"
+                + f"Contratos-pai/linhas consideradas: {sales_metrics['contratos']}\n"
+                + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
+                + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
+                + ambiguous_notice
+                + "\n\nCritério: precoFix = A fixar e valorFixado nulo ou zero. "
+                + "O saldo de entrega não altera o status de preço. "
+                + "O volume em sacas foi calculado pelo peso contratado dividido por 60 kg"
+            )
+            if sack_normalization["fallback_rows"]:
+                response += (
+                    f"; {sack_normalization['fallback_rows']} linha(s) sem peso positivo "
+                    "mantiveram a quantidade de sacas da origem"
+                )
+            response += "."
+
+            if not is_unfixed_sales_summary_query(
                 self.user_query_original or self.user_query or ""
             ):
-                sales_metrics = aggregate_sales_totals(results)
-                log_query_processing(
-                    source_name=function_name,
-                    original_count=original_count,
-                    final_count=len(results),
-                    post_filters=trace_filters,
-                    calculated_totals={
-                        "contratos": sales_metrics["contratos"],
-                        "sacas": sales_metrics["sacas"],
-                    },
-                    status_criterion="valorFixado nulo ou zero",
-                    unit="sacas",
-                )
-                ambiguous_notice = ""
-                if collapse["ambiguous_parent_contracts"]:
-                    ambiguous_notice = (
-                        "\nContratos-pai com parcelas de volumes diferentes, preservadas integralmente: "
-                        + ", ".join(collapse["ambiguous_parent_contracts"])
-                        + "."
+                contract_lines = []
+                for row in results:
+                    contract = str(row.get("contrato") or "SEM CONTRATO").strip()
+                    branch = sales_branch_name(row.get("filial"))
+                    client = str(row.get("cliente") or "SEM CLIENTE").strip()
+                    fixing_month = str(row.get("mesFixacao") or "N/I").strip()
+                    shipment_month = str(row.get("mesEmbarque") or "N/I").strip()
+                    contract_lines.append(
+                        f"- {contract} | {branch} | {client} | "
+                        f"{format_pt_br(row.get('sacas'))} sacas | "
+                        f"fixação {fixing_month} | embarque {shipment_month}"
                     )
-                return (
-                    TRUSTED_UNFIXED_SALES_PREFIX
-                    + "Posição de vendas a fixar:\n\n"
-                    + f"Volume total: {format_pt_br(sales_metrics['sacas'])} sacas\n"
-                    + f"Contratos-pai/linhas consideradas: {sales_metrics['contratos']}\n"
-                    + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
-                    + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
-                    + ambiguous_notice
-                    + "\n\nCritério disponível nesta consulta: valorFixado nulo ou zero."
-                )
+                response += "\n\nCONTRATOS:\n" + "\n".join(contract_lines)
+
+            return response
 
         trace_totals: Dict[str, Any] = {}
         trace_unit = None
@@ -2486,6 +2540,10 @@ REGRAS OBRIGATÓRIAS:
             # VENDAS: Agrega por cliente
             elif function_name == "IA_Vendas":
                 logger.info(f"[AGREGAÇÃO] {len(results)} registros, agregando por cliente...")
+                # Totais precisam refletir todas as linhas filtradas. A lista por
+                # cliente pode ser limitada para caber na resposta, mas esse corte
+                # nunca deve reduzir os totais gerais.
+                exact_sales_totals = aggregate_sales_totals(results)
 
                 # Monta lista completa de todos os identificadores ANTES da agregação
                 # Isso evita que o LLM invente registros ao listar (hallucination)
@@ -2604,15 +2662,10 @@ REGRAS OBRIGATÓRIAS:
                     logger.info(f"[OTIMIZAÇÃO] Retornando string formatada diretamente")
                     return aggregated
 
-                # CALCULA TOTAIS GERAIS (não deixa a IA somar manualmente para evitar erros)
-                total_contratos = sum(item.get("total_contratos", 0) for item in aggregated)
-                # Fallback: se agregação retornou 0 contratos (ex: compras usa "numero" não "contrato"),
-                # usa a lista completa de identificadores únicos que foi corretamente mapeada
-                if total_contratos == 0 and todos_contratos_unicos:
-                    total_contratos = len(todos_contratos_unicos)
-                    logger.info(f"[TOTAL CONTRATOS] Fallback: usando {total_contratos} de todos_contratos_unicos")
-                total_sacas = sum(item.get("total_sacas", 0) for item in aggregated)
-                total_valor = sum(item.get("total_valor", 0) for item in aggregated)
+                # CALCULA TOTAIS GERAIS sobre o conjunto completo, antes do top 50.
+                total_contratos = exact_sales_totals["contratos"]
+                total_sacas = exact_sales_totals["sacas"]
+                total_valor = exact_sales_totals["valor_usd"]
 
                 # CALCULA DIFERENCIAL MÉDIO GLOBAL (dedup por contrato+filial)
                 dif_values_global = []
@@ -3100,7 +3153,7 @@ VALORES FINANCEIROS:
 - diferencial: diferencial de preço em relação ao mercado (pode ser negativo)
 
 FIXAÇÃO DE PREÇO:
-- precoFix: status de fixação do preço (A=Automático, P=Pré-fixado)
+- precoFix: modalidade de preço do contrato ("A fixar"/A ou "Fixo")
 - fixador: quem fixou o preço (ex: "Importador", "Exportador")
 - mesFixacao: mês da fixação formato YYYYMM (ex: 202509)
 
@@ -3772,6 +3825,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 if not results:
                     return f"Não encontrei o contrato {contrato_na_query}."
 
+                statuses = [sales_fixation_status(row) for row in results]
                 valores_fixados = []
                 for row in results:
                     valor = row.get("valorFixado")
@@ -3785,16 +3839,28 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                         )
 
                 valor_positivo = next((valor for valor in valores_fixados if valor > 0), None)
-                if valor_positivo is not None:
-                    valor_formatado = f"{valor_positivo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                if "fixed" in statuses:
+                    if valor_positivo is not None:
+                        motivo = (
+                            "o valorFixado é "
+                            + f"{valor_positivo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        )
+                    else:
+                        motivo = "a modalidade de preço do contrato é Fixo"
                     return (
                         f"Sim. O contrato {contrato_na_query} já foi fixado, "
-                        f"pois o valorFixado é {valor_formatado}."
+                        f"pois {motivo}."
+                    )
+
+                if statuses and all(status == "unfixed" for status in statuses):
+                    return (
+                        f"Não. O contrato {contrato_na_query} ainda está a fixar: "
+                        "a modalidade é A fixar e o valorFixado está zerado."
                     )
 
                 return (
-                    f"Não. O contrato {contrato_na_query} ainda não foi fixado, "
-                    "pois o valorFixado está zerado."
+                    f"Não foi possível determinar a fixação do contrato {contrato_na_query}: "
+                    "precoFix ou valorFixado está ausente ou inválido."
                 )
 
             filial_solicitada = detect_sales_branch_from_query(
@@ -6234,10 +6300,11 @@ REGRA DE EMISSÃO/INCLUSÃO:
 - Sem filial específica, resumir por filial: 05=COBRA, 60=CUSA e 61=CEU.
 
 REGRA DE FIXAÇÃO:
-- Para saber se o contrato foi fixado, use somente valorFixado.
-- valorFixado nulo ou igual a zero = não fixado.
-- valorFixado acima de zero = já fixado.
-- Nunca use precoFix para determinar o status de fixação.
+- Para a posição de contratos/vendas a fixar, combine os dois campos:
+  precoFix = "A fixar" (ou A) E valorFixado nulo ou igual a zero.
+- precoFix = "Fixo" não pertence à posição a fixar, mesmo com valorFixado zerado.
+- precoFix = "A fixar" com valorFixado acima de zero já foi fixado e não pertence à posição.
+- sacasSaldo é saldo de entrega e não determina o status de preço.
 
 🔄 REGRA DE CONTEXTO DE CONTRATO (NOVA!) 🔄
 Se o usuário já mencionou um número de contrato anteriormente (ex: "228/25", "031/25") e agora faz perguntas de seguimento sem mencionar o contrato novamente (ex: "Qual o total de sacas?", "Qual o vendedor?", "Preciso dos dados completos"), você DEVE entender que ele está se referindo ao mesmo contrato.

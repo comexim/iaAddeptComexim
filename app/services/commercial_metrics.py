@@ -158,7 +158,10 @@ def sales_parent_contract(contract: Any) -> str:
 
 def is_unfixed_sales_position_query(query: str) -> bool:
     normalized = normalize_text(query)
-    return bool(re.search(r"\b(?:contratos?|vendas?|posicao)\s+a\s+fixar\b", normalized))
+    return bool(re.search(
+        r"\b(?:contratos?|vendas?|posicao)\s+(?:a\s+fixar|nao\s+fixad[oa]s?)\b",
+        normalized,
+    ))
 
 
 def is_unfixed_sales_summary_query(query: str) -> bool:
@@ -168,6 +171,111 @@ def is_unfixed_sales_summary_query(query: str) -> bool:
     if normalized in {"contrato a fixar", "contratos a fixar", "venda a fixar", "vendas a fixar", "posicao a fixar"}:
         return True
     return bool(re.search(r"\b(total|volume|quantas?\s+sacas?)\b", normalized))
+
+
+def _fixation_decimal(value: Any) -> Optional[Decimal]:
+    """Converte valorFixado sem transformar conteúdo inválido em zero."""
+    if value is None or str(value).strip() == "":
+        return Decimal("0")
+    try:
+        if isinstance(value, str):
+            text = value.strip().replace(" ", "")
+            if "," in text:
+                text = text.replace(".", "").replace(",", ".")
+            value = text
+        return Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+def sales_fixation_status(row: Dict[str, Any]) -> str:
+    """Retorna ``unfixed``, ``fixed`` ou ``unknown`` para uma venda."""
+    mode = re.sub(r"[-_]+", " ", normalize_text(row.get("precoFix")))
+    mode = re.sub(r"\s+", " ", mode).strip()
+    if mode in {"f", "fixo", "fixado", "p", "pre fixado"}:
+        return "fixed"
+    if mode not in {"a", "a fixar"}:
+        return "unknown"
+
+    fixed_value = _fixation_decimal(row.get("valorFixado"))
+    if fixed_value is None:
+        return "unknown"
+    return "fixed" if fixed_value > 0 else "unfixed"
+
+
+def filter_unfixed_sales_position(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Seleciona vendas cujo preço contratado e fixação efetiva estão em aberto.
+
+    ``precoFix`` informa a modalidade do contrato. ``valorFixado`` informa se
+    uma venda dessa modalidade já teve preço efetivamente fixado. O saldo de
+    entrega é deliberadamente ignorado porque não representa status de preço.
+    """
+    source = list(rows)
+    selected: List[Dict[str, Any]] = []
+    fixed_price_mode_excluded = 0
+    already_fixed_excluded = 0
+    invalid_mode_excluded = 0
+    invalid_value_excluded = 0
+
+    for row in source:
+        mode = re.sub(r"[-_]+", " ", normalize_text(row.get("precoFix")))
+        mode = re.sub(r"\s+", " ", mode).strip()
+        if mode not in {"a", "a fixar"}:
+            if mode:
+                fixed_price_mode_excluded += 1
+            else:
+                invalid_mode_excluded += 1
+            continue
+
+        fixed_value = _fixation_decimal(row.get("valorFixado"))
+        if fixed_value is None:
+            invalid_value_excluded += 1
+        elif fixed_value > 0:
+            already_fixed_excluded += 1
+        else:
+            selected.append(row)
+
+    return {
+        "rows": selected,
+        "source_rows": len(source),
+        "fixed_price_mode_excluded": fixed_price_mode_excluded,
+        "already_fixed_excluded": already_fixed_excluded,
+        "invalid_mode_excluded": invalid_mode_excluded,
+        "invalid_value_excluded": invalid_value_excluded,
+    }
+
+
+def normalize_sales_sacks_to_60kg(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Cria cópias das linhas com sacas calculadas por peso / 60 kg.
+
+    Quando a origem não fornece peso positivo, conserva o campo ``sacas`` e
+    registra o fallback para auditoria.
+    """
+    normalized_rows: List[Dict[str, Any]] = []
+    weight_based_rows = 0
+    fallback_rows = 0
+    total_sacks = Decimal("0")
+
+    for row in rows:
+        normalized_row = dict(row)
+        weight = _decimal(row.get("peso"))
+        if weight > 0:
+            sacks = weight / Decimal("60")
+            normalized_row["sacas"] = sacks
+            weight_based_rows += 1
+        else:
+            sacks = _decimal(row.get("sacas"))
+            fallback_rows += 1
+        total_sacks += sacks
+        normalized_rows.append(normalized_row)
+
+    return {
+        "rows": normalized_rows,
+        "total_sacks": float(total_sacks),
+        "weight_based_rows": weight_based_rows,
+        "fallback_rows": fallback_rows,
+        "kg_per_sack": 60,
+    }
 
 
 def collapse_replicated_sales_parent_volumes(rows: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
