@@ -1,7 +1,12 @@
-"""Reconciliação determinística de contas a pagar."""
+"""Reconciliação e seleção determinística de contas a pagar."""
 
 from decimal import Decimal, InvalidOperation
+import re
+import unicodedata
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+
+TRUSTED_PAYABLE_DETAIL_PREFIX = "DETALHE_CONTAS_A_PAGAR_CONFIRMADO:\n"
 
 
 def payable_decimal(value: Any) -> Decimal:
@@ -51,6 +56,55 @@ def deduplicate_payables(
             seen.add(key)
         unique.append(row)
     return unique, duplicate_count
+
+
+def _normalize_text(value: Any) -> str:
+    text = unicodedata.normalize("NFKD", str(value or "").lower())
+    return "".join(char for char in text if not unicodedata.combining(char))
+
+
+def payable_detail_request(query: str, explicit_limit: Optional[int] = None) -> Dict[str, Any]:
+    """Identifica pedidos de linhas de títulos que exigem resposta literal da tool."""
+    normalized = _normalize_text(query)
+    mentions_detail = bool(re.search(r"\b(titulos?|documentos?|linhas?|detalhes?)\b", normalized))
+    asks_to_list = bool(re.search(r"\b(list[ea]?|listar|mostr[ea]|exib[ae]|detalh[ae]|quais?)\b", normalized))
+    largest_first = bool(re.search(r"\b(maiores?|mais\s+altos?|top)\b", normalized))
+    requested = explicit_limit is not None or (mentions_detail and (asks_to_list or largest_first))
+
+    limit = explicit_limit if explicit_limit is not None else None
+    if limit is None and requested:
+        match = re.search(
+            r"\b(?:list[ea]?|mostr[ea]|exib[ae]|top)?\s*(\d{1,3})\s+"
+            r"(?:maiores?\s+)?(?:titulos?|documentos?|linhas?|contas?)\b",
+            normalized,
+        )
+        if match:
+            limit = int(match.group(1))
+
+    if requested and limit is None:
+        limit = 50
+
+    return {
+        "requested": requested,
+        "largest_first": largest_first,
+        "limit": limit,
+    }
+
+
+def select_payable_details(
+    rows: Iterable[Dict[str, Any]],
+    *,
+    limit: Optional[int],
+    largest_first: bool,
+) -> List[Dict[str, Any]]:
+    """Seleciona linhas existentes sem criar, fundir ou redistribuir valores."""
+    selected = list(rows)
+    if largest_first:
+        selected = [row for row in selected if payable_decimal(row.get("valor")) != 0]
+        selected.sort(key=lambda row: abs(payable_decimal(row.get("valor"))), reverse=True)
+    if limit is not None and limit > 0:
+        selected = selected[:limit]
+    return selected
 
 
 def reconcile_payables(

@@ -32,9 +32,12 @@ from app.services.commercial_metrics import (
     sales_branch_name,
 )
 from app.services.accounts_payable_metrics import (
+    TRUSTED_PAYABLE_DETAIL_PREFIX,
     deduplicate_payables,
+    payable_detail_request,
     payable_decimal,
     reconcile_payables,
+    select_payable_details,
 )
 from app.services.financial_position_scope import (
     CURRENT_OPEN_PAST_NOTICE,
@@ -4432,9 +4435,22 @@ IMPORTANTE:
                     f"Diferença: R$ {full_reconciliation['diferenca']:,.2f}"
                 )
 
+            detail_request = payable_detail_request(
+                self.user_query_original or self.user_query,
+                explicit_limit=limite,
+            )
+            if detail_request["requested"]:
+                result_list = select_payable_details(
+                    complete_result_list,
+                    limit=detail_request["limit"],
+                    largest_first=detail_request["largest_first"],
+                )
+                partial_listing = len(result_list) < len(complete_result_list)
+            else:
+                partial_listing = False
+
             # Consultas somente por fornecedor retornam 10 registros distintos por padrão.
-            partial_listing = False
-            if fornecedor and not data_vencimento and not data_emissao:
+            if not detail_request["requested"] and fornecedor and not data_vencimento and not data_emissao:
                 if limite is None:
                     result_list = result_list[:10]
                 elif limite > 0:
@@ -4445,8 +4461,9 @@ IMPORTANTE:
             # filtros e da deduplicacao aplicados nesta consulta.
             self._salvar_resultado_scheduler(result_list)
 
-            # Se poucos registros (<= 50), retorna tabela compacta (evita JSON bruto que estoura tokens)
-            if len(result_list) <= 50:
+            # Pedidos explícitos de detalhe sempre retornam as linhas reais,
+            # mesmo quando o usuário solicita todo o conjunto (limite=0).
+            if len(result_list) <= 50 or detail_request["requested"]:
                 total_geral = Decimal("0")
                 linhas = []
                 for r in result_list:
@@ -4454,13 +4471,18 @@ IMPORTANTE:
                     total_geral += valor
                     num = str(r.get('numero', '')).strip()
                     parc = str(r.get('parcela', '')).strip()
+                    titulo = num
+                    if parc and not titulo.endswith(f"/{parc}"):
+                        titulo = f"{titulo}/{parc}" if titulo else parc
+                    titulo = titulo or "Título não informado"
                     forn = supplier_display(r)
                     nat = str(r.get('natureza', '')).strip()
                     venc = str(r.get('vencimento', '')).strip()
                     fil = str(r.get('filial', '')).strip()
+                    moeda = str(r.get('moeda') or 'BRL').strip().upper()
                     zero_label = zero_value_classification(r)
                     zero_suffix = f" | {zero_label}" if zero_label else ""
-                    linhas.append(f"{num}/{parc} | fil.{fil} | {forn} | {nat} | R$ {valor:,.2f} | venc:{venc}{zero_suffix}")
+                    linhas.append(f"{titulo} | fil.{fil} | {forn} | {nat} | {moeda} {valor:,.2f} | venc:{venc}{zero_suffix}")
 
                 detail_reconciliation = reconcile_payables(
                     result_list,
@@ -4495,16 +4517,18 @@ IMPORTANTE:
                     if partial_listing
                     else "A listagem contém todos os títulos usados no total informado."
                 )
-                return append_period_context(append_scope_notice(f"""Resultados da consulta usp_IA_ContasAPagar:
+                response_prefix = (
+                    TRUSTED_PAYABLE_DETAIL_PREFIX if detail_request["requested"] else ""
+                )
+                return response_prefix + append_period_context(append_scope_notice(f"""Contas a pagar:
 
 {partial_notice}Total de títulos detalhados: {len(result_list)}
 Valor dos títulos detalhados: R$ {total_geral:,.2f}
 {total_complete_notice}
 
-TABELA (numero/parcela | filial | fornecedor | natureza | valor | vencimento):
+TABELA (numero/parcela | filial | fornecedor | natureza | moeda e valor | vencimento):
 {tabela_str}
 
-Analise os {len(result_list)} registros acima e responda com base nos dados fornecidos.
 Fornecedor e natureza são campos separados; nunca copie natureza/descrição para fornecedor.
 As classificações após o vencimento identificam registros com valor zero.
 {partial_instruction}""", aviso_escopo), contexto_periodo)
@@ -6438,12 +6462,13 @@ Argumentos:
   - Pode ser combinado com data_vencimento
   - Se informado sem data, retorna os 10 primeiros registros por padrão
 
-- limite (opcional): Quantidade de registros desejada em consultas somente por fornecedor
-  - Use um número positivo quando o usuário pedir mais registros ou uma quantidade específica
+- limite (opcional): Quantidade de títulos desejada em qualquer listagem detalhada
+  - Use um número positivo quando o usuário pedir uma quantidade específica, inclusive com filtro de data
   - Use limite=0 quando o usuário pedir todos os registros
 
 Exemplos de uso:
 - "Quais contas vou pagar hoje?" → pesquisa_contas_a_pagar(data_vencimento="hoje")
+- "Liste os 10 maiores títulos de contas a pagar de hoje" → pesquisa_contas_a_pagar(data_vencimento="hoje", limite=10)
 - "Contas a pagar vencidas" ou "Contas atrasadas" → NÃO use esta ferramenta; use pesquisa_contas_a_receber_vencidas()
 - "Contas a pagar nos próximos 7 dias" → pesquisa_contas_a_pagar(data_vencimento="próximos 7 dias")
 - "Quanto temos de contas a pagar para a ATLAS nesta semana?" → pesquisa_contas_a_pagar(data_vencimento="esta semana", fornecedor="ATLAS")

@@ -2,7 +2,9 @@ from decimal import Decimal
 
 from app.services.accounts_payable_metrics import (
     deduplicate_payables,
+    payable_detail_request,
     reconcile_payables,
+    select_payable_details,
 )
 
 
@@ -69,6 +71,35 @@ def test_partial_page_is_identified_and_not_compared_to_complete_total():
     assert result["valido"] is True
     assert result["parcial"] is True
     assert result["quantidade_completa"] == 3
+
+
+def test_detects_ranked_detail_request_and_limit_from_query():
+    request = payable_detail_request(
+        "Liste os 10 maiores títulos de contas a pagar de hoje"
+    )
+
+    assert request == {"requested": True, "largest_first": True, "limit": 10}
+
+
+def test_explicit_limit_forces_deterministic_detail_even_with_date():
+    request = payable_detail_request("Contas a pagar de hoje", explicit_limit=10)
+
+    assert request["requested"] is True
+    assert request["limit"] == 10
+
+
+def test_selects_only_bank_rows_ordered_by_value_without_redistribution():
+    rows = [
+        {"idProtheus": "A", "numero": "100/01", "valor": "25,50"},
+        {"idProtheus": "B", "numero": "200/01", "valor": "100,00"},
+        {"idProtheus": "C", "numero": "300/01", "valor": "50,00"},
+        {"idProtheus": "D", "numero": "400/01", "valor": "0"},
+    ]
+
+    selected = select_payable_details(rows, limit=2, largest_first=True)
+
+    assert selected == [rows[1], rows[2]]
+    assert sum((Decimal(str(row["valor"]).replace(",", ".")) for row in selected), Decimal("0")) == Decimal("150.00")
 
 
 if __name__ == "__main__":

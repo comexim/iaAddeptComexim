@@ -20,6 +20,7 @@ from app.agents.sql_tools import SQLTools
 from app.prompts.system_prompt import get_system_prompt, get_current_date_info
 from app.services.preference_learning import preference_learning
 from app.services.stock_metrics import format_standard_weight_conversion
+from app.services.accounts_payable_metrics import TRUSTED_PAYABLE_DETAIL_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,17 @@ def _message_content_as_text(message: BaseMessage) -> str:
                 parts.append(item)
         return " ".join(parts)
     return str(content or "")
+
+
+def _trusted_payable_detail(messages: Sequence[BaseMessage]) -> Optional[str]:
+    """Obtém a listagem financeira já pronta, sem permitir paráfrase do LLM."""
+    for message in reversed(messages):
+        if not isinstance(message, ToolMessage):
+            continue
+        content = _message_content_as_text(message)
+        if content.startswith(TRUSTED_PAYABLE_DETAIL_PREFIX):
+            return content[len(TRUSTED_PAYABLE_DETAIL_PREFIX):]
+    return None
 
 
 def _extract_complete_daily_schedule(text: str) -> Optional[dict]:
@@ -1579,6 +1591,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 logger.info(
                     "[FIXACAO FLOW] Sucesso da Z24 detectado na ToolMessage; "
                     "oferta de Hedge aplicada deterministicamente"
+                )
+
+            trusted_payable_output = _trusted_payable_detail(current_turn_messages)
+            if trusted_payable_output is not None:
+                output = trusted_payable_output
+                logger.info(
+                    "[CONTAS A PAGAR] Retornando detalhe determinístico da tool, sem paráfrase do LLM"
                 )
 
             # Cancelamentos são operações determinísticas. Preserve o retorno
