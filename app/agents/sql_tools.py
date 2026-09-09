@@ -67,7 +67,11 @@ from app.services.financial_record_display import (
     split_zero_value_records,
     supplier_display,
 )
-from app.services.database_detail import database_detail_request, format_trusted_database_detail
+from app.services.database_detail import (
+    calculate_field_totals_by_currency,
+    database_detail_request,
+    format_trusted_database_detail,
+)
 from app.services.query_trace import log_query_processing
 from app.services.stock_metrics import (
     build_longshort_snapshot,
@@ -1731,7 +1735,14 @@ class SQLTools:
             ])
         return "\n".join(lines)
 
-    def _format_results(self, results: list[Dict[str, Any]], function_name: str, client_filter: Optional[str] = None, pagina: int = 1) -> str:
+    def _format_results(
+        self,
+        results: list[Dict[str, Any]],
+        function_name: str,
+        client_filter: Optional[str] = None,
+        pagina: int = 1,
+        explicit_detail_limit: Optional[int] = None,
+    ) -> str:
         """
         Formata resultados SQL para apresentação ao usuário
 
@@ -2089,15 +2100,40 @@ class SQLTools:
                     self.user_query_original or self.user_query or ""
                 )
             ):
+                totals_calculator = None
+                if function_name == "IA_Vendas":
+                    def sales_detail_totals(rows):
+                        totals = aggregate_sales_totals(rows)
+                        return {
+                            "contratos": totals["contratos"],
+                            "sacas_60kg": format_pt_br(totals["sacas"]),
+                            "valor_total_USD": format_pt_br(totals["valor_usd"]),
+                        }
+
+                    totals_calculator = sales_detail_totals
+                elif function_name in ("IA_Compras", "IA_ComprasPar"):
+                    def purchase_detail_totals(rows):
+                        metrics = aggregate_purchases(rows)
+                        totals = {"contratos/pedidos": metrics["total_contratos"]}
+                        for item in metrics["totais_por_moeda"]:
+                            currency = item["moeda"]
+                            totals[f"valor_total_{currency}"] = format_pt_br(item["valor_total"])
+                            totals[f"quantidade_total_{currency}"] = format_pt_br(item["quantidade_total"])
+                        return totals
+
+                    totals_calculator = purchase_detail_totals
+
                 trusted_detail = format_trusted_database_detail(
                     results,
                     source_name=function_name,
                     query=self.user_query_original or self.user_query or "",
+                    explicit_limit=explicit_detail_limit,
                     preferred_fields=(
                         "contrato", "numero", "solicitacao", "filial", "cliente",
                         "fornecedor", "peso", "sacas", "valorTotal", "valor",
                         "moeda", "emissao", "vencimento", "mesEmbarque", "linha",
                     ),
+                    totals_calculator=totals_calculator,
                 )
                 if trusted_detail is not None:
                     self._salvar_resultado_scheduler(results)
@@ -3940,13 +3976,17 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                     + "\n".join(linhas)
                 )
 
+            display_limit = None
             if client_filter and not periodo:
-                if limite is None:
-                    results = results[:10]
-                elif limite > 0:
-                    results = results[:limite]
+                display_limit = 10 if limite is None else limite
 
-            return self._format_results(results, "IA_Vendas", client_filter, pagina=pagina)
+            return self._format_results(
+                results,
+                "IA_Vendas",
+                client_filter,
+                pagina=pagina,
+                explicit_detail_limit=display_limit,
+            )
         except Exception as e:
             import traceback
             logger.error(f"Erro ao executar {procedure_name}: {e}")
@@ -4076,13 +4116,16 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             results = sql_client.execute_procedure(procedure_name, procedure_params or None)
             self._salvar_resultado_scheduler(results)
 
+            display_limit = None
             if fornecedor and not data_inicio and not data_fim:
-                if limite is None:
-                    results = results[:10]
-                elif limite > 0:
-                    results = results[:limite]
+                display_limit = 10 if limite is None else limite
 
-            return self._format_results(results, "IA_Compras", pagina=pagina)
+            return self._format_results(
+                results,
+                "IA_Compras",
+                pagina=pagina,
+                explicit_detail_limit=display_limit,
+            )
         except Exception as e:
             import traceback
             logger.error(f"Erro ao executar {procedure_name}: {e}")
@@ -4243,35 +4286,49 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             if not result_list:
                 return "Nenhuma conta paga encontrada para o período especificado."
 
+            complete_result_list = list(result_list)
+            complete_total = sum(
+                (
+                    payable_decimal(row.get("valor") or row.get("valorStr"))
+                    for row in complete_result_list
+                ),
+                Decimal("0"),
+            )
+            detail_limit = limite
+            if detail_limit is None and fornecedor and not data_inicio:
+                detail_limit = 10
+
             trusted_detail = format_trusted_database_detail(
                 result_list,
                 source_name=procedure_name,
                 query=self.user_query_original or self.user_query or "",
-                explicit_limit=limite,
+                explicit_limit=detail_limit,
                 preferred_fields=(
                     "numero", "parcela", "filial", "fornecedor", "natureza",
                     "moeda", "valor", "valorStr", "emissao", "vencimento",
                     "pagamento", "banco",
                 ),
+                totals_calculator=lambda rows: {
+                    "quantidade_total_de_títulos": len(rows),
+                    "valor_total_pago_BRL": format_pt_br(
+                        sum(
+                            (
+                                payable_decimal(row.get("valor") or row.get("valorStr"))
+                                for row in rows
+                            ),
+                            Decimal("0"),
+                        )
+                    ),
+                },
             )
-
-            # Consultas somente por fornecedor retornam 10 registros por padrão.
-            if trusted_detail is None and fornecedor and not data_inicio:
-                if limite is None:
-                    result_list = result_list[:10]
-                elif limite > 0:
-                    result_list = result_list[:limite]
 
             log_query_processing(
                 source_name=procedure_name,
-                original_count=len(result_list),
+                original_count=len(complete_result_list),
                 final_count=len(result_list),
                 post_filters={"fornecedor": fornecedor, "limite": limite},
                 calculated_totals={
-                    "valor_total": sum(
-                        (payable_decimal(row.get("valor") or row.get("valorStr")) for row in result_list),
-                        Decimal("0"),
-                    )
+                    "valor_total": complete_total
                 },
                 status_criterion="pagamentos efetuados",
                 unit="títulos",
@@ -4934,6 +4991,9 @@ IMPORTANTE:
                 source_name="IA_SaldoBancario",
                 query=self.user_query_original or self.user_query or "",
                 preferred_fields=("banco", "agencia", "conta", "filial", "moeda", "saldo"),
+                totals_calculator=lambda rows: calculate_field_totals_by_currency(
+                    rows, "saldo", default_currency="BRL"
+                ),
             )
             if trusted_detail is not None:
                 return trusted_detail
@@ -5348,6 +5408,9 @@ IMPORTANTE:
                     "numero", "parcela", "contrato", "filial", "cliente",
                     "moeda", "valor", "saldo", "emissao", "vencimentoReal",
                 ),
+                totals_calculator=lambda rows: calculate_field_totals_by_currency(
+                    rows, "valor", "saldo", default_currency="BRL"
+                ),
             )
             if trusted_detail is not None:
                 return trusted_detail
@@ -5646,6 +5709,9 @@ IMPORTANTE:
                     "numero", "parcela", "contrato", "filial", "cliente",
                     "moeda", "valor", "saldo", "emissao", "vencimentoReal",
                 ),
+                totals_calculator=lambda rows: calculate_field_totals_by_currency(
+                    rows, "valor", "saldo", default_currency="BRL"
+                ),
             )
             if trusted_detail is not None:
                 return trusted_detail
@@ -5901,6 +5967,16 @@ IMPORTANTE:
                 "contrato", "letra", "filial", "cliente", "despesa",
                 "despesaRea", "despesaDolar", "moeda", "emissao",
             ),
+            totals_calculator=lambda rows: {
+                "despesa_total_BRL": sum(
+                    (payable_decimal(row.get("despesaRea")) for row in rows),
+                    Decimal("0"),
+                ),
+                "despesa_total_USD": sum(
+                    (payable_decimal(row.get("despesaDolar")) for row in rows),
+                    Decimal("0"),
+                ),
+            },
         )
         if trusted_detail is not None:
             return trusted_detail

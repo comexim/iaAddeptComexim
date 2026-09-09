@@ -1,9 +1,10 @@
 """Listagens determinísticas formadas exclusivamente por linhas consultadas."""
 
 from decimal import Decimal
+from collections import defaultdict
 import re
 import unicodedata
-from typing import Any, Dict, Iterable, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence
 
 
 TRUSTED_DATABASE_DETAIL_PREFIX = "DETALHE_BANCO_CONFIRMADO:\n"
@@ -108,6 +109,23 @@ def _display_value(value: Any) -> str:
     return str(value).strip()
 
 
+def calculate_field_totals_by_currency(
+    rows: Sequence[Dict[str, Any]],
+    *fields: str,
+    default_currency: str = "BRL",
+) -> Dict[str, Decimal]:
+    """Soma campos no conjunto recebido, mantendo moedas diferentes separadas."""
+    totals = defaultdict(lambda: Decimal("0"))
+    for row in rows:
+        currency = str(row.get("moeda") or default_currency).strip().upper()
+        for field in fields:
+            totals[(field, currency)] += _number(row.get(field))
+    return {
+        f"{field}_total_{currency}": value
+        for (field, currency), value in sorted(totals.items())
+    }
+
+
 def format_trusted_database_detail(
     rows: Iterable[Dict[str, Any]],
     *,
@@ -115,13 +133,17 @@ def format_trusted_database_detail(
     query: str,
     explicit_limit: Optional[int] = None,
     preferred_fields: Sequence[str] = (),
+    totals_calculator: Optional[Callable[[Sequence[Dict[str, Any]]], Dict[str, Any]]] = None,
 ) -> Optional[str]:
-    """Formata uma linha de saída para cada linha selecionada da consulta."""
+    """Calcula totais no conjunto completo e então formata as linhas selecionadas."""
     source_rows = list(rows)
     request = database_detail_request(query, explicit_limit=explicit_limit)
     if not request["requested"]:
         return None
 
+    # Esta chamada precisa ocorrer antes da seleção abaixo. Assim, nenhum
+    # limite de exibição pode alterar os totais apresentados ao usuário.
+    calculated_totals = totals_calculator(source_rows) if totals_calculator else {}
     selected = select_database_detail_rows(
         source_rows,
         limit=request["limit"],
@@ -145,11 +167,22 @@ def format_trusted_database_detail(
     omitted_notice = (
         f"\nRegistros não exibidos: {omitted}." if omitted > 0 else "\nRegistros não exibidos: 0."
     )
+    totals_notice = ""
+    if calculated_totals:
+        totals_lines = [
+            f"- {label}: {_display_value(value)}"
+            for label, value in calculated_totals.items()
+        ]
+        totals_notice = (
+            f"\n\nTotais calculados sobre os {len(source_rows)} registros antes do corte:\n"
+            + "\n".join(totals_lines)
+        )
     body = (
         f"Detalhes confirmados pelo banco ({source_name}):\n\n"
         f"Registros retornados após os filtros: {len(source_rows)}.\n"
         f"Registros exibidos: {len(selected)}."
-        f"{omitted_notice}\n\n"
+        f"{omitted_notice}"
+        f"{totals_notice}\n\n"
         "Cada linha abaixo corresponde a uma linha existente no resultado da consulta.\n\n"
         + ("\n".join(lines) if lines else "Nenhum registro para exibir.")
     )

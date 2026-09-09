@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.services.database_detail import (
     TRUSTED_DATABASE_DETAIL_PREFIX,
+    calculate_field_totals_by_currency,
     database_detail_request,
     format_trusted_database_detail,
     select_database_detail_rows,
@@ -67,9 +68,59 @@ def test_preserves_distinct_rows_even_when_the_document_number_repeats():
     assert len(selected) == 2
 
 
+def test_calculates_totals_on_full_result_before_limiting_details():
+    rows = [
+        {"numero": "A", "valor": Decimal("100")},
+        {"numero": "B", "valor": Decimal("80")},
+        {"numero": "C", "valor": Decimal("20")},
+    ]
+    calculator_received = []
+
+    def calculate_totals(source_rows):
+        calculator_received.extend(source_rows)
+        return {
+            "valor_total": sum((row["valor"] for row in source_rows), Decimal("0")),
+        }
+
+    output = format_trusted_database_detail(
+        rows,
+        source_name="teste",
+        query="Liste os 2 maiores títulos",
+        preferred_fields=("numero", "valor"),
+        totals_calculator=calculate_totals,
+    )
+
+    assert calculator_received == rows
+    assert "Registros exibidos: 2." in output
+    assert "Registros não exibidos: 1." in output
+    assert "Totais calculados sobre os 3 registros antes do corte:" in output
+    assert "- valor_total: 200" in output
+
+
+def test_field_totals_keep_currencies_separate():
+    totals = calculate_field_totals_by_currency(
+        [
+            {"moeda": "BRL", "valor": "100,50", "saldo": "80,25"},
+            {"moeda": "BRL", "valor": "20", "saldo": "10"},
+            {"moeda": "USD", "valor": "30", "saldo": "15"},
+        ],
+        "valor",
+        "saldo",
+    )
+
+    assert totals == {
+        "saldo_total_BRL": Decimal("90.25"),
+        "saldo_total_USD": Decimal("15"),
+        "valor_total_BRL": Decimal("120.50"),
+        "valor_total_USD": Decimal("30"),
+    }
+
+
 if __name__ == "__main__":
     test_detects_explicit_database_detail_requests()
     test_selects_only_existing_rows_and_orders_largest_values()
     test_formats_each_selected_database_row_once_without_completing_the_list()
     test_preserves_distinct_rows_even_when_the_document_number_repeats()
-    print("database_detail: 4 tests OK")
+    test_calculates_totals_on_full_result_before_limiting_details()
+    test_field_totals_keep_currencies_separate()
+    print("database_detail: 6 tests OK")
