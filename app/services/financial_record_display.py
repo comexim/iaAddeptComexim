@@ -74,3 +74,38 @@ def format_zero_value_records(rows: Iterable[Dict[str, Any]]) -> str:
             f"{zero_value_classification(row)}"
         )
     return "\n".join(lines)
+
+
+def _format_pt_br_value(value: Any) -> str:
+    formatted = f"{payable_decimal(value):,.2f}"
+    return formatted.replace(",", "\0").replace(".", ",").replace("\0", ".")
+
+
+def format_payable_detail_blocks(rows: Iterable[Dict[str, Any]]) -> str:
+    """Formata cada título em um bloco vertical, mantendo os campos separados."""
+    blocks = []
+    for index, row in enumerate(rows, start=1):
+        number = str(row.get("numero") or "").strip() or "Não informado"
+        installment = str(row.get("parcela") or "").strip() or "Não informada"
+        branch = str(row.get("filial") or "").strip() or "Não informada"
+        nature = str(row.get("natureza") or "").strip() or "Não informada"
+        currency = str(row.get("moeda") or "BRL").strip().upper()
+        due_date = str(row.get("vencimento") or "").strip() or "Não informado"
+
+        lines = [
+            f"TÍTULO {index}",
+            f"Número: {number}",
+            f"Parcela: {installment}",
+            f"Filial: {branch}",
+            f"Fornecedor: {supplier_display(row)}",
+            f"Natureza: {nature}",
+            f"Moeda: {currency}",
+            f"Valor: {_format_pt_br_value(row.get('valor'))}",
+            f"Vencimento: {due_date}",
+        ]
+        zero_label = zero_value_classification(row)
+        if zero_label:
+            lines.append(f"Observação: {zero_label}")
+        blocks.append("\n".join(lines))
+
+    return "\n\n".join(blocks)

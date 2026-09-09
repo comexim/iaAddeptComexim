@@ -61,11 +61,11 @@ from app.services.financial_period_context import (
     uses_business_days,
 )
 from app.services.financial_record_display import (
+    format_payable_detail_blocks,
     format_zero_value_records,
     prepare_financial_record,
     split_zero_value_records,
     supplier_display,
-    zero_value_classification,
 )
 from app.services.database_detail import database_detail_request, format_trusted_database_detail
 from app.services.query_trace import log_query_processing
@@ -4661,24 +4661,9 @@ IMPORTANTE:
             # mesmo quando o usuário solicita todo o conjunto (limite=0).
             if len(result_list) <= 50 or detail_request["requested"]:
                 total_geral = Decimal("0")
-                linhas = []
                 for r in result_list:
                     valor = payable_decimal(r.get("valor"))
                     total_geral += valor
-                    num = str(r.get('numero', '')).strip()
-                    parc = str(r.get('parcela', '')).strip()
-                    titulo = num
-                    if parc and not titulo.endswith(f"/{parc}"):
-                        titulo = f"{titulo}/{parc}" if titulo else parc
-                    titulo = titulo or "Título não informado"
-                    forn = supplier_display(r)
-                    nat = str(r.get('natureza', '')).strip()
-                    venc = str(r.get('vencimento', '')).strip()
-                    fil = str(r.get('filial', '')).strip()
-                    moeda = str(r.get('moeda') or 'BRL').strip().upper()
-                    zero_label = zero_value_classification(r)
-                    zero_suffix = f" | {zero_label}" if zero_label else ""
-                    linhas.append(f"{titulo} | fil.{fil} | {forn} | {nat} | {moeda} {valor:,.2f} | venc:{venc}{zero_suffix}")
 
                 detail_reconciliation = reconcile_payables(
                     result_list,
@@ -4698,7 +4683,7 @@ IMPORTANTE:
                         "contas a pagar. O resultado não será apresentado como confiável."
                     )
 
-                tabela_str = "\n".join(linhas)
+                detalhes_str = format_payable_detail_blocks(result_list)
                 partial_notice = ""
                 total_complete_notice = ""
                 if partial_listing:
@@ -4722,11 +4707,11 @@ IMPORTANTE:
 Valor dos títulos detalhados: R$ {total_geral:,.2f}
 {total_complete_notice}
 
-TABELA (numero/parcela | filial | fornecedor | natureza | moeda e valor | vencimento):
-{tabela_str}
+DETALHES DOS TÍTULOS:
+{detalhes_str}
 
 Fornecedor e natureza são campos separados; nunca copie natureza/descrição para fornecedor.
-As classificações após o vencimento identificam registros com valor zero.
+O campo Observação identifica registros com valor zero quando aplicável.
 {partial_instruction}""", aviso_escopo), contexto_periodo)
 
             # Agrega por dia de vencimento E por fornecedor

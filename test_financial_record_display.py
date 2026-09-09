@@ -1,5 +1,6 @@
 from app.services.financial_record_display import (
     MISSING_SUPPLIER,
+    format_payable_detail_blocks,
     format_zero_value_records,
     prepare_financial_record,
     split_zero_value_records,
@@ -37,6 +38,47 @@ def test_zero_record_format_keeps_nature_separate_from_supplier():
         {"numero": "10", "fornecedor": "", "natureza": "JUROS CTR CAMBIO", "valor": 0}
     ])
     assert "Fornecedor não informado | JUROS CTR CAMBIO | Ajuste cambial sem valor" in text
+
+
+def test_payable_details_use_one_labeled_field_per_line_and_separate_records():
+    text = format_payable_detail_blocks([
+        {
+            "numero": "974084",
+            "parcela": "01",
+            "filial": "05",
+            "fornecedor": "COOP. AGROPECUARIA D",
+            "natureza": "COMPRA DE CAFE BENEFICIADO",
+            "moeda": "BRL",
+            "valor": "1920000.00",
+            "vencimento": "20260909",
+        },
+        {
+            "numero": "546773",
+            "parcela": "01",
+            "filial": "02",
+            "fornecedor": "LUIS AUGUSTO ROSA VALIM E OUTROS",
+            "natureza": "COMPRA DE CAFE BENEFICIADO",
+            "moeda": "BRL",
+            "valor": "454174.29",
+            "vencimento": "20260909",
+        },
+    ])
+
+    first, second = text.split("\n\n")
+    assert first.splitlines() == [
+        "TÍTULO 1",
+        "Número: 974084",
+        "Parcela: 01",
+        "Filial: 05",
+        "Fornecedor: COOP. AGROPECUARIA D",
+        "Natureza: COMPRA DE CAFE BENEFICIADO",
+        "Moeda: BRL",
+        "Valor: 1.920.000,00",
+        "Vencimento: 20260909",
+    ]
+    assert second.startswith("TÍTULO 2\nNúmero: 546773\n")
+    assert "Fornecedor: LUIS AUGUSTO ROSA VALIM E OUTROS" in second
+    assert " | " not in text
 
 
 if __name__ == "__main__":
