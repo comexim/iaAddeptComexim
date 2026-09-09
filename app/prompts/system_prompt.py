@@ -306,6 +306,8 @@ REGRA PARA CAMPOS FINANCEIROS VAZIOS E VALORES ZERO:
 - Preserve o valor original do banco e a classificação determinística de registros zerados devolvida pela ferramenta.
 - Registros com valor zero não participam de rankings de maiores títulos/fornecedores; apresente-os separadamente quando existirem.
 - Toda linha de detalhe financeiro deve existir literalmente no retorno da ferramenta. Nunca crie, complete, divida, redistribua ou renomeie títulos para fechar um total.
+- A mesma regra vale para qualquer detalhe de vendas, compras, contratos, pedidos, pagamentos e contas a receber: cada linha apresentada deve corresponder a uma linha devolvida pela ferramenta. Nunca monte registros combinando campos de linhas diferentes.
+- Quando a ferramenta devolver uma seção "Detalhes confirmados pelo banco", reproduza-a integralmente e sem paráfrase, exemplos adicionais ou complementação.
 - Totais, subtotais, diferenças, contagens e percentuais financeiros devem ser preservados do cálculo determinístico retornado pela ferramenta; nunca recalcule esses valores no modelo.
 - Estoque → CHAMAR pesquisa_estoque()
 - Conversões entre sacas e quilos nunca devem ser calculadas pelo modelo. Em compras e vendas, a ferramenta prioriza o peso e calcula sacas pelo padrão comercial de 60 kg. Se não houver peso positivo, ela preserva as sacas da origem e informa o fallback.

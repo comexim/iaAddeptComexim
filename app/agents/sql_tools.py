@@ -67,6 +67,7 @@ from app.services.financial_record_display import (
     supplier_display,
     zero_value_classification,
 )
+from app.services.database_detail import database_detail_request, format_trusted_database_detail
 from app.services.query_trace import log_query_processing
 from app.services.stock_metrics import (
     build_longshort_snapshot,
@@ -2082,6 +2083,26 @@ class SQLTools:
                 if not results:
                     return "Não foram encontrados registros para esse período."
 
+            if not (
+                function_name == "IA_Vendas"
+                and is_unfixed_sales_position_query(
+                    self.user_query_original or self.user_query or ""
+                )
+            ):
+                trusted_detail = format_trusted_database_detail(
+                    results,
+                    source_name=function_name,
+                    query=self.user_query_original or self.user_query or "",
+                    preferred_fields=(
+                        "contrato", "numero", "solicitacao", "filial", "cliente",
+                        "fornecedor", "peso", "sacas", "valorTotal", "valor",
+                        "moeda", "emissao", "vencimento", "mesEmbarque", "linha",
+                    ),
+                )
+                if trusted_detail is not None:
+                    self._salvar_resultado_scheduler(results)
+                    return trusted_detail
+
             if (
                 function_name == "IA_Vendas"
                 and not self._is_monthly_series_request()
@@ -3893,6 +3914,10 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 periodo_emissao
                 and not filial_solicitada
                 and not self._is_monthly_series_request()
+                and not database_detail_request(
+                    self.user_query_original or self.user_query or "",
+                    explicit_limit=limite,
+                )["requested"]
             ):
                 totais = aggregate_sales_totals(results)
                 por_filial = aggregate_sales_by_branch(results)
@@ -4218,8 +4243,20 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             if not result_list:
                 return "Nenhuma conta paga encontrada para o período especificado."
 
+            trusted_detail = format_trusted_database_detail(
+                result_list,
+                source_name=procedure_name,
+                query=self.user_query_original or self.user_query or "",
+                explicit_limit=limite,
+                preferred_fields=(
+                    "numero", "parcela", "filial", "fornecedor", "natureza",
+                    "moeda", "valor", "valorStr", "emissao", "vencimento",
+                    "pagamento", "banco",
+                ),
+            )
+
             # Consultas somente por fornecedor retornam 10 registros por padrão.
-            if fornecedor and not data_inicio:
+            if trusted_detail is None and fornecedor and not data_inicio:
                 if limite is None:
                     result_list = result_list[:10]
                 elif limite > 0:
@@ -4240,6 +4277,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 unit="títulos",
                 currency="BRL",
             )
+
+            if trusted_detail is not None:
+                return trusted_detail
 
             # Se poucos registros (<= 50), retorna todos
             if len(result_list) <= 50:
@@ -4904,6 +4944,15 @@ IMPORTANTE:
                 if not result_list:
                     return f"Nenhuma conta bancária encontrada para '{banco}'."
 
+            trusted_detail = format_trusted_database_detail(
+                result_list,
+                source_name="IA_SaldoBancario",
+                query=self.user_query_original or self.user_query or "",
+                preferred_fields=("banco", "agencia", "conta", "filial", "moeda", "saldo"),
+            )
+            if trusted_detail is not None:
+                return trusted_detail
+
             # Mostra cada conta individualmente (sem agregar por banco+moeda)
             # Isso garante que múltiplas contas do mesmo banco sejam mostradas separadamente
             # Ex: ABC BRASIL com 2 contas em Reais → aparecem como 2 entradas distintas
@@ -5306,6 +5355,18 @@ IMPORTANTE:
                     CURRENT_OPEN_PAST_NOTICE,
                 )
 
+            trusted_detail = format_trusted_database_detail(
+                result_list,
+                source_name=function_name,
+                query=self.user_query_original or self.user_query or "",
+                preferred_fields=(
+                    "numero", "parcela", "contrato", "filial", "cliente",
+                    "moeda", "valor", "saldo", "emissao", "vencimentoReal",
+                ),
+            )
+            if trusted_detail is not None:
+                return trusted_detail
+
             # Em seguimentos por cliente, detalha todos os contratos encontrados.
             if cliente:
                 por_contrato = defaultdict(
@@ -5592,6 +5653,18 @@ IMPORTANTE:
                     contexto_periodo,
                 )
 
+            trusted_detail = format_trusted_database_detail(
+                result_list,
+                source_name=function_name,
+                query=self.user_query_original or self.user_query or "",
+                preferred_fields=(
+                    "numero", "parcela", "contrato", "filial", "cliente",
+                    "moeda", "valor", "saldo", "emissao", "vencimentoReal",
+                ),
+            )
+            if trusted_detail is not None:
+                return trusted_detail
+
             # Se contrato específico foi solicitado E poucos registros (<= 50), retorna detalhes completos
             if contrato and len(result_list) <= 50:
                 # Calcula total geral
@@ -5834,6 +5907,18 @@ IMPORTANTE:
             return "Nenhuma despesa de venda encontrada."
 
         logger.info(f"[DESPESA VENDA] Total de registros: {len(result_list)}")
+
+        trusted_detail = format_trusted_database_detail(
+            result_list,
+            source_name="IA_DespesaVenda",
+            query=self.user_query_original or self.user_query or "",
+            preferred_fields=(
+                "contrato", "letra", "filial", "cliente", "despesa",
+                "despesaRea", "despesaDolar", "moeda", "emissao",
+            ),
+        )
+        if trusted_detail is not None:
+            return trusted_detail
 
         # Verifica se usuário perguntou sobre tipo específico de despesa
         if self.user_query:

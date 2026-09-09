@@ -22,6 +22,7 @@ from app.services.preference_learning import preference_learning
 from app.services.stock_metrics import format_standard_weight_conversion
 from app.services.accounts_payable_metrics import TRUSTED_PAYABLE_DETAIL_PREFIX
 from app.services.commercial_metrics import TRUSTED_UNFIXED_SALES_PREFIX
+from app.services.database_detail import TRUSTED_DATABASE_DETAIL_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,17 @@ def _trusted_unfixed_sales_position(messages: Sequence[BaseMessage]) -> Optional
         content = _message_content_as_text(message)
         if content.startswith(TRUSTED_UNFIXED_SALES_PREFIX):
             return content[len(TRUSTED_UNFIXED_SALES_PREFIX):]
+    return None
+
+
+def _trusted_database_detail(messages: Sequence[BaseMessage]) -> Optional[str]:
+    """Obtém uma listagem genérica montada diretamente com linhas da consulta."""
+    for message in reversed(messages):
+        if not isinstance(message, ToolMessage):
+            continue
+        content = _message_content_as_text(message)
+        if content.startswith(TRUSTED_DATABASE_DETAIL_PREFIX):
+            return content[len(TRUSTED_DATABASE_DETAIL_PREFIX):]
     return None
 
 
@@ -1617,6 +1629,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 output = trusted_unfixed_sales_output
                 logger.info(
                     "[VENDAS A FIXAR] Retornando posição consolidada da tool, sem recálculo do LLM"
+                )
+
+            trusted_database_output = _trusted_database_detail(current_turn_messages)
+            if trusted_database_output is not None:
+                output = trusted_database_output
+                logger.info(
+                    "[DETALHE DO BANCO] Retornando linhas determinísticas sem paráfrase do LLM"
                 )
 
             # Cancelamentos são operações determinísticas. Preserve o retorno
