@@ -159,10 +159,14 @@ def sales_parent_contract(contract: Any) -> str:
 
 def is_unfixed_sales_position_query(query: str) -> bool:
     normalized = normalize_text(query)
-    return bool(re.search(
+    direct_position = bool(re.search(
         r"\b(?:contratos?|vendas?|posicao)\s+(?:a\s+fixar|nao\s+fixad[oa]s?)\b",
         normalized,
     ))
+    sacks_to_fix = "a fixar" in normalized and bool(
+        re.search(r"\b(?:contratos?|vendas?|sacas?|volume)\b", normalized)
+    )
+    return direct_position or sacks_to_fix
 
 
 def is_unfixed_sales_summary_query(query: str) -> bool:

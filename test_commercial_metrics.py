@@ -256,7 +256,13 @@ def test_unfixed_parcels_without_volume_are_preserved_for_audit():
 def test_detects_unfixed_position_and_summary_queries():
     assert is_unfixed_sales_position_query("Contratos a fixar") is True
     assert is_unfixed_sales_position_query("Vendas não fixadas") is True
+    assert is_unfixed_sales_position_query(
+        "Quantas sacas a fixar temos para os contratos de exportação?"
+    ) is True
     assert is_unfixed_sales_summary_query("Qual o volume total de vendas a fixar?") is True
+    assert is_unfixed_sales_summary_query(
+        "Quantas sacas a fixar temos para os contratos de exportação?"
+    ) is True
     assert is_unfixed_sales_summary_query("Liste os contratos a fixar") is False
 
 

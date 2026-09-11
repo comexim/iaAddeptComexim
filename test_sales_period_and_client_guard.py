@@ -74,6 +74,62 @@ def test_sales_month_range_is_not_reduced_to_first_month():
     }
 
 
+def test_unfixed_status_does_not_turn_shipment_month_into_fixing_month():
+    SQLTools = _load_sql_tools_with_stubs()
+
+    query = (
+        "quantas sacas a fixar temos para os contratos de exportação "
+        "com mês de embarque 09/2026?"
+    )
+
+    assert SQLTools._parse_mes_fixacao_vendas(query) is None
+    assert SQLTools._parse_mes_fixacao_vendas("mês de fixação 09/2026") == {
+        "mes_inicio": "2026/09",
+        "mes_fim": "2026/09",
+    }
+    assert SQLTools._parse_mes_fixacao_vendas("09/2026", exigir_contexto=False) == {
+        "mes_inicio": "2026/09",
+        "mes_fim": "2026/09",
+    }
+
+
+def test_export_unfixed_query_uses_market_and_complete_fixing_status():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = (
+        "quantas sacas a fixar temos para os contratos de exportação "
+        "com mês de embarque 09/2026?"
+    )
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._series_expected_months = []
+    sql_tools._series_date_fields = ("mesEmbarque", "mesembarque")
+    sql_tools._series_query_context = {}
+    sql_tools.session_id = None
+    rows = [
+        {
+            "contrato": "100/26A", "filial": "05", "cliente": "EXTERNO",
+            "MERCADO": "EXTERNO", "precoFix": "A fixar", "valorFixado": 0,
+            "peso": 6000, "sacas": 101.69, "mesEmbarque": "2026/09",
+        },
+        {
+            "contrato": "101/26A", "filial": "05", "cliente": "INTERNO",
+            "MERCADO": "INTERNO", "precoFix": "A fixar", "valorFixado": 0,
+            "peso": 12000, "sacas": 203.39, "mesEmbarque": "2026/09",
+        },
+        {
+            "contrato": "102/26A", "filial": "05", "cliente": "FIXO",
+            "MERCADO": "EXTERNO", "precoFix": "Fixo", "valorFixado": 0,
+            "peso": 18000, "sacas": 305.08, "mesEmbarque": "2026/09",
+        },
+    ]
+
+    output = sql_tools._format_results(rows, "IA_Vendas")
+
+    assert "Volume total: 100,00 sacas de 60 kg" in output
+    assert "Contratos-pai/linhas consideradas: 1" in output
+    assert "precoFix = A fixar e valorFixado nulo ou zero" in output
+
+
 def test_sales_metric_request_is_not_detected_as_client():
     SQLTools = _load_sql_tools_with_stubs()
     sql_tools = SQLTools.__new__(SQLTools)

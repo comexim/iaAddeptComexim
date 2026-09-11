@@ -1835,7 +1835,9 @@ class SQLTools:
                     filtros_aplicados.append(f"mercado interno/MERCADO=INTERNO ({results_antes} → {len(results)})")
                     logger.info(f"[FILTRO AUTOMÁTICO] Aplicado filtro mercado interno: {results_antes} → {len(results)}")
 
-                if any(term in query_lower for term in ["mercado externo", "mercado internacional"]):
+                if any(term in query_lower for term in [
+                    "mercado externo", "mercado internacional", "exportação", "exportacao",
+                ]):
                     results_antes = len(results)
                     results = filter_sales_by_market(results, "externo")
                     filtros_aplicados.append(f"mercado externo/MERCADO=EXTERNO ({results_antes} → {len(results)})")
@@ -3538,10 +3540,15 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
         for match in re.finditer(r"\b([hknuz])\s*[-/]?\s*(\d{2}|\d{4})\b", texto):
             encontrados.append((match.start(), ano_completo(match.group(2)), meses_indices[match.group(1)]))
 
-        tem_contexto_fixacao = any(
-            termo in texto
-            for termo in ("fixacao", "fixado", "fixados", "fixar", "bolsa", "mes fix")
-        )
+        # "a fixar" descreve o status do contrato e não transforma, por si só,
+        # uma data da pergunta em mês de fixação. Datas só são inferidas como
+        # fixação quando a relação é explícita; o argumento mes_fixacao continua
+        # aceitando datas diretamente por usar exigir_contexto=False.
+        tem_contexto_fixacao = bool(re.search(
+            r"\b(?:mes\s+(?:de\s+)?fixacao|fixacao\s+(?:em|de|do)|"
+            r"fixad[oa]s?\s+(?:em|de|do)|bolsa)\b",
+            texto,
+        ))
         if tem_contexto_fixacao or not exigir_contexto:
             nomes_regex = "|".join(sorted(meses_nomes, key=len, reverse=True))
             for match in re.finditer(
