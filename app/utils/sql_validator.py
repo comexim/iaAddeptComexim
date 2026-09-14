@@ -13,6 +13,7 @@ FUNCTION_PERMISSIONS: Dict[str, PermissionType] = {
     "IA_Vendas": "Vendas",
     "IA_VendasPar": "Vendas",
     "usp_IA_Vendas": "Vendas",
+    "usp_IA_Vendas_Fixar": "Vendas",
     "IA_Compras": "Compras",
     "IA_ComprasPar": "Compras",
     "usp_IA_Compras": "Compras",

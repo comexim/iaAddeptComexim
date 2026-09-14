@@ -164,7 +164,7 @@ def is_unfixed_sales_position_query(query: str) -> bool:
         normalized,
     ))
     sacks_to_fix = "a fixar" in normalized and bool(
-        re.search(r"\b(?:contratos?|vendas?|sacas?|volume)\b", normalized)
+        re.search(r"\b(?:contratos?|vendas?|sacas?|volume|exportacao)\b", normalized)
     )
     return direct_position or sacks_to_fix
 

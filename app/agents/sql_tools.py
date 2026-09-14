@@ -1742,6 +1742,9 @@ class SQLTools:
         client_filter: Optional[str] = None,
         pagina: int = 1,
         explicit_detail_limit: Optional[int] = None,
+        unfixed_source_pre_filtered: bool = False,
+        source_original_count: Optional[int] = None,
+        source_filters: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Formata resultados SQL para apresentação ao usuário
@@ -1763,8 +1766,8 @@ class SQLTools:
             return "Não foram encontrados registros para esse período."
 
         total_records = len(results)
-        original_count = total_records
-        trace_filters: Dict[str, Any] = {}
+        original_count = source_original_count if source_original_count is not None else total_records
+        trace_filters: Dict[str, Any] = dict(source_filters or {})
 
         if function_name in ("IA_Vendas", "IA_Compras", "IA_ComprasPar"):
             sack_normalization = normalize_commercial_sacks_to_60kg(results)
@@ -1786,7 +1789,7 @@ class SQLTools:
             self._salvar_resultado_scheduler(results)
 
         # ESTRATÉGIA 1: Se cliente específico foi identificado, filtra
-        if client_filter:
+        if client_filter and not unfixed_source_pre_filtered:
             results = self._filter_by_client(results, client_filter)
             trace_filters["cliente"] = client_filter
 
@@ -1816,7 +1819,7 @@ class SQLTools:
             # FILTROS PARA VENDAS
             if function_name == "IA_Vendas":
                 filial_detectada = detect_sales_branch_from_query(self.user_query_original)
-                if filial_detectada:
+                if filial_detectada and not unfixed_source_pre_filtered:
                     results_antes = len(results)
                     results = filter_sales_by_branch(results, filial_detectada)
                     filtros_aplicados.append(
@@ -1851,7 +1854,14 @@ class SQLTools:
                     consulta_posicao_a_fixar = is_unfixed_sales_position_query(
                         self.user_query_original or self.user_query or ""
                     )
-                    if consulta_posicao_a_fixar:
+                    if consulta_posicao_a_fixar and unfixed_source_pre_filtered:
+                        filter_label = "usp_IA_Vendas_Fixar (posição já filtrada na origem)"
+                        trace_filters["posicao_a_fixar_na_origem"] = True
+                        logger.info(
+                            "[POSIÇÃO A FIXAR] %s registro(s) recebidos já filtrados por usp_IA_Vendas_Fixar",
+                            len(results),
+                        )
+                    elif consulta_posicao_a_fixar:
                         fixation_filter = filter_unfixed_sales_position(results)
                         results = fixation_filter["rows"]
                         trace_filters["modalidade_preco_fixo_excluida"] = fixation_filter[
@@ -2222,6 +2232,11 @@ class SQLTools:
             )
 
             sales_metrics = aggregate_sales_totals(results)
+            unfixed_status_criterion = (
+                "resultado da usp_IA_Vendas_Fixar"
+                if unfixed_source_pre_filtered
+                else "precoFix=A fixar e valorFixado nulo ou zero"
+            )
             log_query_processing(
                 source_name=function_name,
                 original_count=original_count,
@@ -2231,7 +2246,7 @@ class SQLTools:
                     "contratos": sales_metrics["contratos"],
                     "sacas_60kg": sales_metrics["sacas"],
                 },
-                status_criterion="precoFix=A fixar e valorFixado nulo ou zero",
+                status_criterion=unfixed_status_criterion,
                 unit="sacas de 60 kg",
             )
             ambiguous_notice = ""
@@ -2250,7 +2265,11 @@ class SQLTools:
                 + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
                 + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
                 + ambiguous_notice
-                + "\n\nCritério: precoFix = A fixar e valorFixado nulo ou zero. "
+                + (
+                    "\n\nCritério: registros retornados pela usp_IA_Vendas_Fixar. "
+                    if unfixed_source_pre_filtered
+                    else "\n\nCritério: precoFix = A fixar e valorFixado nulo ou zero. "
+                )
                 + "O saldo de entrega não altera o status de preço. "
                 + "O volume em sacas foi calculado pelo peso contratado dividido por 60 kg"
             )
@@ -3523,10 +3542,17 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         meses_indices = {"h": "03", "k": "05", "n": "07", "u": "09", "z": "12"}
         meses_nomes = {
+            "janeiro": "01", "jan": "01",
+            "fevereiro": "02", "fev": "02",
             "marco": "03", "mar": "03",
+            "abril": "04", "abr": "04",
             "maio": "05", "mai": "05",
+            "junho": "06", "jun": "06",
             "julho": "07", "jul": "07",
+            "agosto": "08", "ago": "08",
             "setembro": "09", "set": "09",
+            "outubro": "10", "out": "10",
+            "novembro": "11", "nov": "11",
             "dezembro": "12", "dez": "12",
         }
 
@@ -3557,7 +3583,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             ):
                 encontrados.append((match.start(), ano_completo(match.group(2)), meses_nomes[match.group(1)]))
 
-            for match in re.finditer(r"\b(03|05|07|09|12)\s*/\s*(\d{2}|\d{4})\b", texto):
+            for match in re.finditer(r"\b(0[1-9]|1[0-2])\s*/\s*(\d{2}|\d{4})\b", texto):
                 encontrados.append((match.start(), ano_completo(match.group(2)), match.group(1)))
 
         if not encontrados:
@@ -3570,6 +3596,32 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             "mes_inicio": f"{ano_inicio:04d}/{mes_inicio}",
             "mes_fim": f"{ano_fim:04d}/{mes_fim}",
         }
+
+    @staticmethod
+    def _extract_mercado_fixar(texto_original: str) -> Optional[str]:
+        """Extrai índice de bolsa como N27 para filtrar mercadoFixar no retorno."""
+        texto = unicodedata.normalize("NFKD", str(texto_original or "").lower())
+        texto = "".join(char for char in texto if not unicodedata.combining(char))
+        match = re.search(r"\b([hknuz])\s*[-/]?\s*(\d{2})\b", texto)
+        return f"{match.group(1).upper()}{match.group(2)}" if match else None
+
+    @staticmethod
+    def _fixing_company_params(texto_original: str) -> Dict[str, str]:
+        """Mapeia empresas citadas para os parâmetros booleanos da procedure."""
+        texto = unicodedata.normalize("NFKD", str(texto_original or "").lower())
+        texto = " " + "".join(
+            char for char in texto if not unicodedata.combining(char)
+        ) + " "
+        params: Dict[str, str] = {}
+        empresas = (
+            ("Cobra", "cobra", "05"),
+            ("Cusa", "cusa", "60"),
+            ("Ceu", "ceu", "61"),
+        )
+        for parametro, nome, filial in empresas:
+            if f" {nome} " in texto or f" filial {filial} " in texto or f" filial {int(filial)} " in texto:
+                params[parametro] = "true"
+        return params
 
     def _parse_periodo_vendas(self, periodo: str) -> Optional[Dict[str, str]]:
         """Converte periodos de vendas para meses no formato YYYY/MM."""
@@ -3689,7 +3741,16 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             }
 
         parsed = date_parser.parse_natural_date(periodo)
-        if not parsed or not parsed.get("data_inicio"):
+        if not parsed:
+            return None
+        if parsed.get("mes_embarque"):
+            from calendar import monthrange
+            ano, mes = map(int, parsed["mes_embarque"].split("/"))
+            return {
+                "data_inicio": f"{ano:04d}{mes:02d}01",
+                "data_fim": f"{ano:04d}{mes:02d}{monthrange(ano, mes)[1]:02d}",
+            }
+        if not parsed.get("data_inicio"):
             return None
         return {
             "data_inicio": parsed["data_inicio"],
@@ -3807,8 +3868,14 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             if client_filter:
                 logger.info(f"[FILTRO CLIENTE] Detectado '{client_filter}' na pergunta: {self.user_query}")
 
-        procedure_name = "usp_IA_Vendas"
+        consulta_original = self.user_query_original or self.user_query or ""
+        consulta_a_fixar = is_unfixed_sales_position_query(consulta_original)
+        procedure_name = "usp_IA_Vendas_Fixar" if consulta_a_fixar else "usp_IA_Vendas"
         procedure_params = {}
+        mercado_fixar = (
+            self._extract_mercado_fixar(f"{consulta_original} {mes_fixacao or ''}")
+            if consulta_a_fixar else None
+        )
 
         pergunta_original = self._remove_accents(
             (self.user_query_original or self.user_query or "").lower()
@@ -3839,7 +3906,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             )
 
         fonte_mes_fixacao = mes_fixacao or self.user_query_original or self.user_query or ""
-        periodo_fixacao = self._parse_mes_fixacao_vendas(
+        # Na procedure de fixação, índices como N27 são valores da coluna
+        # mercadoFixar e devem ser filtrados após a consulta sem parâmetros.
+        periodo_fixacao = None if mercado_fixar else self._parse_mes_fixacao_vendas(
             fonte_mes_fixacao,
             exigir_contexto=mes_fixacao is None,
         )
@@ -3852,13 +3921,14 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 periodo_fixacao["mes_inicio"],
                 periodo_fixacao["mes_fim"],
             )
-        elif (periodo or series_period_override) and not periodo_emissao:
+        periodo_foi_usado_como_emissao = contexto_emissao and not data_emissao
+        if (periodo or series_period_override) and not periodo_foi_usado_como_emissao:
             parsed = series_period_override or self._parse_periodo_vendas(periodo)
             logger.info(f"[VENDAS] Período convertido para meses: {parsed}")
             if parsed:
                 procedure_params["MesIni"] = parsed["mes_inicio"]
                 procedure_params["MesFim"] = parsed["mes_fim"]
-        else:
+        elif not periodo_fixacao and not periodo_emissao:
             logger.info("[VENDAS] Consulta sem filtro de mês de embarque")
 
         if client_filter:
@@ -3866,6 +3936,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         if contrato_na_query:
             procedure_params["Contrato"] = contrato_na_query
+
+        if consulta_a_fixar:
+            procedure_params.update(self._fixing_company_params(consulta_original))
 
         if procedure_params.get("MesFixIni") and procedure_params.get("MesFixFim"):
             self._series_expected_months = month_keys_between(
@@ -3882,6 +3955,12 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             )
             self._series_date_fields = ("emissao", "dataEmissao", "dataemissao")
 
+        if consulta_a_fixar:
+            # usp_IA_Vendas_Fixar recebe meses em AAAAMM, sem separador.
+            for parameter in ("MesIni", "MesFim", "MesFixIni", "MesFixFim"):
+                if procedure_params.get(parameter):
+                    procedure_params[parameter] = str(procedure_params[parameter]).replace("/", "")
+
         has_permission, error_msg = sql_validator.validate_permission(self.user, procedure_name)
         if not has_permission:
             logger.warning(f"Permissão negada para {self.user.telefone}: {procedure_name}")
@@ -3895,6 +3974,26 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         try:
             results = sql_client.execute_procedure(procedure_name, procedure_params or None)
+            source_original_count = len(results)
+            source_filters: Dict[str, Any] = {
+                "procedure": procedure_name,
+                "procedure_params": dict(procedure_params),
+            }
+            if mercado_fixar:
+                results_antes = len(results)
+                results = [
+                    row for row in results
+                    if str(row.get("mercadoFixar") or "").strip().upper() == mercado_fixar
+                ]
+                source_filters["mercadoFixar"] = mercado_fixar
+                logger.info(
+                    "[VENDAS A FIXAR] Filtro mercadoFixar=%s: %s → %s",
+                    mercado_fixar,
+                    results_antes,
+                    len(results),
+                )
+                if not results:
+                    return f"Não foram encontrados contratos a fixar contra {mercado_fixar}."
             self._salvar_resultado_scheduler(results)
 
             query_fixacao = self._remove_accents((self.user_query_original or "").lower())
@@ -3955,6 +4054,7 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             )
             if (
                 periodo_emissao
+                and not consulta_a_fixar
                 and not filial_solicitada
                 and not self._is_monthly_series_request()
                 and not database_detail_request(
@@ -3993,6 +4093,9 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
                 client_filter,
                 pagina=pagina,
                 explicit_detail_limit=display_limit,
+                unfixed_source_pre_filtered=consulta_a_fixar,
+                source_original_count=source_original_count,
+                source_filters=source_filters,
             )
         except Exception as e:
             import traceback
@@ -6449,6 +6552,17 @@ Argumentos específicos:
   dígitos de ano e meses por extenso ou numéricos (ex.: U26, K27, julho/26,
   09/2026). É enviado como @MesFixIni e @MesFixFim.
 
+ROTA OBRIGATÓRIA PARA POSIÇÃO A FIXAR:
+- Perguntas com "vendas a fixar", "contratos a fixar", "sacas a fixar" ou
+  "exportação a fixar" usam automaticamente usp_IA_Vendas_Fixar.
+- Nessa procedure, periodo vira @MesIni/@MesFim em AAAAMM; data_emissao vira
+  @EmisIni/@EmisFim em AAAAMMDD; cliente e contrato usam @Cliente/@Contrato.
+- COBRA, CUSA e CEU viram, respectivamente, @Cobra='true', @Cusa='true' e
+  @Ceu='true'. Os filtros podem ser combinados na mesma chamada.
+- Um índice como N27 não é enviado como mês: a procedure é chamada sem esse
+  parâmetro e o backend mantém somente linhas cujo mercadoFixar seja N27.
+- Todo filtro temporal possui início e fim, mesmo quando cobre apenas um mês.
+
 SÉRIES MENSAIS:
 - Faça exatamente UMA chamada para todo o intervalo solicitado.
 - Nunca faça uma chamada separada para cada mês.
@@ -6464,8 +6578,9 @@ MESES/ÍNDICES DE FIXAÇÃO:
 - Z = dezembro
 - K27 → @MesFixIni='2027/05', @MesFixFim='2027/05'
 - N26 → @MesFixIni='2026/07', @MesFixFim='2026/07'
-- "Quais contratos não fixados temos contra bolsa U26?" → pesquisa_vendas(mes_fixacao="U26")
-- Nunca trate esses índices como mês de embarque.
+- "Quais contratos a fixar temos contra bolsa U26?" → pesquisa_vendas(mes_fixacao="U26");
+  o backend consulta usp_IA_Vendas_Fixar sem MesFixIni/MesFixFim e filtra mercadoFixar=U26.
+- Nunca trate esses índices como mês de embarque ou mês de fixação da procedure de fixar.
 
 REGRA DE EMISSÃO/INCLUSÃO:
 - Contratos inseridos, digitados, lançados, cadastrados ou emitidos em uma data
@@ -6476,11 +6591,15 @@ REGRA DE EMISSÃO/INCLUSÃO:
 - Sem filial específica, resumir por filial: 05=COBRA, 60=CUSA e 61=CEU.
 
 REGRA DE FIXAÇÃO:
-- Para a posição de contratos/vendas a fixar, combine os dois campos:
-  precoFix = "A fixar" (ou A) E valorFixado nulo ou igual a zero.
-- precoFix = "Fixo" não pertence à posição a fixar, mesmo com valorFixado zerado.
-- precoFix = "A fixar" com valorFixado acima de zero já foi fixado e não pertence à posição.
-- sacasSaldo é saldo de entrega e não determina o status de preço.
+- Para "vendas a fixar", "contratos a fixar", "sacas a fixar" ou
+  "exportação a fixar", o backend usa usp_IA_Vendas_Fixar automaticamente.
+- periodo informa mês de embarque; data_emissao informa a emissão; cliente e
+  contrato usam os parâmetros homônimos da procedure.
+- Para empresa, a pergunta pode citar COBRA, CUSA ou CEU; o backend envia o
+  parâmetro booleano correspondente.
+- Índices como N27 são filtrados na coluna mercadoFixar do retorno e não são
+  enviados como MesFixIni/MesFixFim.
+- Meses enviados a usp_IA_Vendas_Fixar usam AAAAMM; datas de emissão usam AAAAMMDD.
 
 🔄 REGRA DE CONTEXTO DE CONTRATO (NOVA!) 🔄
 Se o usuário já mencionou um número de contrato anteriormente (ex: "228/25", "031/25") e agora faz perguntas de seguimento sem mencionar o contrato novamente (ex: "Qual o total de sacas?", "Qual o vendedor?", "Preciso dos dados completos"), você DEVE entender que ele está se referindo ao mesmo contrato.

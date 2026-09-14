@@ -264,6 +264,7 @@ def test_detects_unfixed_position_and_summary_queries():
         "Quantas sacas a fixar temos para os contratos de exportação?"
     ) is True
     assert is_unfixed_sales_summary_query("Liste os contratos a fixar") is False
+    assert is_unfixed_sales_position_query("Exportação a fixar") is True
 
 
 def test_unfixed_position_combines_price_mode_and_effective_fixed_value():

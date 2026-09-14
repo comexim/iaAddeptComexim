@@ -19,6 +19,17 @@ def _load_sql_tools_with_stubs():
     sys.modules["langchain_core"] = langchain_core
     sys.modules["langchain_core.tools"] = tools_mod
 
+    dateutil_mod = types.ModuleType("dateutil")
+    relativedelta_mod = types.ModuleType("dateutil.relativedelta")
+
+    class DummyRelativeDelta:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+    relativedelta_mod.relativedelta = DummyRelativeDelta
+    sys.modules["dateutil"] = dateutil_mod
+    sys.modules["dateutil.relativedelta"] = relativedelta_mod
+
     core_pkg = types.ModuleType("app.core")
     database_mod = types.ModuleType("app.core.database")
     database_mod.sql_client = object()
@@ -37,6 +48,13 @@ def _load_sql_tools_with_stubs():
             return date(2026, 7, 10)
 
         def parse_natural_date(self, periodo):
+            normalized = str(periodo).lower()
+            if "novembro 26" in normalized or "novembro 2026" in normalized:
+                return {"mes_embarque": "2026/11", "ano": "2026", "mes": "11"}
+            if "dezembro 26" in normalized or "dezembro 2026" in normalized:
+                return {"mes_embarque": "2026/12", "ano": "2026", "mes": "12"}
+            if "09/2026" in normalized:
+                return {"mes_embarque": "2026/09", "ano": "2026", "mes": "09"}
             return None
 
     date_parser_mod.date_parser = DummyDateParser()
@@ -91,6 +109,154 @@ def test_unfixed_status_does_not_turn_shipment_month_into_fixing_month():
         "mes_inicio": "2026/09",
         "mes_fim": "2026/09",
     }
+    assert SQLTools._parse_mes_fixacao_vendas("mês de fixação janeiro 2026") == {
+        "mes_inicio": "2026/01",
+        "mes_fim": "2026/01",
+    }
+
+
+def test_fixing_procedure_specific_extractors():
+    SQLTools = _load_sql_tools_with_stubs()
+
+    assert SQLTools._extract_mercado_fixar("contratos a fixar contra N27") == "N27"
+    assert SQLTools._extract_mercado_fixar("mês de fixação novembro 2026") is None
+    assert SQLTools._fixing_company_params("sacas a fixar da COBRA e CUSA") == {
+        "Cobra": "true",
+        "Cusa": "true",
+    }
+    assert SQLTools._parse_emissao_vendas(
+        SQLTools.__new__(SQLTools), "novembro 26"
+    ) == {
+        "data_inicio": "20261101",
+        "data_fim": "20261130",
+    }
+
+
+def test_unfixed_query_calls_dedicated_procedure_with_compact_parameters():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools_module = sys.modules["app.agents.sql_tools"]
+
+    class DummyValidator:
+        @staticmethod
+        def validate_permission(user, function_name):
+            return True, None
+
+    class DummySQLClient:
+        def __init__(self):
+            self.calls = []
+
+        def execute_procedure(self, name, params):
+            self.calls.append((name, params))
+            return [{
+                "contrato": "100/26A", "filial": "05", "cliente": "NESTLE",
+                "mercadoFixar": "Z26", "peso": 6000, "sacas": 100,
+            }]
+
+    class DummyUser:
+        telefone = "teste"
+        nome = "Teste"
+
+    fake_client = DummySQLClient()
+    sql_tools_module.sql_validator = DummyValidator()
+    sql_tools_module.sql_client = fake_client
+    tool = SQLTools(DummyUser())
+    tool.user_query_original = "Quantas sacas a fixar da Nestle da Cobra em dezembro 26?"
+    tool.user_query = tool.user_query_original
+
+    tool._pesquisa_vendas(periodo="dezembro 26", cliente="NESTLE")
+
+    assert fake_client.calls == [(
+        "usp_IA_Vendas_Fixar",
+        {
+            "MesIni": "202612", "MesFim": "202612",
+            "Cliente": "NESTLE", "Cobra": "true",
+        },
+    )]
+
+
+def test_market_index_is_filtered_after_unparameterized_fixing_query():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools_module = sys.modules["app.agents.sql_tools"]
+
+    class DummyValidator:
+        @staticmethod
+        def validate_permission(user, function_name):
+            return True, None
+
+    class DummySQLClient:
+        def __init__(self):
+            self.calls = []
+
+        def execute_procedure(self, name, params):
+            self.calls.append((name, params))
+            return [
+                {"contrato": "100/26A", "mercadoFixar": "N27", "peso": 6000},
+                {"contrato": "101/26A", "mercadoFixar": "Z26", "peso": 12000},
+            ]
+
+    class DummyUser:
+        telefone = "teste"
+        nome = "Teste"
+
+    fake_client = DummySQLClient()
+    sql_tools_module.sql_validator = DummyValidator()
+    sql_tools_module.sql_client = fake_client
+    tool = SQLTools(DummyUser())
+    tool.user_query_original = "Quais contratos a fixar contra N27?"
+    tool.user_query = tool.user_query_original
+
+    output = tool._pesquisa_vendas(mes_fixacao="N27")
+
+    assert fake_client.calls == [("usp_IA_Vendas_Fixar", None)]
+    assert "Volume total: 100,00 sacas de 60 kg" in output
+    assert "Contratos-pai/linhas consideradas: 1" in output
+
+
+def test_fixing_procedure_accepts_all_supported_filters_together():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools_module = sys.modules["app.agents.sql_tools"]
+
+    class DummyValidator:
+        @staticmethod
+        def validate_permission(user, function_name):
+            return True, None
+
+    class DummySQLClient:
+        def __init__(self):
+            self.calls = []
+
+        def execute_procedure(self, name, params):
+            self.calls.append((name, params))
+            return [{"contrato": "123/26", "peso": 6000, "mercadoFixar": "H27"}]
+
+    class DummyUser:
+        telefone = "teste"
+        nome = "Teste"
+
+    fake_client = DummySQLClient()
+    sql_tools_module.sql_validator = DummyValidator()
+    sql_tools_module.sql_client = fake_client
+    tool = SQLTools(DummyUser())
+    tool.user_query_original = "Contratos a fixar do cliente ACME, contrato 123/26, da CUSA"
+    tool.user_query = tool.user_query_original
+
+    tool._pesquisa_vendas(
+        periodo="dezembro 26",
+        data_emissao="novembro 26",
+        cliente="ACME",
+        contrato="123/26",
+        mes_fixacao="janeiro 2027",
+    )
+
+    assert fake_client.calls == [(
+        "usp_IA_Vendas_Fixar",
+        {
+            "EmisIni": "20261101", "EmisFim": "20261130",
+            "MesFixIni": "202701", "MesFixFim": "202701",
+            "MesIni": "202612", "MesFim": "202612",
+            "Cliente": "ACME", "Contrato": "123/26", "Cusa": "true",
+        },
+    )]
 
 
 def test_export_unfixed_query_uses_market_and_complete_fixing_status():
