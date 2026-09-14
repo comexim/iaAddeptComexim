@@ -3619,7 +3619,12 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
             ("Ceu", "ceu", "61"),
         )
         for parametro, nome, filial in empresas:
-            if f" {nome} " in texto or f" filial {filial} " in texto or f" filial {int(filial)} " in texto:
+            empresa_mencionada = bool(re.search(rf"\b{re.escape(nome)}\b", texto))
+            filial_mencionada = bool(re.search(
+                rf"\bfilial\s+(?:{re.escape(filial)}|{int(filial)})\b",
+                texto,
+            ))
+            if empresa_mencionada or filial_mencionada:
                 params[parametro] = "true"
         return params
 

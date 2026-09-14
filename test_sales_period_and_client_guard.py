@@ -124,6 +124,9 @@ def test_fixing_procedure_specific_extractors():
         "Cobra": "true",
         "Cusa": "true",
     }
+    assert SQLTools._fixing_company_params(
+        "Quantas sacas a fixar temos do cliente Nestle da cobra?"
+    ) == {"Cobra": "true"}
     assert SQLTools._parse_emissao_vendas(
         SQLTools.__new__(SQLTools), "novembro 26"
     ) == {
