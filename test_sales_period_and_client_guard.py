@@ -225,7 +225,7 @@ def test_market_index_is_filtered_after_unparameterized_fixing_query():
 
     assert fake_client.calls == [("usp_IA_Vendas_Fixar", None)]
     assert "Volume total: 100,00 sacas de 60 kg" in output
-    assert "Contratos-pai/linhas consideradas: 1" in output
+    assert "Contratos: 1" in output
     assert "Critério:" not in output
     assert "usp_IA_Vendas_Fixar" not in output
     assert "sem peso positivo" not in output
@@ -316,12 +316,12 @@ def test_export_unfixed_query_uses_market_and_complete_fixing_status():
     output = sql_tools._format_results(rows, "IA_Vendas")
 
     assert "Volume total: 100,00 sacas de 60 kg" in output
-    assert "Contratos-pai/linhas consideradas: 1" in output
+    assert "Contratos: 1" in output
     assert "Critério:" not in output
     assert "precoFix = A fixar e valorFixado nulo ou zero" not in output
 
 
-def test_unfixed_output_shows_consolidation_only_when_it_happened():
+def test_unfixed_output_hides_internal_consolidation_metadata():
     SQLTools = _load_sql_tools_with_stubs()
     sql_tools = SQLTools.__new__(SQLTools)
     sql_tools.user_query_original = "Quantas sacas a fixar temos?"
@@ -347,8 +347,10 @@ def test_unfixed_output_shows_consolidation_only_when_it_happened():
         unfixed_source_pre_filtered=True,
     )
 
-    assert "Parcelas com volume replicado desconsideradas: 1" in output
-    assert "Contratos-pai consolidados: 1" in output
+    assert "Contratos: 1" in output
+    assert "Parcelas com volume replicado desconsideradas" not in output
+    assert "Contratos-pai consolidados" not in output
+    assert "Contratos-pai com parcelas" not in output
 
 
 def test_sales_metric_request_is_not_detected_as_client():
