@@ -3862,6 +3862,12 @@ Analise TODOS os {len(results)} registros acima e responda com base nos campos d
 
         consulta_original = self.user_query_original or self.user_query or ""
         consulta_a_fixar = is_unfixed_sales_position_query(consulta_original)
+        if periodo and not self._parse_periodo_vendas(consulta_original):
+            logger.warning(
+                "[VENDAS] Período implícito descartado porque a pergunta atual não contém período: %s",
+                periodo,
+            )
+            periodo = None
         procedure_name = "usp_IA_Vendas_Fixar" if consulta_a_fixar else "usp_IA_Vendas"
         procedure_params = {}
         mercado_fixar = (

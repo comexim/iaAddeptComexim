@@ -176,6 +176,19 @@ def test_unfixed_query_calls_dedicated_procedure_with_compact_parameters():
         },
     )]
 
+    fake_client.calls.clear()
+    tool.user_query_original = (
+        "Quantas sacas a fixar temos do cliente STRAUSS COMMODITIES da cobra?"
+    )
+    tool.user_query = tool.user_query_original
+
+    tool._pesquisa_vendas(periodo="2026/12", cliente="STRAUSS COMMODITIES")
+
+    assert fake_client.calls == [(
+        "usp_IA_Vendas_Fixar",
+        {"Cliente": "STRAUSS COMMODITIES", "Cobra": "true"},
+    )]
+
 
 def test_market_index_is_filtered_after_unparameterized_fixing_query():
     SQLTools = _load_sql_tools_with_stubs()
@@ -243,7 +256,10 @@ def test_fixing_procedure_accepts_all_supported_filters_together():
     sql_tools_module.sql_validator = DummyValidator()
     sql_tools_module.sql_client = fake_client
     tool = SQLTools(DummyUser())
-    tool.user_query_original = "Contratos a fixar do cliente ACME, contrato 123/26, da CUSA"
+    tool.user_query_original = (
+        "Contratos a fixar do cliente ACME, contrato 123/26, da CUSA, "
+        "emitidos em novembro 26, com embarque em dezembro 26 e mês de fixação janeiro 2027"
+    )
     tool.user_query = tool.user_query_original
 
     tool._pesquisa_vendas(
