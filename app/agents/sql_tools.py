@@ -2198,7 +2198,19 @@ class SQLTools:
         if function_name == "IA_Vendas" and is_unfixed_sales_position_query(
             self.user_query_original or self.user_query or ""
         ):
-            collapse = collapse_replicated_sales_parent_volumes(results)
+            if unfixed_source_pre_filtered:
+                # usp_IA_Vendas_Fixar é a fonte oficial da posição. Cada linha
+                # devolvida deve participar do total, inclusive parcelas com o
+                # mesmo volume de outro contrato da mesma família.
+                collapse = {
+                    "rows": list(results),
+                    "source_rows": len(results),
+                    "collapsed_parcel_rows": 0,
+                    "collapsed_parent_contracts": 0,
+                    "ambiguous_parent_contracts": [],
+                }
+            else:
+                collapse = collapse_replicated_sales_parent_volumes(results)
             sack_normalization = normalize_commercial_sacks_to_60kg(collapse["rows"])
             results = sack_normalization["rows"]
             total_records = len(results)
@@ -2221,15 +2233,22 @@ class SQLTools:
                 trace_filters["contratos_pai_com_volumes_distintos"] = collapse[
                     "ambiguous_parent_contracts"
                 ]
-            logger.info(
-                "[VENDAS A FIXAR] Consolidação pai/parcela: linhas=%s -> %s, "
-                "parcelas_replicadas=%s, pais_consolidados=%s, ambiguos=%s",
-                collapse["source_rows"],
-                len(results),
-                collapse["collapsed_parcel_rows"],
-                collapse["collapsed_parent_contracts"],
-                collapse["ambiguous_parent_contracts"],
-            )
+            if unfixed_source_pre_filtered:
+                logger.info(
+                    "[VENDAS A FIXAR] Todas as %s linhas retornadas por "
+                    "usp_IA_Vendas_Fixar foram preservadas",
+                    len(results),
+                )
+            else:
+                logger.info(
+                    "[VENDAS A FIXAR] Consolidação pai/parcela: linhas=%s -> %s, "
+                    "parcelas_replicadas=%s, pais_consolidados=%s, ambiguos=%s",
+                    collapse["source_rows"],
+                    len(results),
+                    collapse["collapsed_parcel_rows"],
+                    collapse["collapsed_parent_contracts"],
+                    collapse["ambiguous_parent_contracts"],
+                )
 
             sales_metrics = aggregate_sales_totals(results)
             unfixed_status_criterion = (

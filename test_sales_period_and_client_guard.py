@@ -321,7 +321,7 @@ def test_export_unfixed_query_uses_market_and_complete_fixing_status():
     assert "precoFix = A fixar e valorFixado nulo ou zero" not in output
 
 
-def test_unfixed_output_hides_internal_consolidation_metadata():
+def test_dedicated_fixing_procedure_preserves_all_returned_rows():
     SQLTools = _load_sql_tools_with_stubs()
     sql_tools = SQLTools.__new__(SQLTools)
     sql_tools.user_query_original = "Quantas sacas a fixar temos?"
@@ -347,7 +347,8 @@ def test_unfixed_output_hides_internal_consolidation_metadata():
         unfixed_source_pre_filtered=True,
     )
 
-    assert "Contratos: 1" in output
+    assert "Volume total: 200,00 sacas de 60 kg" in output
+    assert "Contratos: 2" in output
     assert "Parcelas com volume replicado desconsideradas" not in output
     assert "Contratos-pai consolidados" not in output
     assert "Contratos-pai com parcelas" not in output
