@@ -229,6 +229,8 @@ def test_market_index_is_filtered_after_unparameterized_fixing_query():
     assert "Critério:" not in output
     assert "usp_IA_Vendas_Fixar" not in output
     assert "sem peso positivo" not in output
+    assert "Parcelas com volume replicado desconsideradas" not in output
+    assert "Contratos-pai consolidados" not in output
 
 
 def test_fixing_procedure_accepts_all_supported_filters_together():
@@ -317,6 +319,36 @@ def test_export_unfixed_query_uses_market_and_complete_fixing_status():
     assert "Contratos-pai/linhas consideradas: 1" in output
     assert "Critério:" not in output
     assert "precoFix = A fixar e valorFixado nulo ou zero" not in output
+
+
+def test_unfixed_output_shows_consolidation_only_when_it_happened():
+    SQLTools = _load_sql_tools_with_stubs()
+    sql_tools = SQLTools.__new__(SQLTools)
+    sql_tools.user_query_original = "Quantas sacas a fixar temos?"
+    sql_tools.user_query = sql_tools.user_query_original
+    sql_tools._series_expected_months = []
+    sql_tools._series_date_fields = ("mesEmbarque", "mesembarque")
+    sql_tools._series_query_context = {}
+    sql_tools.session_id = None
+    rows = [
+        {
+            "contrato": "200/26A", "filial": "05", "cliente": "CLIENTE",
+            "peso": 6000, "sacas": 101.69,
+        },
+        {
+            "contrato": "200/26B", "filial": "05", "cliente": "CLIENTE",
+            "peso": 6000, "sacas": 101.69,
+        },
+    ]
+
+    output = sql_tools._format_results(
+        rows,
+        "IA_Vendas",
+        unfixed_source_pre_filtered=True,
+    )
+
+    assert "Parcelas com volume replicado desconsideradas: 1" in output
+    assert "Contratos-pai consolidados: 1" in output
 
 
 def test_sales_metric_request_is_not_detected_as_client():

@@ -2257,15 +2257,24 @@ class SQLTools:
                     + "."
                 )
 
-            response = (
-                TRUSTED_UNFIXED_SALES_PREFIX
-                + "Posição de vendas a fixar:\n\n"
-                + f"Volume total: {format_pt_br(sales_metrics['sacas'])} sacas de 60 kg\n"
-                + f"Contratos-pai/linhas consideradas: {sales_metrics['contratos']}\n"
-                + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
-                + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
-                + ambiguous_notice
-            )
+            response_lines = [
+                "Posição de vendas a fixar:",
+                "",
+                f"Volume total: {format_pt_br(sales_metrics['sacas'])} sacas de 60 kg",
+                f"Contratos-pai/linhas consideradas: {sales_metrics['contratos']}",
+            ]
+            if collapse["collapsed_parcel_rows"] > 0:
+                response_lines.append(
+                    "Parcelas com volume replicado desconsideradas: "
+                    f"{collapse['collapsed_parcel_rows']}"
+                )
+            if collapse["collapsed_parent_contracts"] > 0:
+                response_lines.append(
+                    f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
+                )
+            if ambiguous_notice:
+                response_lines.append(ambiguous_notice.lstrip("\n"))
+            response = TRUSTED_UNFIXED_SALES_PREFIX + "\n".join(response_lines)
 
             if not is_unfixed_sales_summary_query(
                 self.user_query_original or self.user_query or ""
