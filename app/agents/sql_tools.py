@@ -2265,20 +2265,7 @@ class SQLTools:
                 + f"Parcelas com volume replicado desconsideradas: {collapse['collapsed_parcel_rows']}\n"
                 + f"Contratos-pai consolidados: {collapse['collapsed_parent_contracts']}"
                 + ambiguous_notice
-                + (
-                    "\n\nCritério: registros retornados pela usp_IA_Vendas_Fixar. "
-                    if unfixed_source_pre_filtered
-                    else "\n\nCritério: precoFix = A fixar e valorFixado nulo ou zero. "
-                )
-                + "O saldo de entrega não altera o status de preço. "
-                + "O volume em sacas foi calculado pelo peso contratado dividido por 60 kg"
             )
-            if sack_normalization["fallback_rows"]:
-                response += (
-                    f"; {sack_normalization['fallback_rows']} linha(s) sem peso positivo "
-                    "mantiveram a quantidade de sacas da origem"
-                )
-            response += "."
 
             if not is_unfixed_sales_summary_query(
                 self.user_query_original or self.user_query or ""

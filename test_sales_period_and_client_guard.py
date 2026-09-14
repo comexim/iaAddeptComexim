@@ -213,6 +213,9 @@ def test_market_index_is_filtered_after_unparameterized_fixing_query():
     assert fake_client.calls == [("usp_IA_Vendas_Fixar", None)]
     assert "Volume total: 100,00 sacas de 60 kg" in output
     assert "Contratos-pai/linhas consideradas: 1" in output
+    assert "Critério:" not in output
+    assert "usp_IA_Vendas_Fixar" not in output
+    assert "sem peso positivo" not in output
 
 
 def test_fixing_procedure_accepts_all_supported_filters_together():
@@ -296,7 +299,8 @@ def test_export_unfixed_query_uses_market_and_complete_fixing_status():
 
     assert "Volume total: 100,00 sacas de 60 kg" in output
     assert "Contratos-pai/linhas consideradas: 1" in output
-    assert "precoFix = A fixar e valorFixado nulo ou zero" in output
+    assert "Critério:" not in output
+    assert "precoFix = A fixar e valorFixado nulo ou zero" not in output
 
 
 def test_sales_metric_request_is_not_detected_as_client():
