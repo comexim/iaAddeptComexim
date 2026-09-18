@@ -1051,18 +1051,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 if contract:
                     initial_data = {"contratode_venda": contract}
 
-                    value_match = re.search(
-                        r'(?:valor(?:\s+(?:da|de)\s+fixacao)?|fixacao)\s*'
-                        r'(?:e|eh|de|como|:|=)*\s*'
-                        r'([+-]?\d+(?:[.,]\d+)?)',
-                        normalized_user_message,
+                    fixation_value = new_fixacao.extract_fixation_value(
+                        normalized_user_message
                     )
-                    if not value_match:
-                        value_match = re.search(
-                            r'([+-]?\d+(?:[.,]\d+)?)\s*(?:de\s+)?fixacao\b',
-                            normalized_user_message,
-                        )
-                    if not value_match and contract_match:
+                    if fixation_value is None and contract_match:
                         # Forma abreviada comum: "fixe o contrato 118/26 a
                         # 233,50". Pesquisa somente depois do identificador
                         # para não confundir 118/26 com o valor da fixação.
@@ -1072,8 +1064,12 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                             r'([+-]?\d+(?:[.,]\d+)?)',
                             text_after_contract,
                         )
-                    if value_match:
-                        initial_data["valor_fixacao"] = float(value_match.group(1).replace(",", "."))
+                        if value_match:
+                            fixation_value = float(
+                                value_match.group(1).replace(",", ".")
+                            )
+                    if fixation_value is not None:
+                        initial_data["valor_fixacao"] = fixation_value
 
                     diferencial_match = re.search(
                         r'diferencial(?:\s+(?:de|como|e|eh))?\s*[:=]?\s*([+-]?\d+(?:[.,]\d+)?)',
@@ -1151,6 +1147,22 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         fixacao_collecting.cadastrar_valor_contrato,
                         valor_fixacao=valor,
                         diferencial=diferencial,
+                    )
+                    output = fixacao_collecting.format_pending_summary()
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(output)
+                    return output
+
+                labeled_value = fixacao_collecting.extract_fixation_value(message)
+                if labeled_value is not None:
+                    import asyncio
+                    logger.info(
+                        "[FIXACAO FLOW] Nível/valor informado durante a coleta: valor=%s",
+                        labeled_value,
+                    )
+                    await asyncio.to_thread(
+                        fixacao_collecting.cadastrar_valor_contrato,
+                        valor_fixacao=labeled_value,
                     )
                     output = fixacao_collecting.format_pending_summary()
                     self.message_history.add_user_message(message)

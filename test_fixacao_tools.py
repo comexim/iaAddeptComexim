@@ -223,6 +223,22 @@ class FixacaoToolsTest(unittest.TestCase):
                 self.assertEqual(self.tool.normalize_tipo_valor(informed), expected)
         self.assertIsNone(self.tool.normalize_tipo_valor("tipo desconhecido"))
 
+    def test_nivel_significa_valor_da_fixacao(self):
+        cases = {
+            "Oi Aron, fixa o contrato 489/26 por favor, nivel 111,11": 111.11,
+            "fixe o contrato 489/26 no nível de 280,70": 280.70,
+            "nível: 233.50": 233.50,
+            "valor da fixação = 199,25": 199.25,
+        }
+        for message, expected in cases.items():
+            with self.subTest(message=message):
+                self.assertEqual(
+                    self.tool.extract_fixation_value(message),
+                    expected,
+                )
+
+        self.assertIsNone(self.tool.extract_fixation_value("contrato 489/26"))
+
     def test_monta_identificador_do_contrato_para_api(self):
         self.assertEqual(
             self.tool.build_contract_identifier("012276"),

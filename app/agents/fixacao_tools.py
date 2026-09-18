@@ -54,6 +54,29 @@ class FixacaoTools:
         self._redis().delete(self.key)
 
     @staticmethod
+    def extract_fixation_value(text: Any) -> Optional[float]:
+        """Extrai valor explicitamente rotulado como valor, fixação ou nível."""
+        normalized = unicodedata.normalize("NFKD", str(text or "").lower())
+        normalized = "".join(
+            char for char in normalized if not unicodedata.combining(char)
+        )
+        normalized = re.sub(r'\s+', ' ', normalized)
+        match = re.search(
+            r'(?:valor(?:\s+(?:da|de)\s+fixacao)?|fixacao|nivel)\s*'
+            r'(?:e|eh|de|como|:|=)*\s*'
+            r'([+-]?\d+(?:[.,]\d+)?)',
+            normalized,
+        )
+        if not match:
+            match = re.search(
+                r'([+-]?\d+(?:[.,]\d+)?)\s*(?:de\s+)?fixacao\b',
+                normalized,
+            )
+        if not match:
+            return None
+        return float(match.group(1).replace(",", "."))
+
+    @staticmethod
     def normalize_tipo_valor(value: Any) -> Optional[str]:
         """Converte descricoes do tipo de valor para o codigo interno CMX."""
         if value is None:
@@ -281,7 +304,7 @@ class FixacaoTools:
         return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. Preserve exatamente o identificador informado: formatos sem barra, como 012276, serao enviados como contratodeVenda; formatos com barra, como 352/26, serao enviados como numeroVenda; se houver letra final, como 352/26A, a tool separa numeroVenda=352/26 e letraVenda=A. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. No contexto de fixação, 'nível' ou 'nivel' significa o valor_fixacao. Preserve exatamente o identificador informado: formatos sem barra, como 012276, serao enviados como contratodeVenda; formatos com barra, como 352/26, serao enviados como numeroVenda; se houver letra final, como 352/26A, a tool separa numeroVenda=352/26 e letraVenda=A. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
 
 
 def create_fixacao_tool(session_id: str, has_permission: bool = False) -> StructuredTool:
