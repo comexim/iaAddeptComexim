@@ -1,4 +1,5 @@
 """Cliente da API CMX para cadastrar valor/fixacao em contrato existente."""
+import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict
@@ -8,6 +9,36 @@ import httpx
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+_SECRET_KEYS = {
+    "access_token", "authorization", "client_secret", "password",
+    "refresh_token", "senha", "token", "username", "usuario",
+}
+
+
+def _redact_secrets(value: Any) -> Any:
+    """Mascara credenciais antes de registrar requests e responses da CMX."""
+    if isinstance(value, dict):
+        return {
+            key: "***" if str(key).lower() in _SECRET_KEYS else _redact_secrets(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_secrets(item) for item in value]
+    return value
+
+
+def _json_for_log(value: Any) -> str:
+    return json.dumps(_redact_secrets(value), ensure_ascii=False, default=str)
+
+
+def _response_for_log(response: Any) -> str:
+    """Retorna o corpo completo quando for JSON e texto limitado nos demais casos."""
+    try:
+        return _json_for_log(response.json())
+    except ValueError:
+        return str(response.text or "")[:10000]
 
 
 class FixacaoApiClient:
@@ -22,16 +53,34 @@ class FixacaoApiClient:
             raise RuntimeError("Credenciais da API CMX nao configuradas")
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_token_path}"
         params = {"grant_type": "password", "username": settings.cmx_username, "password": settings.cmx_password}
-        async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
-            response = await client.post(url, params=params)
-            if not 200 <= response.status_code < 300:
-                logger.error(
-                    "[CMX AUTH] POST do token recusado: HTTP %s: %s",
-                    response.status_code,
-                    response.text[:500],
-                )
-                raise RuntimeError(f"Autenticacao CMX recusada (HTTP {response.status_code})")
-            result = response.json()
+        logger.info(
+            "[CMX AUTH] REQUEST method=POST url=%s params=%s",
+            url,
+            _json_for_log(params),
+        )
+        try:
+            async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
+                response = await client.post(url, params=params)
+        except Exception as exc:
+            logger.exception(
+                "[CMX AUTH] SEM RESPOSTA tipo=%s detalhe=%r",
+                type(exc).__name__,
+                str(exc),
+            )
+            raise
+        logger.info(
+            "[CMX AUTH] RESPONSE status=%s body=%s",
+            response.status_code,
+            _response_for_log(response),
+        )
+        if not 200 <= response.status_code < 300:
+            logger.error(
+                "[CMX AUTH] POST do token recusado: HTTP %s: %s",
+                response.status_code,
+                response.text[:500],
+            )
+            raise RuntimeError(f"Autenticacao CMX recusada (HTTP {response.status_code})")
+        result = response.json()
         token = result.get("access_token")
         if not token:
             raise RuntimeError("A API CMX nao retornou access_token")
@@ -49,22 +98,63 @@ class FixacaoApiClient:
             for key in ("contratodeVenda", "numeroVenda", "letraVenda")
             if body.get(key) not in (None, "")
         }
+        safe_headers = {
+            "Authorization": "***",
+            "Content-Type": headers["Content-Type"],
+            "tenantid": headers["tenantid"],
+        }
         logger.info(
-            "[CMX Z24] Enviando fixacao: contrato=%s, quantidade_fixacoes=%s",
-            contract_identifier,
-            len(body.get("fixacaoContrato") or []),
+            "[CMX Z24] REQUEST method=POST url=%s headers=%s body=%s",
+            url,
+            _json_for_log(safe_headers),
+            _json_for_log(body),
         )
-        async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
-            response = await client.post(url, json=body, headers=headers)
-            if response.status_code == 401:
-                # O token pode ser invalidado pela CMX antes do prazo informado.
-                # Renova uma unica vez e repete exatamente a mesma operacao.
-                logger.warning("[CMX Z24] Token recusado; renovando e tentando novamente")
-                self._token = None
-                self._token_expiry = None
-                token = await self.get_token()
-                headers["Authorization"] = f"Bearer {token}"
+        try:
+            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
                 response = await client.post(url, json=body, headers=headers)
+        except Exception as exc:
+            logger.exception(
+                "[CMX Z24] SEM RESPOSTA contrato=%s tipo=%s detalhe=%r",
+                contract_identifier,
+                type(exc).__name__,
+                str(exc),
+            )
+            raise
+        logger.info(
+            "[CMX Z24] RESPONSE status=%s body=%s",
+            response.status_code,
+            _response_for_log(response),
+        )
+        if response.status_code == 401:
+            # O token pode ser invalidado pela CMX antes do prazo informado.
+            # Renova uma unica vez e repete exatamente a mesma operacao.
+            logger.warning("[CMX Z24] Token recusado; renovando e tentando novamente")
+            self._token = None
+            self._token_expiry = None
+            token = await self.get_token()
+            headers["Authorization"] = f"Bearer {token}"
+            logger.info(
+                "[CMX Z24] RETRY REQUEST method=POST url=%s headers=%s body=%s",
+                url,
+                _json_for_log(safe_headers),
+                _json_for_log(body),
+            )
+            try:
+                async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+                    response = await client.post(url, json=body, headers=headers)
+            except Exception as exc:
+                logger.exception(
+                    "[CMX Z24] RETRY SEM RESPOSTA contrato=%s tipo=%s detalhe=%r",
+                    contract_identifier,
+                    type(exc).__name__,
+                    str(exc),
+                )
+                raise
+            logger.info(
+                "[CMX Z24] RETRY RESPONSE status=%s body=%s",
+                response.status_code,
+                _response_for_log(response),
+            )
         if not 200 <= response.status_code < 300:
             logger.error("[CMX Z24] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
@@ -113,8 +203,22 @@ class FixacaoApiClient:
             "tenantid": settings.cmx_tenant_id,
         }
         body = {"consulta": "CORRETORABOLSA", "filtro": ""}
-        async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
-            response = await client.request("GET", url, json=body, headers=headers)
+        logger.info("[CMX F3] REQUEST method=GET url=%s body=%s", url, _json_for_log(body))
+        try:
+            async with httpx.AsyncClient(timeout=30, verify=settings.cmx_verify_ssl) as client:
+                response = await client.request("GET", url, json=body, headers=headers)
+        except Exception as exc:
+            logger.exception(
+                "[CMX F3] SEM RESPOSTA tipo=%s detalhe=%r",
+                type(exc).__name__,
+                str(exc),
+            )
+            raise
+        logger.info(
+            "[CMX F3] RESPONSE status=%s body=%s",
+            response.status_code,
+            _response_for_log(response),
+        )
         if not 200 <= response.status_code < 300:
             raise RuntimeError(f"Consulta de corretoras retornou HTTP {response.status_code}")
         try:
@@ -184,8 +288,26 @@ class FixacaoApiClient:
             "Content-Type": "application/json",
             "tenantid": settings.cmx_tenant_id,
         }
-        async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
-            response = await client.post(url, json=body, headers=headers)
+        logger.info(
+            "[CMX Z03] REQUEST method=POST url=%s body=%s",
+            url,
+            _json_for_log(body),
+        )
+        try:
+            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+                response = await client.post(url, json=body, headers=headers)
+        except Exception as exc:
+            logger.exception(
+                "[CMX Z03] SEM RESPOSTA tipo=%s detalhe=%r",
+                type(exc).__name__,
+                str(exc),
+            )
+            raise
+        logger.info(
+            "[CMX Z03] RESPONSE status=%s body=%s",
+            response.status_code,
+            _response_for_log(response),
+        )
         if not 200 <= response.status_code < 300:
             logger.error("[CMX Z03] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")

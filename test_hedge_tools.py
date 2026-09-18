@@ -146,6 +146,72 @@ class HedgeToolsTest(unittest.TestCase):
 
 
 class HedgeApiResponseTest(unittest.IsolatedAsyncioTestCase):
+    async def test_z24_logs_request_and_response_without_authorization(self):
+        client = FixacaoApiClient()
+        response = MagicMock()
+        response.status_code = 200
+        response.text = '{"success": true, "protocolo": "ABC123"}'
+        response.json.return_value = {"success": True, "protocolo": "ABC123"}
+        context = AsyncMock()
+        context.__aenter__.return_value.post.return_value = response
+        body = {
+            "numeroVenda": "488/26",
+            "fixacaoContrato": [{"valorFixacao": 280.70}],
+        }
+
+        with patch.object(client, "get_token", AsyncMock(return_value="secret-token")), patch(
+            "app.core.fixacao_api_client.httpx.AsyncClient", return_value=context
+        ), self.assertLogs("app.core.fixacao_api_client", level="INFO") as captured:
+            result = await client.cadastrar_fixacao(body)
+
+        logs = "\n".join(captured.output)
+        self.assertEqual(result, {"success": True, "protocolo": "ABC123"})
+        self.assertIn('"numeroVenda": "488/26"', logs)
+        self.assertIn('"valorFixacao": 280.7', logs)
+        self.assertIn('RESPONSE status=200', logs)
+        self.assertIn('"protocolo": "ABC123"', logs)
+        self.assertNotIn("secret-token", logs)
+
+    async def test_auth_logs_mask_credentials_and_access_token(self):
+        client = FixacaoApiClient()
+        response = MagicMock()
+        response.status_code = 200
+        response.text = '{"access_token": "returned-secret", "expires_in": 3600}'
+        response.json.return_value = {
+            "access_token": "returned-secret",
+            "expires_in": 3600,
+        }
+        context = AsyncMock()
+        context.__aenter__.return_value.post.return_value = response
+
+        with patch(
+            "app.core.fixacao_api_client.httpx.AsyncClient", return_value=context
+        ), self.assertLogs("app.core.fixacao_api_client", level="INFO") as captured:
+            token = await client.get_token()
+
+        logs = "\n".join(captured.output)
+        self.assertEqual(token, "returned-secret")
+        self.assertIn('"username": "***"', logs)
+        self.assertIn('"password": "***"', logs)
+        self.assertIn('"access_token": "***"', logs)
+        self.assertNotIn("returned-secret", logs)
+        self.assertNotIn("password=password", logs)
+
+    async def test_auth_failure_without_response_logs_exception_type(self):
+        client = FixacaoApiClient()
+        context = AsyncMock()
+        context.__aenter__.return_value.post.side_effect = RuntimeError()
+
+        with patch(
+            "app.core.fixacao_api_client.httpx.AsyncClient", return_value=context
+        ), self.assertLogs("app.core.fixacao_api_client", level="INFO") as captured:
+            with self.assertRaises(RuntimeError):
+                await client.get_token()
+
+        logs = "\n".join(captured.output)
+        self.assertIn("[CMX AUTH] REQUEST", logs)
+        self.assertIn("SEM RESPOSTA tipo=RuntimeError detalhe=''", logs)
+
     async def test_z03_business_error_is_not_reported_as_success(self):
         client = FixacaoApiClient()
         response = MagicMock()
