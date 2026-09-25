@@ -253,6 +253,58 @@ class FixacaoToolsTest(unittest.TestCase):
             {"numeroVenda": "352/26", "letraVenda": "A"},
         )
 
+    def test_reconhece_letra_separada_e_correcao_do_contrato(self):
+        cases = {
+            "fixa o contrato 468/26 A": "468/26A",
+            "na verdade é 468/26A": "468/26A",
+            "o contrato 468/26, a letra é A": "468/26A",
+            "a letra A fica junto": "468/26A",
+        }
+        for message, expected in cases.items():
+            with self.subTest(message=message):
+                self.assertEqual(
+                    self.tool.extract_lettered_contract(
+                        message, current_contract="468/26"
+                    ),
+                    expected,
+                )
+
+        self.assertIsNone(
+            self.tool.extract_lettered_contract(
+                "fixa o contrato 468/26 a 277,00",
+                current_contract="468/26",
+            )
+        )
+
+    def test_correcao_da_letra_e_persistida_no_payload_confirmado(self):
+        self.fake.data[self.tool.key] = json.dumps({
+            "contratodeVenda": "468/26",
+            "valorFixacao": 277.0,
+            "aguardando_confirmacao": True,
+        })
+        corrected = self.tool.extract_lettered_contract(
+            "corrigindo: 468/26A", current_contract="468/26"
+        )
+        send = AsyncMock(return_value={"success": True})
+
+        with patch("app.agents.fixacao_tools.fixacao_api_client.cadastrar_fixacao", send):
+            summary = self.tool.cadastrar_valor_contrato(
+                contratode_venda=corrected
+            )
+            self.assertTrue(summary.startswith("AGUARDANDO_CONFIRMACAO:"))
+            self.assertIn("468/26A", summary)
+            self.assertEqual(send.await_count, 0)
+
+            result = self.tool.cadastrar_valor_contrato(confirmar_envio=True)
+
+        self.assertTrue(result.startswith("FIXACAO_CADASTRADA_SUCESSO:"))
+        self.assertEqual(send.await_count, 1)
+        self.assertEqual(send.await_args.args[0], {
+            "numeroVenda": "468/26",
+            "letraVenda": "A",
+            "fixacaoContrato": [{"valorFixacao": 277.0}],
+        })
+
     def test_identifica_estado_aguardando_valor(self):
         self.fake.data[self.tool.key] = json.dumps({"contratodeVenda": "352/26"})
         self.assertTrue(self.tool.is_waiting_for_value())

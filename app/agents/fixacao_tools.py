@@ -53,6 +53,58 @@ class FixacaoTools:
         """Descarta os dados da operacao pendente desta conversa."""
         self._redis().delete(self.key)
 
+    def get_pending_contract(self) -> Optional[str]:
+        """Retorna o contrato da fixação pendente sem expor os demais dados."""
+        if not self.has_permission:
+            return None
+        value = self._load().get("contratodeVenda")
+        return str(value).strip() if value not in (None, "") else None
+
+    @staticmethod
+    def normalize_contract_reference(value: Any) -> str:
+        """Normaliza espaços do número e cola a letra final ao contrato."""
+        contract = str(value or "").strip().upper()
+        match = re.fullmatch(r'(\d+)\s*/\s*(\d+)\s*([A-Z])?', contract)
+        if not match:
+            return contract
+        return f"{match.group(1)}/{match.group(2)}{match.group(3) or ''}"
+
+    @classmethod
+    def extract_lettered_contract(
+        cls, text: Any, current_contract: Optional[str] = None
+    ) -> Optional[str]:
+        """Extrai correções como 468/26A, 468/26 A ou 'a letra é A'."""
+        normalized = unicodedata.normalize("NFKD", str(text or "").lower())
+        normalized = "".join(
+            char for char in normalized if not unicodedata.combining(char)
+        )
+
+        glued = re.search(r'\b(\d{2,4})\s*/\s*(\d{2})([a-z])\b', normalized)
+        if glued:
+            return f"{glued.group(1)}/{glued.group(2)}{glued.group(3).upper()}"
+
+        spaced = re.search(
+            r'\b(\d{2,4})\s*/\s*(\d{2})\s+([a-z])(?=\s*(?:$|[,.;]))',
+            normalized,
+        )
+        if spaced:
+            return f"{spaced.group(1)}/{spaced.group(2)}{spaced.group(3).upper()}"
+
+        letter = re.search(
+            r'\bletra\s*(?:e|eh|esta|fica|:|=)?\s*([a-z])\b',
+            normalized,
+        )
+        if not letter or not current_contract:
+            return None
+        base = re.fullmatch(
+            r'(\d+)\s*/\s*(\d+)(?:\s*[a-z])?',
+            str(current_contract).strip(),
+            re.IGNORECASE,
+        )
+        if not base:
+            return None
+        return f"{base.group(1)}/{base.group(2)}{letter.group(1).upper()}"
+
     @staticmethod
     def extract_fixation_value(text: Any) -> Optional[float]:
         """Extrai valor explicitamente rotulado como valor, fixação ou nível."""
@@ -213,6 +265,8 @@ class FixacaoTools:
                     value = value.strip()
                     if not value:
                         return f"VALOR_INVALIDO: {self.LABELS[key]} nao pode ser vazio."
+                if key == "contratodeVenda":
+                    value = self.normalize_contract_reference(value)
                 if key in ("valorFixacao", "diferencial") and not math.isfinite(float(value)):
                     return f"VALOR_INVALIDO: {self.LABELS[key]} deve ser numerico e finito."
                 if key in ("valorFixacao", "diferencial"):

@@ -43,6 +43,7 @@ Atender ao usuário e entender sua necessidade de forma precisa e eficiente.
 <contract-value-registration-protocol>
 Quando o usuário pedir para inserir, cadastrar, adicionar ou fixar valor em contrato existente, use cadastrar_valor_contrato.
 Preserve exatamente o identificador informado pelo usuário. A tool converterá automaticamente: número sem barra, como 012276, para contratodeVenda; número com barra, como 352/26, para numeroVenda; número com barra e letra final, como 352/26A, para numeroVenda 352/26 e letraVenda A. Não remova zeros à esquerda e não misture a letra com numeroVenda.
+Se o usuário corrigir a letra do contrato, atualize contratode_venda e apresente um novo resumo. Interprete "468/26 A", "468/26A" e "o contrato é 468/26, letra A" como o mesmo contrato canônico 468/26A. Essa correção nunca confirma o envio.
 Somente contrato de venda e valor da fixação são obrigatórios.
 No contexto de cadastro ou fixação, "nível" e "nivel" significam o valor da fixação. Exemplo: "fixa o contrato 489/26, nível 111,11" deve preencher valor_fixacao=111.11 sem perguntar o valor novamente.
 Diferencial, tipo do valor e fixador do preço são opcionais: inclua-os se o usuário informar, mas não pergunte por eles automaticamente.

@@ -1002,6 +1002,15 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     if not looks_like_short_date:
                         contract = candidate
 
+                if contract:
+                    # Aceita a letra separada quando ela está explicitamente
+                    # associada ao contrato, sem confundir "a 277,00" com A.
+                    lettered_contract = new_fixacao.extract_lettered_contract(
+                        message, current_contract=contract
+                    )
+                    if lettered_contract:
+                        contract = lettered_contract
+
                 references_contract = any(
                     expression in normalized_user_message
                     for expression in (
@@ -1230,6 +1239,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 normalized_message = _normalize_query_text(message)
                 optional_updates = {}
 
+                corrected_contract = fixacao_pending.extract_lettered_contract(
+                    message,
+                    current_contract=fixacao_pending.get_pending_contract(),
+                )
+                if corrected_contract:
+                    optional_updates["contratode_venda"] = corrected_contract
+
                 diferencial_match = re.search(
                     r'diferencial(?:\s+(?:de|como|e))?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)',
                     normalized_message,
@@ -1251,7 +1267,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
                 if optional_updates:
                     import asyncio
-                    logger.info("[FIXACAO FLOW] Atualizando campos opcionais sem envio: %s", list(optional_updates))
+                    logger.info(
+                        "[FIXACAO FLOW] Atualizando dados pendentes sem envio: %s",
+                        list(optional_updates),
+                    )
                     result = await asyncio.to_thread(
                         fixacao_pending.cadastrar_valor_contrato,
                         **optional_updates,
