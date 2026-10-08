@@ -107,6 +107,32 @@ class HedgeToolsTest(unittest.TestCase):
             self.hedge.question_for("account"), self.hedge.question_for("corret")
         )
 
+    def test_broker_uses_new_code_while_account_keeps_legacy_code(self):
+        cases = (
+            ("Sucden", "SUCDEN", "SCD"),
+            ("BTG Pactual", "BTGPAC", "ICE"),
+            ("HedgePoint", "HED", "HED"),
+            ("Marex Fut", "MAR", "MAR"),
+            ("Marex OTC", "MAO", "MAO"),
+            # Sem correspondência na tabela nova: mantém o código antigo.
+            ("Adm13", "A13", "A13"),
+        )
+
+        for informed, expected_broker, expected_account in cases:
+            with self.subTest(informed=informed):
+                data = {}
+                self.hedge.remember_from_text(data, informed, expected="corret")
+                self.assertEqual(data["corret"], expected_broker)
+                self.assertEqual(data["account"], expected_account)
+
+    def test_account_selection_also_applies_broker_override(self):
+        data = {}
+
+        self.hedge.remember_from_text(data, "conta Sucden", expected="account")
+
+        self.assertEqual(data["corret"], "SUCDEN")
+        self.assertEqual(data["account"], "SCD")
+
     def test_finds_broker_inside_full_message(self):
         records = [
             {"codigo": "ABCBNK", "descricao": "BANCO ABC"},

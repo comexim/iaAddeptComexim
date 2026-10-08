@@ -42,6 +42,34 @@ class HedgeTools:
         "fcs": ("FCS", "FCStone"), "fcstone": ("FCS", "FCStone"),
         "ice": ("ICE", "BTGPactual"), "btgpactual": ("ICE", "BTGPactual"),
     }
+    # Códigos oficiais do campo `corret` na Z03. O campo `account` continua
+    # usando os códigos definidos em ACCOUNTS. Quando não houver equivalência
+    # nesta tabela, `corret` também usa o código legado da conta.
+    BROKER_CODES_BY_LABEL = {
+        "bancoabc": "ABCBNK",
+        "bancobmg": "BMGBNK",
+        "bancofibra": "BNKFIB",
+        "bancoitau": "BNKITA",
+        "bancosafra": "BSAFRA",
+        "bancovotorantim": "BV",
+        "bradesco": "BRADE",
+        "btgpactual": "BTGPAC",
+        "cargillriskmanagement": "CRM",
+        "ccb": "CCB",
+        "commcor": "COMM",
+        "daycoval": "DAYCOV",
+        "hedgepoint": "HED",
+        "hencorp": "HENCOR",
+        "intercompany": "INTER",
+        "marexfuturo": "MAR",
+        "marexotc": "MAO",
+        "pine": "PINE",
+        "quasarmike": "QUASAR",
+        "santander": "SANTDR",
+        "sucden": "SUCDEN",
+        "sweetfutures": "SWFU",
+        "xpinvest": "XPINVE",
+    }
     REQUIRED = ("mesfix", "anofix", "lotes", "corret", "account", "lancaa")
 
     def __init__(self, session_id: str):
@@ -208,6 +236,26 @@ class HedgeTools:
         """Resolve corretora exclusivamente pela lista fixa ACCOUNTS."""
         return self.parse_account(text, allow_descriptions=True)
 
+    @classmethod
+    def broker_code_for_account(cls, account: Tuple[str, str]) -> str:
+        """Resolve `corret` pela descrição, preservando o código de `account`."""
+        account_code, description = account
+        normalized_label = re.sub(
+            r'[^a-z0-9]', '', cls.normalize(description)
+        )
+        return cls.BROKER_CODES_BY_LABEL.get(normalized_label, account_code)
+
+    @classmethod
+    def store_broker_and_account(
+        cls, data: Dict[str, Any], account: Tuple[str, str]
+    ) -> None:
+        """Salva códigos independentes de corretora e conta no estado do Hedge."""
+        account_code, description = account
+        data["corret"] = cls.broker_code_for_account(account)
+        data["corretDescricao"] = description
+        data["account"] = account_code
+        data["accountDescricao"] = description
+
     def remember_from_text(
         self,
         data: Dict[str, Any],
@@ -263,8 +311,7 @@ class HedgeTools:
             account_text = account_context.string[account_context.start():] if account_context else text
             account = self.parse_account(account_text, allow_descriptions=True)
             if account:
-                data["account"], data["accountDescricao"] = account
-                data["corret"], data["corretDescricao"] = account
+                self.store_broker_and_account(data, account)
 
         broker_context = re.search(r'\bcorret(?:ora)?\b', normalized)
         known_broker_hint = re.search(
@@ -279,10 +326,9 @@ class HedgeTools:
             broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
             broker = self.parse_known_broker(broker_text)
             if broker:
-                data["corret"], data["corretDescricao"] = broker
                 # Regra do fluxo Z03: a opção escolhida como corretora também
-                # deve ser enviada no campo account.
-                data["account"], data["accountDescricao"] = broker
+                # define a conta, mas cada campo mantém seu próprio código.
+                self.store_broker_and_account(data, broker)
 
         if "aa" in normalized:
             if re.search(r'\b(?:sim|com|s)\b', normalized):
