@@ -81,9 +81,10 @@ class HedgeToolsTest(unittest.TestCase):
         }
         self.assertEqual(self.hedge.build_body(data), {
             "tipo": "C", "mesfix": "SET", "anofix": "2026", "lotes": 1,
-            "valor": 332.0, "corret": "SUCDEN", "operac": "FV",
+            "valor": 332.0, "operac": "FV",
             "account": "A13", "lancaa": "Sim", "ctrex": "123/26A",
         })
+        self.assertNotIn("corret", self.hedge.build_body(data))
 
     def test_month_account_and_broker_are_not_confused(self):
         self.assertEqual(self.hedge.parse_month("março"), "MAR")
@@ -107,30 +108,12 @@ class HedgeToolsTest(unittest.TestCase):
             self.hedge.question_for("account"), self.hedge.question_for("corret")
         )
 
-    def test_broker_uses_new_code_while_account_keeps_legacy_code(self):
-        cases = (
-            ("Sucden", "SUCDEN", "SCD"),
-            ("BTG Pactual", "BTGPAC", "ICE"),
-            ("HedgePoint", "HED", "HED"),
-            ("Marex Fut", "MAR", "MAR"),
-            ("Marex OTC", "MAO", "MAO"),
-            # Sem correspondência na tabela nova: mantém o código antigo.
-            ("Adm13", "A13", "A13"),
-        )
-
-        for informed, expected_broker, expected_account in cases:
-            with self.subTest(informed=informed):
-                data = {}
-                self.hedge.remember_from_text(data, informed, expected="corret")
-                self.assertEqual(data["corret"], expected_broker)
-                self.assertEqual(data["account"], expected_account)
-
-    def test_account_selection_also_applies_broker_override(self):
+    def test_account_selection_keeps_legacy_account_code(self):
         data = {}
 
         self.hedge.remember_from_text(data, "conta Sucden", expected="account")
 
-        self.assertEqual(data["corret"], "SUCDEN")
+        self.assertEqual(data["corret"], "SCD")
         self.assertEqual(data["account"], "SCD")
 
     def test_finds_broker_inside_full_message(self):
