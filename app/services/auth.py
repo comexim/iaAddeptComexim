@@ -179,6 +179,16 @@ class AuthService:
                 direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
             )
 
+        # BYPASS: Juliano Untura - acesso TOTAL
+        if phone == "35999244256":
+            logger.info(f"[BYPASS] {phone} Ivan Hazan - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="35999244256",
+                nome="Juliano Untura",
+                email="juliano.untura@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
+            )
+
         # Verifica cache primeiro
         cached = await redis_client.get_cached_user(phone)
         if cached:
