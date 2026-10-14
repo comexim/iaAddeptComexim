@@ -181,7 +181,7 @@ class AuthService:
 
         # BYPASS: Juliano Untura - acesso TOTAL
         if phone == "35999244256":
-            logger.info(f"[BYPASS] {phone} Ivan Hazan - ACESSO TOTAL")
+            logger.info(f"[BYPASS] {phone} Juliano Untura - ACESSO TOTAL")
             return UserPermissions(
                 telefone="35999244256",
                 nome="Juliano Untura",
