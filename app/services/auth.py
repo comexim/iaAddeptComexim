@@ -180,10 +180,10 @@ class AuthService:
             )
 
         # BYPASS: Juliano Untura - acesso TOTAL
-        if phone == "35999244256":
+        if phone == "3599244256":
             logger.info(f"[BYPASS] {phone} Juliano Untura - ACESSO TOTAL")
             return UserPermissions(
-                telefone="35999244256",
+                telefone="3599244256",
                 nome="Juliano Untura",
                 email="juliano.untura@comexim.com.br",
                 direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
