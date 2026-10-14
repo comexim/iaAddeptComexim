@@ -81,9 +81,10 @@ class HedgeToolsTest(unittest.TestCase):
         }
         self.assertEqual(self.hedge.build_body(data), {
             "tipo": "C", "mesfix": "SET", "anofix": "2026", "lotes": 1,
-            "valor": 332.0, "corret": "SUCDEN", "operac": "FV",
+            "valor": 332.0, "operac": "FV",
             "account": "A13", "lancaa": "Sim", "ctrex": "123/26A",
         })
+        self.assertNotIn("corret", self.hedge.build_body(data))
 
     def test_month_account_and_broker_are_not_confused(self):
         self.assertEqual(self.hedge.parse_month("março"), "MAR")
@@ -106,6 +107,14 @@ class HedgeToolsTest(unittest.TestCase):
         self.assertEqual(
             self.hedge.question_for("account"), self.hedge.question_for("corret")
         )
+
+    def test_account_selection_keeps_legacy_account_code(self):
+        data = {}
+
+        self.hedge.remember_from_text(data, "conta Sucden", expected="account")
+
+        self.assertEqual(data["corret"], "SCD")
+        self.assertEqual(data["account"], "SCD")
 
     def test_finds_broker_inside_full_message(self):
         records = [

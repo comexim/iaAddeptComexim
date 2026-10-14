@@ -279,9 +279,10 @@ class HedgeTools:
             broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
             broker = self.parse_known_broker(broker_text)
             if broker:
-                data["corret"], data["corretDescricao"] = broker
                 # Regra do fluxo Z03: a opção escolhida como corretora também
-                # deve ser enviada no campo account.
+                # define a conta durante a coleta. Somente `account` será
+                # incluído no payload enviado para a API.
+                data["corret"], data["corretDescricao"] = broker
                 data["account"], data["accountDescricao"] = broker
 
         if "aa" in normalized:
@@ -341,7 +342,13 @@ class HedgeTools:
 
     def build_body(self, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         current = data or self.load()
-        return {key: current[key] for key in ("tipo", "mesfix", "anofix", "lotes", "valor", "corret", "operac", "account", "lancaa", "ctrex")}
+        return {
+            key: current[key]
+            for key in (
+                "tipo", "mesfix", "anofix", "lotes", "valor",
+                "operac", "account", "lancaa", "ctrex",
+            )
+        }
 
     def format_summary(self, data: Optional[Dict[str, Any]] = None) -> str:
         current = data or self.load()
