@@ -217,15 +217,6 @@ def _schedule_tool_succeeded(messages: Sequence[BaseMessage]) -> bool:
     return False
 
 
-def _fixacao_tool_succeeded(messages: Sequence[BaseMessage]) -> bool:
-    """Detecta o sucesso real da Z24 no turno, sem depender do texto do LLM."""
-    return any(
-        isinstance(message, ToolMessage)
-        and str(getattr(message, "content", "")).startswith("FIXACAO_CADASTRADA_SUCESSO:")
-        for message in messages
-    )
-
-
 def _current_turn_messages(
     messages: Sequence[BaseMessage],
     user_message: str,
@@ -588,7 +579,7 @@ comissao_contrato_json='[
 class AgentOrchestrator:
     """Orquestrador principal do agente de IA"""
 
-    def __init__(self, user: UserPermissions, session_id: str):
+    def __init__(self, user: UserPermissions, session_id: str, notify=None):
         """
         Inicializa orquestrador para usuário específico
 
@@ -598,6 +589,7 @@ class AgentOrchestrator:
         """
         self.user = user
         self.session_id = session_id
+        self.notify = notify
         self.user_preferences = None  # Carregado sob demanda
         self.system_prompt = ""  # Carregado quando agente é criado
         # Cópia estruturada do último retorno de relatório. O scheduler usa
@@ -909,379 +901,28 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             Resposta do agente
         """
         try:
+            self.last_response_is_contract_batch = False
             normalized_user_message = _normalize_query_text(message)
 
-            # Depois de uma recusa funcional (por exemplo, Exige OTA), a
-            # fixação confirmada permanece no Redis. Frases que informam que
-            # o ajuste externo foi concluído devem repetir exatamente essa
-            # operação, sem apagar contrato/valor nem pedir o número de novo.
-            retry_after_external_adjustment = (
-                bool(re.search(r'\b(?:ja\s+)?(?:ajustei|corrigi|arrumei|regularizei)\b', normalized_user_message))
-                and bool(re.search(r'\b(?:fixar|fixe|fixa|contrato)\b', normalized_user_message))
-            )
-            if retry_after_external_adjustment:
-                import asyncio
-                from app.agents.fixacao_tools import FixacaoTools
-                from app.agents.hedge_tools import HedgeTools
-
-                pending_fixacao = FixacaoTools(
-                    self.session_id or "default",
-                    has_permission=self.user.has_permission("Fixacao"),
-                )
-                if pending_fixacao.is_awaiting_confirmation():
-                    logger.info(
-                        "[FIXACAO FLOW] Ajuste externo informado; repetindo fixação pendente "
-                        "com contrato e valor preservados"
-                    )
-                    result = await asyncio.to_thread(
-                        pending_fixacao.cadastrar_valor_contrato,
-                        confirmar_envio=True,
-                    )
-                    if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
-                        hedge_pending = HedgeTools(self.session_id or "default")
-                        output = (
-                            "Valor do contrato cadastrado com sucesso.\n\n"
-                            "Gostaria que eu fizesse o Hedge da bolsa?"
-                            + hedge_pending.recommendation_message(hedge_pending.load())
-                        )
-                    elif result.startswith("ERRO_API:"):
-                        output = result.replace(
-                            "ERRO_API:", "Não foi possível concluir o cadastro:", 1
-                        ).strip()
-                    else:
-                        output = result
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-            new_fixacao_request = re.search(
-                r'\b(?:cadastrar|inserir|registrar|lancar|adicionar)\b.*\bvalor\b.*\bcontrato\b|'
-                r'\b(?:fixar|fixe|fixa)\b.*\bcontrato\b',
-                normalized_user_message,
-            )
-            if new_fixacao_request:
-                import asyncio
-                from app.agents.fixacao_tools import FixacaoTools
-                from app.agents.hedge_tools import HedgeTools
-
-                if not self.user.has_permission("Fixacao"):
-                    output = "Você não tem permissão para fixar contratos."
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-                logger.info("[FIXACAO FLOW] Novo cadastro detectado; limpando operacao pendente anterior")
-                HedgeTools(self.session_id or "default").clear()
-                new_fixacao = FixacaoTools(
-                    self.session_id or "default",
-                    has_permission=True,
-                )
-                new_fixacao.clear_pending()
-
-                contract_pattern = re.compile(
-                    # A letra deve estar colada ao ano (118/26A). Se aceitar
-                    # espaço, o "a" de "118/26 a 233,50" vira letra do contrato.
-                    r'\b(?:\d{2,4}\s*/\s*\d{2}[a-z]?|\d{5,})\b',
-                    re.IGNORECASE,
-                )
-                contract_match = contract_pattern.search(normalized_user_message)
-                contract = None
-                if contract_match:
-                    candidate = re.sub(r'\s+', '', contract_match.group(0)).upper()
-                    # Uma data curta como 11/08 nunca deve virar contrato.
-                    prefix, separator, suffix = candidate.partition("/")
-                    looks_like_short_date = (
-                        bool(separator)
-                        and candidate[-1:].isdigit()
-                        and len(prefix) <= 2
-                        and prefix.isdigit()
-                        and suffix.isdigit()
-                        and 1 <= int(prefix) <= 31
-                        and 1 <= int(suffix) <= 12
-                    )
-                    if not looks_like_short_date:
-                        contract = candidate
-
-                if contract:
-                    # Aceita a letra separada quando ela está explicitamente
-                    # associada ao contrato, sem confundir "a 277,00" com A.
-                    lettered_contract = new_fixacao.extract_lettered_contract(
-                        message, current_contract=contract
-                    )
-                    if lettered_contract:
-                        contract = lettered_contract
-
-                references_contract = any(
-                    expression in normalized_user_message
-                    for expression in (
-                        "esse contrato",
-                        "este contrato",
-                        "desse contrato",
-                        "deste contrato",
-                        "nesse contrato",
-                        "neste contrato",
-                    )
-                )
-                if not contract and references_contract:
-                    for previous_message in reversed(self.message_history.messages):
-                        if not isinstance(previous_message, HumanMessage):
-                            continue
-                        previous_text = _message_content_as_text(previous_message)
-                        previous_normalized = _normalize_query_text(previous_text)
-                        if "contrato" not in previous_normalized:
-                            continue
-                        previous_match = contract_pattern.search(previous_text)
-                        if previous_match:
-                            previous_candidate = re.sub(
-                                r'\s+', '', previous_match.group(0)
-                            ).upper()
-                            previous_prefix, previous_separator, previous_suffix = (
-                                previous_candidate.partition("/")
-                            )
-                            previous_looks_like_date = (
-                                bool(previous_separator)
-                                and previous_candidate[-1:].isdigit()
-                                and len(previous_prefix) <= 2
-                                and previous_prefix.isdigit()
-                                and previous_suffix.isdigit()
-                                and 1 <= int(previous_prefix) <= 31
-                                and 1 <= int(previous_suffix) <= 12
-                            )
-                            if previous_looks_like_date:
-                                continue
-                            contract = previous_candidate
-                            logger.info(
-                                "[FIXACAO FLOW] Referência '%s' resolvida pelo histórico: %s",
-                                message,
-                                contract,
-                            )
-                            break
-
-                if contract:
-                    initial_data = {"contratode_venda": contract}
-
-                    fixation_value = new_fixacao.extract_fixation_value(
-                        normalized_user_message
-                    )
-                    if fixation_value is None and contract_match:
-                        # Forma abreviada comum: "fixe o contrato 118/26 a
-                        # 233,50". Pesquisa somente depois do identificador
-                        # para não confundir 118/26 com o valor da fixação.
-                        text_after_contract = normalized_user_message[contract_match.end():]
-                        value_match = re.search(
-                            r'(?:\b(?:a|por)\b|\b(?:no|com)\s+valor\s+(?:de\s+)?)\s*'
-                            r'([+-]?\d+(?:[.,]\d+)?)',
-                            text_after_contract,
-                        )
-                        if value_match:
-                            fixation_value = float(
-                                value_match.group(1).replace(",", ".")
-                            )
-                    if fixation_value is not None:
-                        initial_data["valor_fixacao"] = fixation_value
-
-                    diferencial_match = re.search(
-                        r'diferencial(?:\s+(?:de|como|e|eh))?\s*[:=]?\s*([+-]?\d+(?:[.,]\d+)?)',
-                        normalized_user_message,
-                    )
-                    if diferencial_match:
-                        initial_data["diferencial"] = float(diferencial_match.group(1).replace(",", "."))
-
-                    if "tipo de valor" in normalized_user_message or "tipo do valor" in normalized_user_message:
-                        initial_data["tipo_valor"] = message
-
-                    if "fixador" in normalized_user_message and "preco" in normalized_user_message:
-                        if re.search(r'\bimportador\b|\bimportacao\b|\bcomo\s+i\b', normalized_user_message):
-                            initial_data["fixador_preco"] = "I"
-                        elif re.search(r'\bexportador\b|\bexportacao\b|\bcomo\s+e\b', normalized_user_message):
-                            initial_data["fixador_preco"] = "E"
-                        elif re.search(r'\bcomo\s+f\b', normalized_user_message):
-                            initial_data["fixador_preco"] = "F"
-
-                    await asyncio.to_thread(new_fixacao.cadastrar_valor_contrato, **initial_data)
-                    if "valor_fixacao" not in initial_data:
-                        output = (
-                            f"Para fixar o contrato {contract}, informe o valor da fixação. "
-                            "Se desejar, você também pode incluir o diferencial, o tipo do valor e o fixador do preço; "
-                            "esses dados são opcionais."
-                        )
-                    else:
-                        output = new_fixacao.format_pending_summary()
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-                # Não devolve uma referência sem número ao LLM: ele pode
-                # confundir a data atual do system prompt com um contrato.
-                output = (
-                    "Não consegui identificar a qual contrato você se refere. "
-                    "Por favor, informe o número do contrato que deseja fixar."
-                )
+            # O lote tem estado próprio e é processado antes dos atalhos legados.
+            # Assim, confirmação, seleção e retry não dependem de interpretação do LLM.
+            from app.agents.contract_batch_flow import ContractBatchFlow
+            batch_output = await ContractBatchFlow(
+                self.session_id or "default",
+                has_permission=self.user.has_permission("Fixacao"),
+                notify=getattr(self, "notify", None),
+            ).handle(message)
+            if batch_output is not None:
+                self.last_response_is_contract_batch = True
                 self.message_history.add_user_message(message)
-                self.message_history.add_ai_message(output)
-                logger.warning(
-                    "[FIXACAO FLOW] Pedido de fixação sem contrato explícito ou resolvido no histórico"
-                )
-                return output
+                self.message_history.add_ai_message(batch_output)
+                return batch_output
 
             hedge_output = await self._process_hedge_flow(message)
             if hedge_output is not None:
                 self.message_history.add_user_message(message)
                 self.message_history.add_ai_message(hedge_output)
                 return hedge_output
-
-            # Atalho comum dos corretores: "200,32 com -12" significa
-            # valor da fixacao 200,32 e diferencial -12. O diferencial pode
-            # ser negativo, positivo com sinal, ou positivo sem sinal.
-            from app.agents.fixacao_tools import FixacaoTools
-            fixacao_collecting = FixacaoTools(
-                self.session_id or "default",
-                has_permission=self.user.has_permission("Fixacao"),
-            )
-            if fixacao_collecting.is_waiting_for_value():
-                value_with_differential = re.fullmatch(
-                    r'\s*([+-]?\d+(?:[.,]\d+)?)\s+com\s+([+-]?\d+(?:[.,]\d+)?)\s*[.!]?\s*',
-                    normalized_user_message,
-                )
-                if value_with_differential:
-                    import asyncio
-                    valor = float(value_with_differential.group(1).replace(",", "."))
-                    diferencial = float(value_with_differential.group(2).replace(",", "."))
-                    logger.info(
-                        "[FIXACAO FLOW] Coleta abreviada detectada: valor=%s, diferencial=%s",
-                        valor,
-                        diferencial,
-                    )
-                    await asyncio.to_thread(
-                        fixacao_collecting.cadastrar_valor_contrato,
-                        valor_fixacao=valor,
-                        diferencial=diferencial,
-                    )
-                    output = fixacao_collecting.format_pending_summary()
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-                labeled_value = fixacao_collecting.extract_fixation_value(message)
-                if labeled_value is not None:
-                    import asyncio
-                    logger.info(
-                        "[FIXACAO FLOW] Nível/valor informado durante a coleta: valor=%s",
-                        labeled_value,
-                    )
-                    await asyncio.to_thread(
-                        fixacao_collecting.cadastrar_valor_contrato,
-                        valor_fixacao=labeled_value,
-                    )
-                    output = fixacao_collecting.format_pending_summary()
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-            # Confirmacao de fixacao e deterministica: nao depende de o LLM
-            # preencher confirmar_envio=True ao chamar a ferramenta.
-            confirmation_text = _normalize_query_text(message).strip().rstrip(".! ")
-            confirmation_phrases = {
-                "sim", "s", "ok", "confirmo", "confirmar", "sim, confirmo", "sim confirmo",
-                "pode enviar", "pode mandar", "envie", "manda", "esta correto", "correto", "certo",
-            }
-            if confirmation_text in confirmation_phrases:
-                import asyncio
-                from app.agents.fixacao_tools import FixacaoTools
-
-                fixacao = FixacaoTools(
-                    self.session_id or "default",
-                    has_permission=self.user.has_permission("Fixacao"),
-                )
-                awaiting_fixacao = fixacao.is_awaiting_confirmation()
-                logger.info(
-                    "[FIXACAO FLOW] Mensagem de confirmacao detectada; aguardando_confirmacao=%s",
-                    awaiting_fixacao,
-                )
-                if awaiting_fixacao:
-                    logger.info("[FIXACAO FLOW] Confirmacao explicita detectada; enviando para API CMX")
-                    result = await asyncio.to_thread(
-                        fixacao.cadastrar_valor_contrato,
-                        confirmar_envio=True,
-                    )
-                    if result.startswith("FIXACAO_CADASTRADA_SUCESSO:"):
-                        from app.agents.hedge_tools import HedgeTools
-                        hedge_pending = HedgeTools(self.session_id or "default")
-                        output = (
-                            "Valor do contrato cadastrado com sucesso.\n\n"
-                            "Gostaria que eu fizesse o Hedge da bolsa?"
-                            + hedge_pending.recommendation_message(hedge_pending.load())
-                        )
-                    elif result.startswith("ERRO_API:"):
-                        # Defesa adicional: uma falha na Z24 nunca pode deixar
-                        # uma oferta de Hedge pendente de uma tentativa anterior.
-                        from app.agents.hedge_tools import HedgeTools
-                        HedgeTools(self.session_id or "default").clear()
-                        output = result.replace(
-                            "ERRO_API:",
-                            "Não foi possível concluir o cadastro:",
-                            1,
-                        ).strip()
-                    else:
-                        output = result
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
-
-            # Atualizacoes opcionais de uma fixacao pendente sao processadas
-            # diretamente, sem permitir chamada da API neste mesmo turno.
-            from app.agents.fixacao_tools import FixacaoTools
-            fixacao_pending = FixacaoTools(
-                self.session_id or "default",
-                has_permission=self.user.has_permission("Fixacao"),
-            )
-            if fixacao_pending.is_awaiting_confirmation():
-                normalized_message = _normalize_query_text(message)
-                optional_updates = {}
-
-                corrected_contract = fixacao_pending.extract_lettered_contract(
-                    message,
-                    current_contract=fixacao_pending.get_pending_contract(),
-                )
-                if corrected_contract:
-                    optional_updates["contratode_venda"] = corrected_contract
-
-                diferencial_match = re.search(
-                    r'diferencial(?:\s+(?:de|como|e))?\s*[:=]?\s*(-?\d+(?:[.,]\d+)?)',
-                    normalized_message,
-                )
-                if diferencial_match:
-                    optional_updates["diferencial"] = float(diferencial_match.group(1).replace(",", "."))
-
-                if "fixador" in normalized_message and "preco" in normalized_message:
-                    if re.search(r'\bimportador\b|\bcomo\s+i\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*i\b', normalized_message):
-                        optional_updates["fixador_preco"] = "I"
-                    elif re.search(r'\bexportador\b|\bcomo\s+e\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*e\b', normalized_message):
-                        optional_updates["fixador_preco"] = "E"
-                    elif re.search(r'\bcomo\s+f\b|\bfixador(?:\s+do|\s+de)?\s+preco\s*[:=]?\s*f\b', normalized_message):
-                        optional_updates["fixador_preco"] = "F"
-
-                if "tipo de valor" in normalized_message or "tipo do valor" in normalized_message:
-                    # A tool normaliza a frase completa e envia somente C/K/5/6/T.
-                    optional_updates["tipo_valor"] = message
-
-                if optional_updates:
-                    import asyncio
-                    logger.info(
-                        "[FIXACAO FLOW] Atualizando dados pendentes sem envio: %s",
-                        list(optional_updates),
-                    )
-                    result = await asyncio.to_thread(
-                        fixacao_pending.cadastrar_valor_contrato,
-                        **optional_updates,
-                    )
-                    if result.startswith("VALOR_INVALIDO:"):
-                        output = result.replace("VALOR_INVALIDO:", "Não foi possível atualizar:", 1).strip()
-                    else:
-                        output = fixacao_pending.format_pending_summary()
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(output)
-                    return output
 
             # ═══ FLUXO LEVE: Criação de contrato (só ADA tool) ═══
             if self._is_contrato_flow(message):
@@ -1629,24 +1270,13 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             else:
                 output = "Desculpe, não consegui gerar uma resposta."
 
-            # A fixação também pode ser reenviada pela própria tool em frases
-            # como "já ajustei, fixe agora". Nesse caminho não passa pelo
-            # atalho de confirmação acima. Se a Z24 confirmou o cadastro,
-            # substitui a resposta livre do modelo pela continuação obrigatória
-            # do fluxo de Hedge já preparada por FixacaoTools.
-            if _fixacao_tool_succeeded(current_turn_messages):
-                from app.agents.hedge_tools import HedgeTools
-
-                hedge_pending = HedgeTools(self.session_id or "default")
-                output = (
-                    "Valor do contrato cadastrado com sucesso.\n\n"
-                    "Gostaria que eu fizesse o Hedge da bolsa?"
-                    + hedge_pending.recommendation_message(hedge_pending.load())
-                )
-                logger.info(
-                    "[FIXACAO FLOW] Sucesso da Z24 detectado na ToolMessage; "
-                    "oferta de Hedge aplicada deterministicamente"
-                )
+            # Resumos e resultados de lote nunca são parafraseados pelo LLM.
+            for tool_message in current_turn_messages:
+                if isinstance(tool_message, ToolMessage):
+                    content = str(tool_message.content)
+                    if content.startswith(("AGUARDANDO_CONFIRMACAO:", "RESULTADO_LOTE:", "VALOR_INVALIDO:", "PRECISA_PERGUNTAR:")) and getattr(tool_message, "name", "") == "cadastrar_valor_contrato":
+                        output = content.split(":", 1)[1].strip()
+                        self.last_response_is_contract_batch = True
 
             trusted_payable_output = _trusted_payable_detail(current_turn_messages)
             if trusted_payable_output is not None:

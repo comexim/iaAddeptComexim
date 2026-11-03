@@ -110,7 +110,7 @@ class FixacaoApiClient:
             _json_for_log(body),
         )
         try:
-            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+            async with httpx.AsyncClient(timeout=None if "contratos" in body else 60, verify=settings.cmx_verify_ssl) as client:
                 response = await client.post(url, json=body, headers=headers)
         except Exception as exc:
             logger.exception(
@@ -125,7 +125,7 @@ class FixacaoApiClient:
             response.status_code,
             _response_for_log(response),
         )
-        if response.status_code == 401:
+        if response.status_code == 401 and "contratos" not in body:
             # O token pode ser invalidado pela CMX antes do prazo informado.
             # Renova uma unica vez e repete exatamente a mesma operacao.
             logger.warning("[CMX Z24] Token recusado; renovando e tentando novamente")
@@ -156,6 +156,10 @@ class FixacaoApiClient:
                 _response_for_log(response),
             )
         if not 200 <= response.status_code < 300:
+            if "contratos" in body and response.status_code == 400:
+                result = response.json()
+                if isinstance(result, dict) and "contratosFixados" in result and "contratosNaoFixados" in result:
+                    return result
             logger.error("[CMX Z24] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
         try:
@@ -171,7 +175,7 @@ class FixacaoApiClient:
             except (TypeError, ValueError):
                 has_error = bool(error_code)
 
-            if has_error:
+            if has_error and not ("contratosFixados" in result and "contratosNaoFixados" in result):
                 error_message = str(
                     result.get("errorMessage")
                     or result.get("message")
@@ -294,7 +298,7 @@ class FixacaoApiClient:
             _json_for_log(body),
         )
         try:
-            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+            async with httpx.AsyncClient(timeout=None if "movimentos" in body else 60, verify=settings.cmx_verify_ssl) as client:
                 response = await client.post(url, json=body, headers=headers)
         except Exception as exc:
             logger.exception(
@@ -309,6 +313,10 @@ class FixacaoApiClient:
             _response_for_log(response),
         )
         if not 200 <= response.status_code < 300:
+            if "movimentos" in body and response.status_code == 400:
+                result = response.json()
+                if isinstance(result, dict) and "movimentosRegistrados" in result and "movimentosNaoRegistrados" in result:
+                    return result
             logger.error("[CMX Z03] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
         try:
@@ -321,7 +329,7 @@ class FixacaoApiClient:
                 has_error = error_code not in (None, "") and int(error_code) >= 400
             except (TypeError, ValueError):
                 has_error = bool(error_code)
-            if has_error:
+            if has_error and not ("movimentosRegistrados" in result and "movimentosNaoRegistrados" in result):
                 message = str(
                     result.get("errorMessage")
                     or result.get("message")
