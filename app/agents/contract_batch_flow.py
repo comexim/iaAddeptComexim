@@ -1,6 +1,7 @@
 """Fluxo persistente de fixação e Hedge em lote, sem decisões financeiras do LLM."""
 import asyncio
 from copy import deepcopy
+from decimal import Decimal, InvalidOperation
 import json
 import logging
 import math
@@ -51,6 +52,14 @@ def identity(item):
 
 
 class ContractBatchFlow:
+    SEPARATOR = "-----------------------------------------"
+    LABELS = {"valorFixacao": "Valor da Fixação", "numeroVenda": "Venda", "letraVenda": "Letra",
+              "fixacaoContrato": "Fixação do Contrato", "tipoValor": "Tipo Valor",
+              "fixadorPreco": "Fixador do Preço", "diferencial": "Diferencial",
+              "mesfix": "Mes Fix", "anofix": "Ano Fix", "lotes": "Lotes",
+              "valor": "Valor", "corret": "Corretora", "lancaa": "Lanc. AA"}
+    UNITS = {"C": "CTS/LB", "K": "KG", "5": "50 KG", "6": "59 KG", "T": "TON"}
+    FIXERS = {"E": "Exportador", "I": "Importador", "F": "Fixador"}
     BLOCKED = {"sending_fix", "sending_hedge", "uncertain", "result_error"}
     RESULT_ERROR_MESSAGE = ("A CMX respondeu, mas houve um erro ao interpretar o retorno. "
                             "A resposta foi preservada para recuperação; nenhum item será reenviado. "
@@ -376,15 +385,77 @@ class ContractBatchFlow:
         return self.fix_summary(data)
 
     @staticmethod
-    def fix_summary(data):
+    def display_number(value):
+        try:
+            number = Decimal(str(value))
+            if not number.is_finite():
+                return str(value)
+            text = format(number, "f")
+            return (text.rstrip("0").rstrip(".") if "." in text else text).replace(".", ",")
+        except InvalidOperation:
+            return str(value)
+
+    @classmethod
+    def display_value(cls, value, source=None):
+        unit = cls.UNITS.get(str((source or {}).get("tipoValor", "")).strip().upper())
+        return cls.display_number(value) + (f" {unit}" if unit else "")
+
+    @staticmethod
+    def reasons(item):
+        reasons = item.get("motivos") or item.get("motivo") or []
+        return [str(reason) for reason in reasons] if isinstance(reasons, list) else [str(reasons)]
+
+    @classmethod
+    def reason_lines(cls, item, prefix=""):
+        reasons = cls.reasons(item)
+        if len(reasons) <= 1:
+            return [prefix + "Motivo: " + (reasons[0] if reasons else "Não informado.")]
+        return [prefix + "Motivos:"] + [f"\t{index}. {reason}" for index, reason in enumerate(reasons, 1)]
+
+    @classmethod
+    def result_report(cls, data, result, successes, failures, hedge=False):
+        sources = {identity(item): item for item in data.get("contratosDados", []) + data.get("contratos", [])}
+        lines = [str(result.get("message", "")),
+                 f"Quantidade de {'movimentos registrados' if hedge else 'contratos fixados'}: {len(successes)}",
+                 f"Quantidade de {'movimentos não registrados' if hedge else 'contratos não fixados'}: {len(failures)}",
+                 cls.SEPARATOR]
+        for label, records in (("Movimentos registrados" if hedge else "Contratos fixados", successes),
+                               ("Movimentos não registrados" if hedge else "Contratos não fixados", failures)):
+            lines.append(label + ":")
+            if not records:
+                lines.extend(["Nenhum", cls.SEPARATOR])
+            for item in records:
+                key = identity(item)
+                if hedge:
+                    lines.append(f"- Contrato: {key}")
+                    for field, title in (("lotes", "Lotes"), ("valor", "Valor"), ("corretora", "Corretora")):
+                        if field in item:
+                            value = item[field] if field == "corretora" else cls.display_number(item[field])
+                            lines.append(f"- {title}: {value}")
+                else:
+                    contract = str(item.get("contrato") or "").strip() or '""'
+                    lines.extend([f"- Contrato: {contract}", f"- Venda: {key}"])
+                    if "nivel" in item:
+                        lines.append(f"- Nível: {cls.display_value(item['nivel'], sources.get(key))}")
+                if records is failures:
+                    lines.extend(cls.reason_lines(item, prefix="- "))
+                lines.append(cls.SEPARATOR)
+        return "\n".join(lines)
+
+    @classmethod
+    def fix_summary(cls, data):
         missing = [identity(i) for i in data["contratos"] if "valorFixacao" not in i]
         if missing:
             return ("Informe o valor da fixação para: " + ", ".join(missing)
                     + ". Se quiser, informe também diferencial, tipo do valor e fixador do preço; são opcionais.")
         lines = ["Resumo para confirmação da fixação:"]
         for item in data["contratos"]:
-            details = "; ".join(f"{key}: {item[key]}" for key in ContractBatchFlow.FIX_FIELDS if key in item)
-            lines.append(f"- {identity(item)} — {details}")
+            lines.extend([f"- {identity(item)}", f"\t- Valor da Fixação: {cls.display_value(item['valorFixacao'], item)};"])
+            if "fixadorPreco" in item:
+                lines.append(f"\t- Fixador do Preço: {cls.FIXERS.get(item['fixadorPreco'], item['fixadorPreco'])};")
+            if "diferencial" in item:
+                lines.append(f"\t- Diferencial: {cls.display_number(item['diferencial'])};")
+            lines.append(cls.SEPARATOR)
         return "\n".join(lines + ["Confirma o envio destes contratos?"])
 
     @staticmethod
@@ -393,8 +464,8 @@ class ContractBatchFlow:
                 + "\n2 — Corrigir informações e realizar nova tentativa\n3 — Realizar nova tentativa sem alterar informações")
 
     def final_report(self, data, hedge=False):
-        lines = ["Relatório sintético final de fixação e Hedge:" if hedge else "Relatório sintético da fixação:", "Contratos Fixados:"]
-        registered = {identity(i) for i in data.get("movimentosRegistradosAcumulado", [])}
+        lines = ["Relatório final de fixação e Hedge:" if hedge else "Relatório sintético da fixação:", "", "Contratos Fixados:"]
+        registered = {identity(i): i for i in data.get("movimentosRegistradosAcumulado", [])}
         pending = {identity(i) for i in data.get("movimentosAindaNaoRegistrados", [])}
         selected = {identity(i) for i in data.get("movimentosIniciais", [])}
         for item in data["contratosFixadosAcumulado"]:
@@ -403,12 +474,16 @@ class ContractBatchFlow:
             if hedge:
                 status = "SIM" if key in registered and key not in pending else "NAO" if key in pending or key not in selected else "VERIFICAR"
                 suffix = f" — Hedge = {status}"
-            lines.append(f"- {key} = Nível: {item['nivel']}{suffix}")
+                if status == "SIM" and "lotes" in registered[key]:
+                    suffix += f" - Lotes: {self.display_number(registered[key]['lotes'])}"
+            lines.append(f"- {key} = Nível: {self.display_number(item['nivel'])}{suffix}")
+            lines.append(self.SEPARATOR)
         if not data["contratosFixadosAcumulado"]:
             lines.append("- Nenhum")
         lines.append("Contratos não Fixados:")
         for item in data["contratosAindaNaoFixados"]:
-            lines.append(f"- {identity(item)} = Motivos: " + "; ".join(item.get("motivos", [])))
+            reasons = self.reason_lines(item)
+            lines.extend([f"- {identity(item)} = {reasons[0]}", *reasons[1:], self.SEPARATOR])
         if not data["contratosAindaNaoFixados"]:
             lines.append("- Nenhum")
         return "\n".join(lines)
@@ -453,13 +528,21 @@ class ContractBatchFlow:
             self.save(data)
             await self.notify(self.options(hedge))
 
-    @staticmethod
-    def failure_report(data, hedge=False):
+    @classmethod
+    def failure_report(cls, data, hedge=False):
         items = data["movimentosAindaNaoRegistrados" if hedge else "contratosAindaNaoFixados"]
         lines = ["Movimentos não registrados:" if hedge else "Contratos não fixados:"]
         for item in items:
-            lines.append(f"- {identity(item)}: " + "; ".join(item.get("motivos", [])))
-            lines.append("  Dados: " + json.dumps({k: v for k, v in item.items() if k != "motivos"}, ensure_ascii=False))
+            lines.append(f"- {identity(item)}:")
+            if hedge:
+                for field in ("lotes", "valor", "corret"):
+                    if field in item:
+                        value = item[field] if field == "corret" else cls.display_number(item[field])
+                        lines.append(f"{cls.LABELS[field]}: {value}")
+            elif "valorFixacao" in item:
+                lines.append(f"Nível: {cls.display_value(item['valorFixacao'], item)}")
+            lines.extend(cls.reason_lines(item))
+            lines.append(cls.SEPARATOR)
         return "\n".join(lines)
 
     async def start_hedge(self, data, message):
@@ -502,14 +585,20 @@ class ContractBatchFlow:
                     data["stage"] = "collect_hedge"
                     data["missing"] = [identity(item), field]
                     self.save(data)
-                    return f"Contrato {identity(item)}: " + HedgeTools.question_for(field)
+                    return HedgeTools.question_for(field, contract=identity(item))
         data.pop("missing", None)
         data["stage"] = "confirm_hedge"
         data["confirmation_id"] = uuid.uuid4().hex
         self.save(data)
-        return "Resumo do Hedge:\n" + "\n".join(
-            "- " + json.dumps({k: item[k] for k in self.MOV_FIELDS if k in item}, ensure_ascii=False)
-            for item in data["movimentos"]) + "\nConfirma o envio destes movimentos?"
+        lines = ["Resumo do Hedge:", ""]
+        for item in data["movimentos"]:
+            lines.append(f"Contrato {identity(item)}:")
+            for field in ("mesfix", "anofix", "lotes", "valor", "corret", "lancaa"):
+                if field in item:
+                    value = self.display_number(item[field]) if field in {"lotes", "valor"} else item[field]
+                    lines.append(f"- {self.LABELS[field]}: {value}")
+            lines.append(self.SEPARATOR)
+        return "\n".join(lines + ["Confirma o envio destes movimentos?"])
 
     def update_hedge(self, data, message):
         from app.agents.hedge_tools import HedgeTools
@@ -677,22 +766,16 @@ class ContractBatchFlow:
             if key in succeeded:
                 continue
             if key in errors:
-                item["motivos"] = errors[key].get("motivos", [])
+                item["motivos"] = self.reasons(errors[key])
                 item["ultimoRetorno"] = deepcopy(errors[key])
             pending.append(item)
         data[pending_key] = pending
-        lines = [str(result.get("message", "")),
-                 f"Quantidade de {'movimentos registrados' if hedge else 'contratos fixados'}: {len(successes)}",
-                 f"Quantidade de {'movimentos não registrados' if hedge else 'contratos não fixados'}: {len(failures)}"]
-        for label, records in (("Movimentos registrados" if hedge else "Contratos fixados", successes),
-                               ("Movimentos não registrados" if hedge else "Contratos não fixados", failures)):
-            lines.append(label + ":")
-            lines.extend("- " + json.dumps(i, ensure_ascii=False) for i in records)
+        report = self.result_report(data, result, successes, failures, hedge)
         if pending:
             next_message = await self.ask_failure(data, hedge, persist=persist)
         else:
             next_message = self.finish_hedge(data, persist=persist) if hedge else self.finish_fixation(data, persist=persist)
-        return "\n".join(lines) + "\n\n" + next_message
+        return report + "\n\n" + next_message
 
     async def handle(self, message):
         data = self.load()

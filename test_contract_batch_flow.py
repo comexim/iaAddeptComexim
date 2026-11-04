@@ -234,7 +234,7 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         output = await self.flow.handle("fixe o contrato 7/27")
         self.assertIn("opcionais", output)
         summary = await self.flow.handle("200,32 com -12")
-        self.assertIn("200.32", summary)
+        self.assertIn("200,32", summary)
         self.assertEqual(self.flow.load()["contratos"][0]["diferencial"], -12)
 
     async def test_collect_only_missing_value_preserves_other_contract(self):
@@ -262,16 +262,112 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("corretora", await self.flow.handle("sim 375/26"))
         self.assertIn("AA", await self.flow.handle("A14"))
         summary = await self.flow.handle("nao")
-        self.assertIn('"lancaa": "Nao"', summary)
-        self.assertIn('"valor": 102.1', summary)
+        self.assertIn("Lanc. AA: Nao", summary)
+        self.assertIn("Valor: 102,1", summary)
         self.hedge_send.return_value = hedge_result(("375/26",))
         report = await self.flow.handle("sim")
         body = self.hedge_send.await_args.args[0]
         self.assertEqual(len(body["movimentos"]), 1)
         self.assertEqual(body["movimentos"][0]["corret"], "A14")
         self.assertEqual(body["movimentos"][0]["account"], "A14")
-        self.assertIn("375/26 = Nível: 102.1 — Hedge = SIM", report)
-        self.assertIn("374/26D = Nível: 102.1 — Hedge = NAO", report)
+        self.assertIn("375/26 = Nível: 102,1 — Hedge = SIM - Lotes: 2", report)
+        self.assertIn("374/26D = Nível: 102,1 — Hedge = NAO", report)
+
+    async def test_friendly_fixation_summary_preserves_exact_request_and_confirmed_level(self):
+        summary = self.flow.prepare_fixation([
+            ("374/26D", {"valorFixacao": 110.1, "tipoValor": "C", "fixadorPreco": "E", "diferencial": -1}),
+            ("375/26", {"valorFixacao": 105.1, "tipoValor": "C", "fixadorPreco": "I", "diferencial": 0}),
+            ("037/26", {"valorFixacao": 99.87}),
+        ])
+        self.assertIn("- 374/26D\n\t- Valor da Fixação: 110,1 CTS/LB;\n\t- Fixador do Preço: Exportador;\n\t- Diferencial: -1;", summary)
+        self.assertIn("Fixador do Preço: Importador;\n\t- Diferencial: 0;", summary)
+        self.assertIn("- 037/26\n\t- Valor da Fixação: 99,87;", summary)
+        self.assertNotIn("valorFixacao", summary)
+        result = fixation_result(("374/26D",), ("375/26", "037/26"), level=112.3)
+        result["contratosNaoFixados"][0]["motivos"] = ["Fixador obrigatório", "Outro motivo retornado"]
+        result["contratosNaoFixados"][1].update(contrato="", motivos=["Contrato Exportação não encontrado."])
+        original = deepcopy(result)
+        self.fix_send.return_value = result
+        output = await self.flow.handle("sim")
+        self.assertIn("- Venda: 374/26D\n- Nível: 112,3 CTS/LB", output)
+        self.assertNotIn("Nível: 110,1", output)
+        self.assertIn("- Contrato: \"\"\n- Venda: 037/26\n- Motivo: Contrato Exportação não encontrado.", output)
+        self.assertIn("- Motivos:\n\t1. Fixador obrigatório\n\t2. Outro motivo retornado", output)
+        self.assertEqual(result, original)
+        self.assertEqual(self.fix_send.await_args.args[0], {"contratos": [
+            {"numeroVenda": "374/26", "letraVenda": "D", "fixacaoContrato": [
+                {"valorFixacao": 110.1, "diferencial": -1.0, "tipoValor": "C", "fixadorPreco": "E"}]},
+            {"numeroVenda": "375/26", "letraVenda": "", "fixacaoContrato": [
+                {"valorFixacao": 105.1, "diferencial": 0.0, "tipoValor": "C", "fixadorPreco": "I"}]},
+            {"numeroVenda": "037/26", "letraVenda": "", "fixacaoContrato": [{"valorFixacao": 99.87}]},
+        ]})
+        listing = await self.flow.handle("sim")
+        self.assertIn("- 375/26:\nNível: 105,1 CTS/LB\nMotivos:\n\t1. Fixador obrigatório\n\t2. Outro motivo retornado", listing)
+        self.assertIn("- 037/26:\nNível: 99,87\nMotivo: Contrato Exportação não encontrado.", listing)
+        self.assertNotIn("Dados:", listing)
+
+    async def test_numbered_broker_choice_and_friendly_hedge_keep_exact_request(self):
+        self.flow.prepare_fixation([("374/26D", {"valorFixacao": 100, "mesfix": "DEZ", "anofix": "2026", "lotes": 1})])
+        self.fix_send.return_value = fixation_result(("374/26D",), level=110.1)
+        await self.flow.handle("sim")
+        question = await self.flow.handle("sim")
+        self.assertTrue(question.startswith("Qual é a corretora da bolsa?\nContrato 374/26D:\nOpções:\n1 - Adm13"))
+        self.assertIn("4 - Adm14", question)
+        self.assertIn("10 - BTGPactual", question)
+        for invalid in ("0", "11"):
+            self.assertIn("Qual é a corretora", await self.flow.handle(invalid))
+            self.assertNotIn("corret", self.flow.load()["movimentos"][0])
+        self.assertIn("AA", await self.flow.handle("4"))
+        summary = await self.flow.handle("nao")
+        self.assertIn("Contrato 374/26D:\n- Mes Fix: DEZ\n- Ano Fix: 2026\n- Lotes: 1\n- Valor: 110,1\n- Corretora: A14\n- Lanc. AA: Nao", summary)
+        self.assertNotIn("account", summary)
+        self.hedge_send.return_value = hedge_result(("374/26D",))
+        output = await self.flow.handle("sim")
+        self.assertEqual(self.hedge_send.await_args.args[0], {"movimentos": [{
+            "mesfix": "DEZ", "anofix": "2026", "lotes": 1, "valor": 110.1,
+            "corret": "A14", "operac": "FV", "account": "A14", "ctrex": "374/26D", "tipo": "C", "lancaa": "Nao",
+        }]})
+        self.assertIn("Movimentos registrados:\n- Contrato: 374/26D\n- Lotes: 2\n- Valor: 102,1\n- Corretora: A14", output)
+        self.assertIn("Movimentos não registrados:\nNenhum", output)
+        self.assertIn("Relatório final de fixação e Hedge:", output)
+        # O retorno confirmado tem dois lotes; a tentativa tinha um.
+        self.assertIn("374/26D = Nível: 110,1 — Hedge = SIM - Lotes: 2", output)
+
+    def test_broker_numbers_are_scoped_to_broker_question(self):
+        helper = HedgeTools("parser")
+        codes = ("A13", "RJO", "NDF", "A14", "SCD", "HED", "MAR", "MAO", "FCS", "ICE")
+        for index, code in enumerate(codes, 1):
+            for field in ("corret", "account"):
+                values = helper.remember_from_text({}, str(index), expected=field)
+                self.assertEqual((values["corret"], values["account"]), (code, code))
+        self.assertIsNone(helper.parse_known_broker("4"))
+        self.assertNotIn("corret", helper.remember_from_text({}, "4", expected="lotes"))
+        self.assertEqual(helper.remember_from_text({}, "opção 4", expected="corret")["corret"], "A14")
+
+    def test_unit_and_reason_formatting_without_mutating_source(self):
+        for code, label in (("C", "CTS/LB"), ("K", "KG"), ("5", "50 KG"), ("6", "59 KG"), ("T", "TON")):
+            self.assertEqual(self.flow.display_value(110.1, {"tipoValor": code}), f"110,1 {label}")
+        self.assertEqual(self.flow.display_value(110.1), "110,1")
+        self.assertEqual(self.flow.display_number(100), "100")
+        self.assertEqual(self.flow.display_number(0), "0")
+        self.assertEqual(self.flow.reason_lines({"motivo": "Um motivo"}), ["Motivo: Um motivo"])
+        self.assertEqual(self.flow.reason_lines({"motivos": "Um motivo"}), ["Motivo: Um motivo"])
+
+    async def test_singular_api_reason_is_preserved_in_failure_and_final_reports(self):
+        await self.prepare()
+        result = fixation_result(("374/26D",), ("375/26", "037/26"))
+        result["contratosNaoFixados"][0].pop("motivos")
+        result["contratosNaoFixados"][0]["motivo"] = "Um motivo"
+        result["contratosNaoFixados"][1]["motivos"] = ["Primeiro", "Segundo"]
+        self.fix_send.return_value = result
+        await self.flow.handle("sim")
+        listing = await self.flow.handle("sim")
+        self.assertIn("Motivo: Um motivo", listing)
+        final = await self.flow.handle("1")
+        self.assertIn("Hedge", final)
+        report = self.flow.final_report(self.flow.load(), hedge=True)
+        self.assertIn("- 375/26 = Motivo: Um motivo", report)
+        self.assertIn("- 037/26 = Motivos:\n\t1. Primeiro\n\t2. Segundo", report)
 
     async def hedge_ready(self):
         await self.fixed()

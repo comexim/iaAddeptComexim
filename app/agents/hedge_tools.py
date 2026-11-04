@@ -43,6 +43,7 @@ class HedgeTools:
         "ice": ("ICE", "BTGPactual"), "btgpactual": ("ICE", "BTGPactual"),
     }
     REQUIRED = ("mesfix", "anofix", "lotes", "corret", "account", "lancaa")
+    BROKER_CHOICES = tuple(dict.fromkeys(ACCOUNTS.values()))
 
     def __init__(self, session_id: str):
         self.key = f"hedge_pendente:{session_id}"
@@ -217,6 +218,12 @@ class HedgeTools:
         """Guarda campos de Hedge já mencionados, sem consultar API externa."""
         normalized = self.normalize(text)
         mentions_lots = bool(re.search(r'\b\d+\s*lotes?\b', normalized))
+        if expected in {"corret", "account"} and re.fullmatch(r"(?:opcao\s*)?[0-9]+", normalized):
+            choice = int(re.search(r"[0-9]+", normalized)[0])
+            if 1 <= choice <= len(self.BROKER_CHOICES):
+                code, description = self.BROKER_CHOICES[choice - 1]
+                data.update(corret=code, account=code, corretDescricao=description, accountDescricao=description)
+            return data
         mentions_fixation_month = bool(
             re.search(
                 r'\bmes\s+(?:de\s+)?(?:marco|maio|julho|setembro|dezembro)\b',
@@ -273,7 +280,7 @@ class HedgeTools:
             r'marex\s+otc|fcstone|btgpactual|a13|rjo|a14|scd|hed|mar|mao|fcs|ice)\b',
             normalized,
         )
-        if expected == "corret" or broker_context or known_broker_hint:
+        if expected in {"corret", "account"} or broker_context or known_broker_hint:
             context_match = broker_context or known_broker_hint
             broker_text = context_match.string[context_match.start():] if context_match else text
             broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
@@ -362,20 +369,16 @@ class HedgeTools:
             f"Lançamento com AA: {current['lancaa']}\n\nConfirma o envio do Hedge para a API?"
         )
 
-    @staticmethod
-    def question_for(field: str) -> str:
-        broker_options = (
-            "Adm13, RJObrien, NDF, Adm14, Sucden, HedgePoint, "
-            "Marex Fut, Marex OTC, FCStone ou BTGPactual"
-        )
+    @classmethod
+    def question_for(cls, field: str, contract: Optional[str] = None) -> str:
+        broker_options = "\n".join(f"{index} - {description}" for index, (_, description) in enumerate(cls.BROKER_CHOICES, 1))
+        if field in {"corret", "account"}:
+            header = "Qual é a corretora da bolsa?\n" + (f"Contrato {contract}:\n" if contract else "")
+            return header + "Opções:\n" + broker_options
         questions = {
             "mesfix": "Qual é o mês da fixação do Hedge? Opções: março, maio, julho, setembro ou dezembro.",
             "anofix": "Qual é o ano da fixação do Hedge?",
             "lotes": "Quantos lotes deseja lançar no Hedge?",
-            "corret": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
-            # Compatibilidade com estados antigos que possam ter corretora sem
-            # account: pergunta novamente pela corretora e sincroniza ambos.
-            "account": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
             "lancaa": "O lançamento será com AA? Responda sim ou não.",
         }
-        return questions[field]
+        return (f"Contrato {contract}: " if contract else "") + questions[field]
