@@ -12,10 +12,13 @@ import uuid
 import redis
 
 from app.core.config import settings
-from app.core.fixacao_api_client import fixacao_api_client
+from app.core.fixacao_api_client import fixacao_api_client, OperationNotSent, OperationRejected
 
 logger = logging.getLogger(__name__)
 _timers = set()
+_process_id = uuid.uuid4().hex
+_operations = {}
+_exits = {}
 
 
 def normalized(text):
@@ -47,6 +50,9 @@ def identity(item):
 
 
 class ContractBatchFlow:
+    BLOCKED = {"sending_fix", "sending_hedge", "uncertain"}
+    EXIT_MESSAGE = ("Espera encerrada. Você pode informar novamente os contratos para fixação. "
+                    "A solicitação anterior pode ter sido processada no Protheus; confira antes de confirmar um novo envio.")
     YES = {"sim", "s", "ok", "confirmo", "sim confirmo", "sim, confirmo", "pode enviar"}
     NO = {"nao", "n", "agora nao", "nao quero"}
     FIX_FIELDS = ("valorFixacao", "diferencial", "tipoValor", "fixadorPreco")
@@ -67,6 +73,109 @@ class ContractBatchFlow:
     def save(self, data):
         # Mantém também o resultado consolidado para consulta no restante da conversa.
         self._redis().setex(self.key, 86400, json.dumps(data, ensure_ascii=False))
+
+    def operation_key(self, operation_id):
+        return f"{self.key}:operacao:{operation_id}"
+
+    def read_operation(self, operation_id):
+        raw = self._redis().get(self.operation_key(operation_id)) if operation_id else None
+        return json.loads(raw) if raw else {}
+
+    def save_operation(self, operation_id, record):
+        self._redis().setex(self.operation_key(operation_id), 7 * 86400,
+                            json.dumps(record, ensure_ascii=False))
+
+    def release_lock(self, operation_id):
+        # Uma resposta antiga nunca pode apagar a trava de uma nova tentativa.
+        self._redis().eval(
+            "if redis.call('get', KEYS[1]) == ARGV[1] then "
+            "return redis.call('del', KEYS[1]) else return 0 end",
+            1, self.key + ":envio", operation_id)
+
+    def is_current(self, operation_id):
+        current = self.load()
+        return current.get("operation_id") == operation_id and current.get("stage") in self.BLOCKED
+
+    def abandon(self, data):
+        operation_id = data.get("operation_id")
+        record = self.read_operation(operation_id)
+        record.update(status="discarded", abandoned_at=time.time())
+        data = deepcopy(data)
+        data.update(stage="done", confirmation_id=uuid.uuid4().hex)
+        data.pop("operation_id", None)
+        if operation_id:
+            if not self.commit_operation(operation_id, data, record):
+                return "A operação já foi atualizada. Confira o resultado antes de iniciar uma nova fixação."
+        else:
+            self.save(data)
+            self.release_lock("1")  # Compatibilidade com travas anteriores.
+        event = _exits.get((self.key, operation_id))
+        if event:
+            event.set()
+        return self.EXIT_MESSAGE
+
+    @classmethod
+    def is_pending_message(cls, message):
+        value = normalized(message)
+        # Consultas continuam disponíveis, inclusive as que citam contratos.
+        if re.search(r"\b(?:qual|quais|consultar|consulte|consulta|listar|liste|mostre|mostrar|verificar)\b", value):
+            return bool(re.search(r"\b(?:resultado|status|pendencia)\b.*\b(?:fixacao|hedge|operacao|envio)\b", value))
+        return (value in cls.YES | cls.NO or cls.is_request(message)
+                or bool(re.search(r"\b(?:hedge|enviar|envie|reenviar|reenvio|resultado|pendencia)\b", value))
+                or value == "status"
+                or bool(re.search(r"[0-9]+\s*/\s*[0-9]+", value)))
+
+    async def recover(self, data):
+        """Recupera somente evidência persistida; nunca consulta nem reenvia à CMX."""
+        operation_id = data.get("operation_id")
+        record = self.read_operation(operation_id)
+        if record.get("status") in {"received", "applied"} and "result" in record:
+            return await self.complete_operation(data, record["result"], record.get("hedge", False))
+        if record.get("status") == "not_sent":
+            data["stage"] = "confirm_hedge" if record.get("hedge") else "confirm_fix"
+            data["confirmation_id"] = uuid.uuid4().hex
+            if not self.commit_operation(operation_id, data, record):
+                return ""
+            return "A operação não foi efetivada. Confirme novamente para realizar uma nova tentativa."
+        if data.get("stage", "").startswith("sending_") and data.get("process_id") != _process_id:
+            data["stage"] = "uncertain"
+            if operation_id:
+                self.commit_operation(operation_id, data, record)
+            else:
+                self.save(data)
+        return None
+
+    async def complete_operation(self, data, result, hedge):
+        operation_id = data["operation_id"]
+        if not self.is_current(operation_id):
+            return ""
+        # Trabalha numa cópia: erros de interpretação não corrompem os acumulados.
+        updated = deepcopy(data)
+        output = await self.apply_result(updated, result, hedge, persist=False)
+        record = self.read_operation(operation_id)
+        record.update(status="applied")
+        # Confere e grava atomicamente, inclusive se "sair" chegar em outro worker.
+        committed = self.commit_operation(operation_id, updated, record)
+        if not committed:
+            return ""
+        if updated["stage"] in {"list_fix", "list_hedge"}:
+            self.schedule_list_timeout(updated, hedge)
+        return output
+
+    def commit_operation(self, operation_id, updated, record):
+        return self._redis().eval(
+            "local raw = redis.call('get', KEYS[1]); if not raw then return 0 end; "
+            "local current = cjson.decode(raw); "
+            "if current.operation_id ~= ARGV[1] or "
+            "(current.stage ~= 'sending_fix' and current.stage ~= 'sending_hedge' and current.stage ~= 'uncertain') "
+            "then return 0 end; "
+            "redis.call('setex', KEYS[1], 86400, ARGV[2]); "
+            "redis.call('setex', KEYS[3], 604800, ARGV[3]); "
+            "if ARGV[4] == 'release' and redis.call('get', KEYS[2]) == ARGV[1] "
+            "then redis.call('del', KEYS[2]) end; return 1",
+            3, self.key, self.key + ":envio", self.operation_key(operation_id), operation_id,
+            json.dumps(updated, ensure_ascii=False), json.dumps(record, ensure_ascii=False),
+            "keep" if updated["stage"] in self.BLOCKED else "release")
 
     @staticmethod
     def is_request(text):
@@ -286,30 +395,37 @@ class ContractBatchFlow:
             lines.append("- Nenhum")
         return "\n".join(lines)
 
-    def finish_fixation(self, data):
+    def finish_fixation(self, data, persist=True):
         if data["contratosFixadosAcumulado"]:
             data["stage"] = "offer"
-            self.save(data)
+            if persist:
+                self.save(data)
             return "Gostaria que eu fizesse o Hedge da bolsa para os contratos fixados? Você pode selecionar todos ou parte deles."
         data["stage"] = "done"
-        self.save(data)
+        if persist:
+            self.save(data)
         return "Nenhum contrato elegível para o Hedge\n\n" + self.final_report(data)
 
-    def finish_hedge(self, data):
+    def finish_hedge(self, data, persist=True):
         data["stage"] = "done"
-        self.save(data)
+        if persist:
+            self.save(data)
         return self.final_report(data, hedge=True)
 
-    async def ask_failure(self, data, hedge=False):
+    async def ask_failure(self, data, hedge=False, persist=True):
         data["stage"] = "list_hedge" if hedge else "list_fix"
         data["list_deadline"] = time.time() + 300
         data["list_token"] = uuid.uuid4().hex
-        self.save(data)
+        if persist:
+            self.save(data)
+            self.schedule_list_timeout(data, hedge)
+        return "Deseja uma listagem detalhada apenas dos " + ("movimentos não registrados?" if hedge else "contratos não fixados?")
+
+    def schedule_list_timeout(self, data, hedge):
         if self.notify:
             task = asyncio.create_task(self._list_timeout(data["list_token"], hedge))
             _timers.add(task)
             task.add_done_callback(_timers.discard)
-        return "Deseja uma listagem detalhada apenas dos " + ("movimentos não registrados?" if hedge else "contratos não fixados?")
 
     async def _list_timeout(self, token, hedge):
         await asyncio.sleep(300)
@@ -421,53 +537,109 @@ class ContractBatchFlow:
         return self.hedge_summary(data)
 
     async def send(self, data, hedge=False):
+        data = deepcopy(data)
         items = data["movimentos" if hedge else "contratos"]
         if not items:
             raise ValueError("Selecione ao menos um item antes do envio.")
         registered = {identity(i) for i in data["movimentosRegistradosAcumulado" if hedge else "contratosFixadosAcumulado"]}
         if any(identity(i) in registered for i in items):
             raise ValueError("Itens já concluídos não podem ser reenviados.")
-        lock_key = self.key + ":envio"
-        # Não expira durante uma chamada tardia: evita repetir transações de resultado incerto.
-        if not self._redis().set(lock_key, "1", nx=True):
-            return "A requisição já está em processamento. Aguarde o resultado."
-        current = self.load()
-        if current.get("stage") != ("confirm_hedge" if hedge else "confirm_fix") or current.get("confirmation_id") != data.get("confirmation_id"):
-            self._redis().delete(lock_key)
-            return "O resumo foi alterado ou já foi processado. Confira a confirmação atual antes de enviar."
-        data["stage"] = "sending_hedge" if hedge else "sending_fix"
-        self.save(data)
         body = {"movimentos": [{k: item[k] for k in self.MOV_FIELDS if k in item} for item in items]} if hedge else {
             "contratos": [{"numeroVenda": i["numeroVenda"], "letraVenda": i.get("letraVenda", ""),
                            "fixacaoContrato": [{k: i[k] for k in self.FIX_FIELDS if k in i}]} for i in items]}
-        operation = fixacao_api_client.cadastrar_hedge if hedge else fixacao_api_client.cadastrar_fixacao
-        request = asyncio.create_task(operation(body))
+        operation_id = uuid.uuid4().hex
+        lock_key = self.key + ":envio"
+        # Não expira durante uma chamada tardia: evita repetir transações de resultado incerto.
+        if not self._redis().set(lock_key, operation_id, nx=True):
+            return "A requisição já está em processamento. Aguarde o resultado."
+        current = self.load()
+        if current.get("stage") != ("confirm_hedge" if hedge else "confirm_fix") or current.get("confirmation_id") != data.get("confirmation_id"):
+            self.release_lock(operation_id)
+            return "O resumo foi alterado ou já foi processado. Confira a confirmação atual antes de enviar."
+        data["stage"] = "sending_hedge" if hedge else "sending_fix"
+        data.update(operation_id=operation_id, process_id=_process_id)
         try:
-            done, _ = await asyncio.wait({request}, timeout=len(items) * 30)
+            self.save_operation(operation_id, {"status": "started", "hedge": hedge, "snapshot": data})
+            self.save(data)
+        except Exception:
+            self.release_lock(operation_id)
+            raise
+        task_key = (self.key, operation_id)
+        event = _exits[task_key] = asyncio.Event()
+        request = asyncio.create_task(self.run_operation(data, body, hedge))
+        _operations[task_key] = request
+        def cleanup(task):
+            _operations.pop(task_key, None)
+            _exits.pop(task_key, None)
+            if not task.cancelled():
+                task.exception()  # Consome exceções mesmo se a conversa foi encerrada.
+        request.add_done_callback(cleanup)
+        exit_wait = asyncio.create_task(event.wait())
+        try:
+            done, _ = await asyncio.wait({request, exit_wait}, timeout=len(items) * 30,
+                                         return_when=asyncio.FIRST_COMPLETED)
             if not done:
                 warning = "ATENÇÃO - Não obtivemos resposta do processo de " + ("Hedge" if hedge else "fixação de contratos") + ". Verifique no Protheus!"
-                if self.notify:
+                if self.notify and self.is_current(operation_id):
                     try:
                         await self.notify(warning)
                     except Exception:
                         logger.exception("Não foi possível entregar o aviso de prazo; aguardando o mesmo resultado")
                 else:
                     logger.warning(warning)
-            result = await asyncio.shield(request)
-            output = await self.apply_result(data, result, hedge)
+                await asyncio.wait({request, exit_wait}, return_when=asyncio.FIRST_COMPLETED)
+            if event.is_set() or not self.is_current(operation_id) and not request.done():
+                return ""
+            return await asyncio.shield(request)
+        finally:
+            exit_wait.cancel()
+
+    async def run_operation(self, data, body, hedge):
+        operation_id = data["operation_id"]
+        operation = fixacao_api_client.cadastrar_hedge if hedge else fixacao_api_client.cadastrar_fixacao
+        try:
+            result = await operation(body)
+            if not self.is_current(operation_id):
+                return ""
+            record = self.read_operation(operation_id)
+            record.update(status="received", result=result)
+            if not self.commit_operation(operation_id, data, record):
+                return ""
+            return await self.complete_operation(data, result, hedge)
+        except (OperationNotSent, OperationRejected) as exc:
+            if not self.is_current(operation_id):
+                return ""
+            record = self.read_operation(operation_id)
+            record.update(status="not_sent", error=str(exc))
+            data["stage"] = "confirm_hedge" if hedge else "confirm_fix"
+            data["confirmation_id"] = uuid.uuid4().hex
+            if not self.commit_operation(operation_id, data, record):
+                return ""
+            return f"{exc}\nConfirme novamente para realizar uma nova tentativa, ou informe os dados a corrigir."
         except (Exception, asyncio.CancelledError) as exc:
-            data["stage"] = "uncertain"
-            self.save(data)
+            if self.is_current(operation_id):
+                data["stage"] = "uncertain"
+                self.commit_operation(operation_id, data, self.read_operation(operation_id))
             logger.exception("Requisição de lote sem resultado conclusivo")
             if isinstance(exc, asyncio.CancelledError):
                 raise
+            if self.read_operation(operation_id).get("status") == "discarded":
+                return ""
             return "Não foi possível obter um resultado conclusivo. Verifique no Protheus antes de qualquer nova tentativa."
-        self._redis().delete(lock_key)
-        return output
 
-    async def apply_result(self, data, result, hedge=False):
+    async def apply_result(self, data, result, hedge=False, persist=True):
+        if not isinstance(result, dict):
+            raise ValueError("Retorno do lote deve ser um objeto JSON.")
         success_key, failure_key = ("movimentosRegistrados", "movimentosNaoRegistrados") if hedge else ("contratosFixados", "contratosNaoFixados")
         successes, failures = result[success_key], result[failure_key]
+        if not isinstance(successes, list) or not isinstance(failures, list):
+            raise ValueError("Retorno do lote deve conter listas de sucessos e falhas.")
+        returned = [identity(i) for i in successes + failures]
+        sent = {identity(i) for i in data["movimentos" if hedge else "contratos"]}
+        if len(returned) != len(set(returned)) or set(returned) != sent:
+            raise ValueError("Retorno do lote contém contratos ausentes, duplicados ou não enviados.")
+        if not hedge and any("nivel" not in item for item in successes):
+            raise ValueError("Retorno de fixação sem o nível confirmado.")
         data[success_key], data[failure_key] = deepcopy(successes), deepcopy(failures)
         accumulated = "movimentosRegistradosAcumulado" if hedge else "contratosFixadosAcumulado"
         pending_key = "movimentosAindaNaoRegistrados" if hedge else "contratosAindaNaoFixados"
@@ -492,21 +664,29 @@ class ContractBatchFlow:
             pending.append(item)
         data[pending_key] = pending
         lines = [str(result.get("message", "")),
-                 f"Quantidade de {'movimentos registrados' if hedge else 'contratos fixados'}: {result['registrados' if hedge else 'fixados']}",
-                 f"Quantidade de {'movimentos não registrados' if hedge else 'contratos não fixados'}: {result['naoRegistrados' if hedge else 'naoFixados']}"]
+                 f"Quantidade de {'movimentos registrados' if hedge else 'contratos fixados'}: {len(successes)}",
+                 f"Quantidade de {'movimentos não registrados' if hedge else 'contratos não fixados'}: {len(failures)}"]
         for label, records in (("Movimentos registrados" if hedge else "Contratos fixados", successes),
                                ("Movimentos não registrados" if hedge else "Contratos não fixados", failures)):
             lines.append(label + ":")
             lines.extend("- " + json.dumps(i, ensure_ascii=False) for i in records)
-        self.save(data)
         if pending:
-            next_message = await self.ask_failure(data, hedge)
+            next_message = await self.ask_failure(data, hedge, persist=persist)
         else:
-            next_message = self.finish_hedge(data) if hedge else self.finish_fixation(data)
+            next_message = self.finish_hedge(data, persist=persist) if hedge else self.finish_fixation(data, persist=persist)
         return "\n".join(lines) + "\n\n" + next_message
 
     async def handle(self, message):
         data = self.load()
+        # Também permite recuperar/sair de uma trava cuja sessão já expirou.
+        lock_owner = self._redis().get(self.key + ":envio")
+        if not data and lock_owner:
+            record = self.read_operation(lock_owner)
+            data = deepcopy(record.get("snapshot") or {"stage": "uncertain"})
+            if lock_owner != "1":
+                data["operation_id"] = lock_owner
+            if self.has_permission:
+                self.save(data)
         stage = data.get("stage")
         new_request = self.is_request(message)
         if (not data or stage == "done") and not new_request:
@@ -515,11 +695,28 @@ class ContractBatchFlow:
             return "Você não tem permissão para fixar contratos."
         value = normalized(message)
         try:
+            if stage in self.BLOCKED:
+                if value == "sair":
+                    return self.abandon(data)
+                related = self.is_pending_message(message)
+                try:
+                    recovered = await self.recover(data)
+                except (ValueError, TypeError, KeyError):
+                    logger.exception("Retorno persistido ainda não pôde ser interpretado")
+                    recovered = None
+                if recovered is not None:
+                    return recovered if related else None
+                if not related:
+                    return None
+                return ("A operação enviada aguarda resultado conclusivo. Verifique no Protheus; "
+                        "nenhum item será reenviado. Digite sair para encerrar a espera.")
+            operation_id = data.get("operation_id")
+            if operation_id and self.read_operation(operation_id).get("status") in {"received", "applied", "not_sent"}:
+                # Reinício entre a gravação do estado final e a liberação da trava.
+                self.release_lock(operation_id)
             if not data or stage == "done":
                 updates, common = self.parse_updates(message)
                 return self.prepare_fixation(updates, common)
-            if stage in {"sending_fix", "sending_hedge", "uncertain"}:
-                return "A operação enviada aguarda resultado conclusivo. Verifique no Protheus; nenhum item será reenviado."
             if stage == "offer":
                 if value in self.NO:
                     data["stage"] = "done"

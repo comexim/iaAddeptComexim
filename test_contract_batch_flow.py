@@ -24,6 +24,8 @@ for name in ("redis", "httpx"):
         stub = types.ModuleType(name)
         stub.from_url = MagicMock()
         stub.AsyncClient = MagicMock()
+        for exception_name in ("ConnectError", "ConnectTimeout", "PoolTimeout", "ReadTimeout", "WriteError"):
+            setattr(stub, exception_name, type(exception_name, (Exception,), {}))
         sys.modules[name] = stub
 try:
     import langchain_core.tools
@@ -39,7 +41,7 @@ sys.modules.setdefault("app.core.database", database)
 from app.agents.contract_batch_flow import ContractBatchFlow, identifier, identity
 from app.agents.fixacao_tools import FixacaoTools
 from app.agents.hedge_tools import HedgeTools
-from app.core.fixacao_api_client import FixacaoApiClient
+from app.core.fixacao_api_client import FixacaoApiClient, OperationNotSent, OperationRejected
 
 
 class MemoryRedis:
@@ -60,6 +62,23 @@ class MemoryRedis:
 
     def delete(self, key):
         self.data.pop(key, None)
+
+    def eval(self, script, count, *args):
+        if count == 3:
+            key, lock, record_key, owner, updated, record, lock_action = args
+            current = json.loads(self.get(key) or "{}")
+            if current.get("operation_id") != owner or current.get("stage") not in ContractBatchFlow.BLOCKED:
+                return 0
+            self.setex(key, 86400, updated)
+            self.setex(record_key, 604800, record)
+            if lock_action == "release" and self.get(lock) == owner:
+                self.delete(lock)
+            return 1
+        key, owner = args
+        if self.get(key) == owner:
+            self.delete(key)
+            return 1
+        return 0
 
 
 def fixation_result(successes=(), failures=(), level=102.10):
@@ -331,9 +350,11 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         await self.prepare()
         self.flow.notify = AsyncMock()
         real_wait = asyncio.wait
-        async def fast_wait(tasks, timeout):
-            self.assertEqual(timeout, 90)
-            return await real_wait(tasks, timeout=0)
+        async def fast_wait(tasks, timeout=None, **kwargs):
+            if timeout is not None:
+                self.assertEqual(timeout, 90)
+                return await real_wait(tasks, timeout=0, **kwargs)
+            return await real_wait(tasks, **kwargs)
         async def response(body):
             await asyncio.sleep(0.001)
             return fixation_result(("374/26D", "375/26", "037/26"))
@@ -360,6 +381,177 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.store.data)
         self.fix_send.assert_not_called()
 
+    async def test_unrelated_messages_pass_through_without_releasing_pending_operation(self):
+        await self.prepare()
+        self.fix_send.side_effect = RuntimeError("resposta perdida")
+        await self.flow.handle("sim")
+        before = deepcopy(self.store.data)
+        for message in ("ola", "qual a cotação do dólar?", "consulte os embarques",
+                        "consulte o contrato 375/26", "quais contratos estão em aberto?"):
+            self.assertIsNone(await self.flow.handle(message))
+        self.assertEqual(self.store.data, before)
+        self.assertIn("aguarda resultado", await self.flow.handle("pode enviar"))
+        self.assertEqual(self.fix_send.await_count, 1)
+
+    async def test_known_failure_allows_new_confirmation_without_automatic_retry(self):
+        for error in (OperationNotSent("Autenticação falhou"), OperationRejected("HTTP 401")):
+            with self.subTest(error=type(error).__name__):
+                self.store.data.clear()
+                await self.prepare()
+                old_confirmation = self.flow.load()["confirmation_id"]
+                self.fix_send.reset_mock()
+                self.fix_send.side_effect = error
+                self.assertIn("Confirme novamente", await self.flow.handle("sim"))
+                self.assertEqual(self.flow.load()["stage"], "confirm_fix")
+                self.assertNotEqual(self.flow.load()["confirmation_id"], old_confirmation)
+                self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+                self.assertEqual(self.fix_send.await_count, 1)
+
+    async def test_exit_legacy_block_after_restart(self):
+        for stage in ("sending_fix", "sending_hedge", "uncertain"):
+            self.flow.save({"stage": stage})
+            self.store.set(self.flow.key + ":envio", "1")
+            restarted = ContractBatchFlow("teste", True)
+            self.assertEqual(await restarted.handle("SAIR"), self.flow.EXIT_MESSAGE)
+            self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+            self.assertIsNone(await restarted.handle("ola"))
+            self.assertIn("Resumo", await restarted.handle("fixe 375/26 nivel 100"))
+        self.fix_send.assert_not_called()
+
+    async def test_exit_wakes_waiter_and_discards_late_response_without_touching_new_lock(self):
+        await self.prepare()
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def late_response(body):
+            entered.set()
+            await release.wait()
+            return fixation_result(("374/26D", "375/26", "037/26"))
+        self.fix_send.side_effect = late_response
+        waiting = asyncio.create_task(self.flow.handle("sim"))
+        await entered.wait()
+        operation_id = self.flow.load()["operation_id"]
+        worker = __import__('app.agents.contract_batch_flow', fromlist=['_operations'])._operations[(self.flow.key, operation_id)]
+        self.assertEqual(await self.flow.handle("sair"), self.flow.EXIT_MESSAGE)
+        self.assertEqual(await asyncio.wait_for(waiting, 1), "")
+        await self.flow.handle("fixe 375/26 nivel 200")
+        self.store.set(self.flow.key + ":envio", "new-operation")
+        before = deepcopy(self.flow.load())
+        release.set()
+        self.assertEqual(await worker, "")
+        self.assertEqual(self.flow.load(), before)
+        self.assertEqual(self.store.get(self.flow.key + ":envio"), "new-operation")
+        self.assertEqual(self.flow.read_operation(operation_id)["status"], "discarded")
+
+    async def test_persisted_result_recovers_after_restart_without_resending(self):
+        await self.prepare()
+        data = self.flow.load()
+        data.update(stage="sending_fix", operation_id="interrupted", process_id="old-process")
+        self.flow.save(data)
+        self.store.set(self.flow.key + ":envio", "interrupted")
+        result = fixation_result(("374/26D", "375/26", "037/26"))
+        del result["fixados"]
+        del result["naoFixados"]
+        self.flow.save_operation("interrupted", {"status": "received", "result": result, "hedge": False})
+        self.assertIn("Hedge", await ContractBatchFlow("teste", True).handle("resultado"))
+        self.assertEqual(self.flow.load()["stage"], "offer")
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.fix_send.assert_not_called()
+
+    async def test_restart_without_result_preserves_uncertainty_until_exit(self):
+        self.flow.save({"stage": "sending_fix", "operation_id": "lost", "process_id": "old-process"})
+        self.store.set(self.flow.key + ":envio", "lost")
+        self.assertIsNone(await self.flow.handle("ola"))
+        self.assertEqual(self.flow.load()["stage"], "uncertain")
+        self.assertIn("aguarda resultado", await self.flow.handle("sim"))
+        self.assertEqual(await self.flow.handle("sair"), self.flow.EXIT_MESSAGE)
+        self.fix_send.assert_not_called()
+
+    async def test_local_interpretation_failure_preserves_response_for_recovery(self):
+        await self.prepare()
+        self.fix_send.return_value = fixation_result(("374/26D", "375/26", "037/26"))
+        with patch.object(ContractBatchFlow, "apply_result", AsyncMock(side_effect=ValueError("erro local"))):
+            await self.flow.handle("sim")
+        operation_id = self.flow.load()["operation_id"]
+        self.assertEqual(self.flow.read_operation(operation_id)["status"], "received")
+        self.assertIn("Hedge", await self.flow.handle("resultado"))
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.assertEqual(self.fix_send.await_count, 1)
+
+    async def test_incomplete_result_does_not_mark_missing_contracts_as_failed(self):
+        await self.prepare()
+        self.fix_send.return_value = fixation_result(("375/26",))
+        await self.flow.handle("sim")
+        self.assertEqual(self.flow.load()["stage"], "uncertain")
+        self.assertEqual(self.flow.load()["contratosFixadosAcumulado"], [])
+
+    async def test_cancelled_waiter_does_not_lose_eventual_result(self):
+        await self.prepare()
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def response(body):
+            entered.set()
+            await release.wait()
+            return fixation_result(("374/26D", "375/26", "037/26"))
+        self.fix_send.side_effect = response
+        waiter = asyncio.create_task(self.flow.handle("sim"))
+        await entered.wait()
+        operation_id = self.flow.load()["operation_id"]
+        worker = __import__('app.agents.contract_batch_flow', fromlist=['_operations'])._operations[(self.flow.key, operation_id)]
+        waiter.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await waiter
+        release.set()
+        await worker
+        self.assertEqual(self.flow.load()["stage"], "offer")
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+
+    async def test_exit_during_result_processing_prevents_stale_commit(self):
+        await self.prepare()
+        self.fix_send.return_value = fixation_result(("374/26D", "375/26", "037/26"))
+        apply_result = self.flow.apply_result
+        async def interrupted_apply(data, result, hedge, **kwargs):
+            output = await apply_result(data, result, hedge, **kwargs)
+            await ContractBatchFlow("teste", True).handle("sair")
+            await self.flow.handle("fixe 375/26 nivel 200")
+            return output
+        with patch.object(self.flow, "apply_result", interrupted_apply):
+            self.assertEqual(await self.flow.handle("sim"), "")
+        self.assertEqual(self.flow.load()["stage"], "confirm_fix")
+        self.assertEqual(self.flow.load()["contratos"][0]["valorFixacao"], 200)
+
+    async def test_expired_session_recovers_saved_response_from_lock(self):
+        await self.prepare()
+        data = self.flow.load()
+        data.update(stage="sending_fix", operation_id="expired", process_id="old-process")
+        self.flow.save_operation("expired", {
+            "status": "received", "snapshot": data, "hedge": False,
+            "result": fixation_result(("374/26D", "375/26", "037/26")),
+        })
+        self.store.delete(self.flow.key)
+        self.store.set(self.flow.key + ":envio", "expired")
+        self.assertIn("Hedge", await self.flow.handle("resultado"))
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.fix_send.assert_not_called()
+
+    async def test_hedge_uncertainty_also_allows_exit_and_new_fixation(self):
+        await self.hedge_ready()
+        self.hedge_send.side_effect = RuntimeError("resultado perdido")
+        await self.flow.handle("sim")
+        self.assertIsNone(await self.flow.handle("ola"))
+        self.assertEqual(await self.flow.handle("sair"), self.flow.EXIT_MESSAGE)
+        self.assertIn("Resumo", await self.flow.handle("fixe 375/26 nivel 200"))
+        self.assertEqual(self.hedge_send.await_count, 1)
+
+    async def test_saved_pre_send_failure_recovers_new_confirmation(self):
+        await self.prepare()
+        data = self.flow.load()
+        data.update(stage="sending_fix", operation_id="auth-failed", process_id="old-process")
+        self.flow.save(data)
+        self.store.set(self.flow.key + ":envio", "auth-failed")
+        self.flow.save_operation("auth-failed", {"status": "not_sent", "hedge": False})
+        self.assertIn("Confirme novamente", await self.flow.handle("sim"))
+        self.assertEqual(self.flow.load()["stage"], "confirm_fix")
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.fix_send.assert_not_called()
+
     def test_tool_rejects_internal_code_and_premature_confirmation(self):
         tool = FixacaoTools("teste", True)
         self.assertIn("VALOR_INVALIDO", tool.cadastrar_valor_contrato(numero_venda="012329", valor_fixacao=5))
@@ -370,6 +562,36 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
 
 
 class BatchTransportTest(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        deny_network = patch("socket.socket.connect", side_effect=AssertionError("Rede proibida no teste"))
+        deny_network.start()
+        self.addCleanup(deny_network.stop)
+
+    async def test_auth_failure_never_posts_financial_operation(self):
+        for method, body in (("cadastrar_fixacao", {"contratos": [{}]}), ("cadastrar_hedge", {"movimentos": [{}]})):
+            client = FixacaoApiClient()
+            with patch.object(client, "get_token", AsyncMock(side_effect=RuntimeError("token indisponível"))), patch(
+                "app.core.fixacao_api_client.httpx.AsyncClient"
+            ) as transport:
+                with self.assertRaises(OperationNotSent):
+                    await getattr(client, method)(body)
+                transport.assert_not_called()
+
+    async def test_connection_failure_is_safe_but_read_timeout_remains_uncertain(self):
+        import httpx
+        for method, body in (("cadastrar_fixacao", {"contratos": [{}]}), ("cadastrar_hedge", {"movimentos": [{}]})):
+            for error, expected in ((httpx.ConnectError("conexão recusada"), OperationNotSent),
+                                    (httpx.ReadTimeout("resposta perdida"), httpx.ReadTimeout),
+                                    (httpx.WriteError("envio interrompido"), httpx.WriteError)):
+                client = FixacaoApiClient()
+                context = AsyncMock()
+                context.__aenter__.return_value.post.side_effect = error
+                with patch.object(client, "get_token", AsyncMock(return_value="fake")), patch(
+                    "app.core.fixacao_api_client.httpx.AsyncClient", return_value=context
+                ):
+                    with self.assertRaises(expected):
+                        await getattr(client, method)(body)
+
     async def test_business_400_is_a_result_not_transport_error(self):
         for method, body, result in (
             ("cadastrar_fixacao", {"contratos": [{}]}, fixation_result((), ("375/26",))),

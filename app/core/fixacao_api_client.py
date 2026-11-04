@@ -11,6 +11,14 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+class OperationNotSent(RuntimeError):
+    """Falha comprovadamente anterior ao envio da operação financeira."""
+
+
+class OperationRejected(RuntimeError):
+    """Requisição recusada por autenticação/autorização, sem processamento."""
+
+
 _SECRET_KEYS = {
     "access_token", "authorization", "client_secret", "password",
     "refresh_token", "senha", "token", "username", "usuario",
@@ -45,6 +53,13 @@ class FixacaoApiClient:
     def __init__(self):
         self._token = None
         self._token_expiry = None
+
+    async def _operation_token(self):
+        # Falhas no endpoint de autenticação não tornam a fixação incerta.
+        try:
+            return await self.get_token()
+        except Exception as exc:
+            raise OperationNotSent("Não foi possível autenticar na CMX; a operação não foi enviada.") from exc
 
     async def get_token(self) -> str:
         if self._token and self._token_expiry and datetime.now() < self._token_expiry:
@@ -90,7 +105,7 @@ class FixacaoApiClient:
         return token
 
     async def cadastrar_fixacao(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        token = await self.get_token()
+        token = await self._operation_token()
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_fixacao_path}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "tenantid": settings.cmx_tenant_id}
         contract_identifier = {
@@ -119,6 +134,8 @@ class FixacaoApiClient:
                 type(exc).__name__,
                 str(exc),
             )
+            if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
+                raise OperationNotSent("Não foi possível conectar à CMX; a operação não foi enviada.") from exc
             raise
         logger.info(
             "[CMX Z24] RESPONSE status=%s body=%s",
@@ -156,6 +173,9 @@ class FixacaoApiClient:
                 _response_for_log(response),
             )
         if not 200 <= response.status_code < 300:
+            if "contratos" in body and response.status_code in (401, 403):
+                self._token = self._token_expiry = None
+                raise OperationRejected(f"CMX recusou a operação (HTTP {response.status_code}); nenhum reenvio automático foi feito.")
             if "contratos" in body and response.status_code == 400:
                 result = response.json()
                 if isinstance(result, dict) and "contratosFixados" in result and "contratosNaoFixados" in result:
@@ -285,7 +305,7 @@ class FixacaoApiClient:
 
     async def cadastrar_hedge(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Envia o Hedge confirmado ao endpoint Z03."""
-        token = await self.get_token()
+        token = await self._operation_token()
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_hedge_path}"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -306,6 +326,8 @@ class FixacaoApiClient:
                 type(exc).__name__,
                 str(exc),
             )
+            if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
+                raise OperationNotSent("Não foi possível conectar à CMX; a operação não foi enviada.") from exc
             raise
         logger.info(
             "[CMX Z03] RESPONSE status=%s body=%s",
@@ -313,6 +335,9 @@ class FixacaoApiClient:
             _response_for_log(response),
         )
         if not 200 <= response.status_code < 300:
+            if response.status_code in (401, 403):
+                self._token = self._token_expiry = None
+                raise OperationRejected(f"CMX recusou a operação (HTTP {response.status_code}); nenhum reenvio automático foi feito.")
             if "movimentos" in body and response.status_code == 400:
                 result = response.json()
                 if isinstance(result, dict) and "movimentosRegistrados" in result and "movimentosNaoRegistrados" in result:

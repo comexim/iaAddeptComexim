@@ -914,8 +914,9 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             ).handle(message)
             if batch_output is not None:
                 self.last_response_is_contract_batch = True
-                self.message_history.add_user_message(message)
-                self.message_history.add_ai_message(batch_output)
+                if batch_output:
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(batch_output)
                 return batch_output
 
             hedge_output = await self._process_hedge_flow(message)

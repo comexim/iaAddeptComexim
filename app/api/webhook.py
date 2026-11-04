@@ -90,6 +90,9 @@ async def process_message_flow(phone: str, message_text: str, session_id: str, m
 
         orchestrator = AgentOrchestrator(user=user, session_id=phone, notify=notify_progress)
         response = await orchestrator.process_message(full_message)
+        if not response:
+            # A espera pode ter sido encerrada por outra mensagem ("sair").
+            return
 
         # 9. Formata resposta
         if getattr(orchestrator, "last_response_is_contract_batch", False):
