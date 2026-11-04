@@ -46,7 +46,7 @@ class FixacaoTools:
 
     def clear_pending(self) -> None:
         flow = self._batch_flow()
-        if flow.load().get("stage") in {"sending_fix", "sending_hedge", "uncertain"}:
+        if flow.load().get("stage") in flow.BLOCKED:
             return
         flow._redis().delete(flow.key)
 

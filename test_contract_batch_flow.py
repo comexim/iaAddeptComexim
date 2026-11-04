@@ -97,6 +97,21 @@ def hedge_result(successes=(), failures=()):
             "movimentosNaoRegistrados": [{"contrato": ref, "motivos": ["Motivo " + ref]} for ref in failures]}
 
 
+def protheus_fixation_failure():
+    return {
+        "code": "400", "message": "Nenhum contrato foi fixado. Verifique!",
+        "fixados": 0, "naoFixados": 3, "contratosFixados": [],
+        "contratosNaoFixados": [
+            {"contrato": "012327", "venda": "374/26", "letra": "D",
+             "motivos": ["Fixador - Preenchimento Obrigatorio para Preco a Fixar"]},
+            {"contrato": "012329", "venda": "375/26", "letra": " ",
+             "motivos": ["Fixador - Preenchimento Obrigatorio para Preco a Fixar"]},
+            {"contrato": "", "venda": "037/26", "letra": "",
+             "motivos": ["Contrato Exportação não encontrado."]},
+        ],
+    }
+
+
 class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.store = MemoryRedis()
@@ -127,11 +142,28 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
     def test_identifier_and_duplicates(self):
         self.assertEqual(identifier("7/27 D"), ("007/27", "D"))
         self.assertNotEqual(identity({"numeroVenda": "375/26"}), identity({"venda": "375/26", "letra": "D"}))
-        for ref in ("1234/26", "1/2", "1/2026", "012329", "007/27AB", "007/27d"):
+        for ref in ("1234/26", "1/2", "1/2026", "012329", "007/27AB"):
             with self.subTest(ref=ref), self.assertRaises(ValueError):
                 identifier(ref)
         with self.assertRaisesRegex(ValueError, "mais de uma vez"):
             self.flow.parse_contracts("7/27D, 007/27 D")
+
+    def test_identifier_normalizes_letters_and_preserves_conflict_validation(self):
+        for value, letter, expected in (
+            ("375/26", " ", ("375/26", "")),
+            ("375/26", "\t  ", ("375/26", "")),
+            ("7/27d", None, ("007/27", "D")),
+            ("7/27 d", " d ", ("007/27", "D")),
+            ("7/27D", "d", ("007/27", "D")),
+            ("7/27", "d", ("007/27", "D")),
+        ):
+            with self.subTest(value=value, letter=letter):
+                self.assertEqual(identifier(value, letter), expected)
+        for value, letter in (("7/27D", "e"), ("7/27", "ab"), ("7/27", "1"), ("7/27D", " ")):
+            with self.subTest(value=value, letter=letter), self.assertRaises(ValueError):
+                identifier(value, letter)
+        with self.assertRaisesRegex(ValueError, "mais de uma vez"):
+            self.flow.parse_contracts("7/27d, 007/27D")
 
     async def test_mixed_groups_confirmation_and_exact_payload(self):
         summary = await self.prepare()
@@ -469,9 +501,13 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         await self.prepare()
         self.fix_send.return_value = fixation_result(("374/26D", "375/26", "037/26"))
         with patch.object(ContractBatchFlow, "apply_result", AsyncMock(side_effect=ValueError("erro local"))):
-            await self.flow.handle("sim")
+            self.assertEqual(await self.flow.handle("sim"), self.flow.RESULT_ERROR_MESSAGE)
+            self.assertEqual(self.flow.load()["stage"], "result_error")
+            self.assertEqual(await self.flow.handle("resultado"), self.flow.RESULT_ERROR_MESSAGE)
+            self.assertIsNone(await self.flow.handle("ola"))
         operation_id = self.flow.load()["operation_id"]
         self.assertEqual(self.flow.read_operation(operation_id)["status"], "received")
+        self.assertEqual(self.flow.read_operation(operation_id)["processing_error"], "erro local")
         self.assertIn("Hedge", await self.flow.handle("resultado"))
         self.assertIsNone(self.store.get(self.flow.key + ":envio"))
         self.assertEqual(self.fix_send.await_count, 1)
@@ -480,8 +516,62 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         await self.prepare()
         self.fix_send.return_value = fixation_result(("375/26",))
         await self.flow.handle("sim")
-        self.assertEqual(self.flow.load()["stage"], "uncertain")
+        self.assertEqual(self.flow.load()["stage"], "result_error")
         self.assertEqual(self.flow.load()["contratosFixadosAcumulado"], [])
+
+    async def test_exact_protheus_failure_is_conclusive_and_allows_corrections(self):
+        await self.prepare()
+        result = protheus_fixation_failure()
+        original = deepcopy(result)
+        self.fix_send.return_value = result
+        output = await self.flow.handle("sim")
+        self.assertIn("Quantidade de contratos fixados: 0", output)
+        self.assertIn("Quantidade de contratos não fixados: 3", output)
+        self.assertIn("Fixador - Preenchimento Obrigatorio", output)
+        self.assertIn("Contrato Exportação não encontrado.", output)
+        self.assertIn("listagem detalhada", output)
+        data = self.flow.load()
+        self.assertEqual(data["stage"], "list_fix")
+        self.assertEqual(len(data["contratosAindaNaoFixados"]), 3)
+        self.assertEqual(data["contratosFixadosAcumulado"], [])
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.assertEqual(self.flow.read_operation(data["operation_id"])["status"], "applied")
+        self.assertEqual(result, original)
+        listing = await self.flow.handle("sim")
+        for ref in ("374/26D", "375/26", "037/26"):
+            self.assertIn(ref, listing)
+        await self.flow.handle("2")
+        self.assertIn("Confirma o envio", await self.flow.handle("374/26D fixador importador"))
+        self.assertEqual(self.fix_send.await_count, 1)
+
+    async def test_saved_protheus_failure_recovers_without_resending(self):
+        await self.prepare()
+        data = self.flow.load()
+        data.update(stage="uncertain", operation_id="previous-return", process_id="old-process")
+        self.flow.save(data)
+        self.store.set(self.flow.key + ":envio", "previous-return")
+        self.flow.save_operation("previous-return", {
+            "status": "received", "result": protheus_fixation_failure(), "hedge": False,
+        })
+        output = await ContractBatchFlow("teste", True).handle("resultado")
+        self.assertIn("Quantidade de contratos não fixados: 3", output)
+        self.assertEqual(self.flow.load()["stage"], "list_fix")
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.fix_send.assert_not_called()
+
+    async def test_result_processing_error_blocks_tools_until_recovery_or_exit(self):
+        await self.prepare()
+        self.fix_send.return_value = fixation_result(("375/26",))
+        self.assertEqual(await self.flow.handle("sim"), self.flow.RESULT_ERROR_MESSAGE)
+        before = deepcopy(self.flow.load())
+        tool = FixacaoTools("teste", True)
+        tool.clear_pending()
+        self.assertIn("erro ao interpretar", tool.cadastrar_valor_contrato(numero_venda="375/26", valor_fixacao=100))
+        self.assertEqual(self.flow.load(), before)
+        self.assertEqual(await self.flow.handle("sair"), self.flow.EXIT_MESSAGE)
+        self.assertIsNone(self.store.get(self.flow.key + ":envio"))
+        self.assertIn("Resumo", await self.flow.handle("fixe 375/26 nivel 100"))
+        self.assertEqual(self.fix_send.await_count, 1)
 
     async def test_cancelled_waiter_does_not_lose_eventual_result(self):
         await self.prepare()

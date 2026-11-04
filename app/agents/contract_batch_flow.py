@@ -28,12 +28,13 @@ def normalized(text):
 
 def identifier(value, letter=None):
     """Não aceita código interno nem anos incompletos; conserva zeros e letra."""
-    match = re.fullmatch(r"\s*([0-9]{1,3})\s*/\s*([0-9]{2})\s*([A-Z]?)\s*", str(value))
+    match = re.fullmatch(r"\s*([0-9]{1,3})\s*/\s*([0-9]{2})\s*([A-Z]?)\s*", str(value).strip().upper())
     if not match:
         raise ValueError("Informe numeroVenda no formato 999/99 e, se existir, uma letra maiúscula. Não informe contratodeVenda.")
     suffix = match[3]
     if letter is not None:
-        if not re.fullmatch(r"[A-Z]?", str(letter)) or (suffix and suffix != letter):
+        letter = str(letter).strip().upper()
+        if not re.fullmatch(r"[A-Z]?", letter) or (suffix and suffix != letter):
             raise ValueError("Confirme a letraVenda: deve ser uma única letra maiúscula ou vazia.")
         suffix = str(letter)
     return match[1].zfill(3) + "/" + match[2], suffix
@@ -50,7 +51,10 @@ def identity(item):
 
 
 class ContractBatchFlow:
-    BLOCKED = {"sending_fix", "sending_hedge", "uncertain"}
+    BLOCKED = {"sending_fix", "sending_hedge", "uncertain", "result_error"}
+    RESULT_ERROR_MESSAGE = ("A CMX respondeu, mas houve um erro ao interpretar o retorno. "
+                            "A resposta foi preservada para recuperação; nenhum item será reenviado. "
+                            "Digite sair para encerrar a espera.")
     EXIT_MESSAGE = ("Espera encerrada. Você pode informar novamente os contratos para fixação. "
                     "A solicitação anterior pode ter sido processada no Protheus; confira antes de confirmar um novo envio.")
     YES = {"sim", "s", "ok", "confirmo", "sim confirmo", "sim, confirmo", "pode enviar"}
@@ -151,9 +155,20 @@ class ContractBatchFlow:
             return ""
         # Trabalha numa cópia: erros de interpretação não corrompem os acumulados.
         updated = deepcopy(data)
-        output = await self.apply_result(updated, result, hedge, persist=False)
+        try:
+            output = await self.apply_result(updated, result, hedge, persist=False)
+        except Exception as exc:
+            logger.exception("Resposta do lote recebida, mas não pôde ser interpretada")
+            record = self.read_operation(operation_id)
+            record["processing_error"] = str(exc)
+            failed = deepcopy(data)
+            failed["stage"] = "result_error"
+            if not self.commit_operation(operation_id, failed, record):
+                return ""
+            return self.RESULT_ERROR_MESSAGE
         record = self.read_operation(operation_id)
         record.update(status="applied")
+        record.pop("processing_error", None)
         # Confere e grava atomicamente, inclusive se "sair" chegar em outro worker.
         committed = self.commit_operation(operation_id, updated, record)
         if not committed:
@@ -167,7 +182,8 @@ class ContractBatchFlow:
             "local raw = redis.call('get', KEYS[1]); if not raw then return 0 end; "
             "local current = cjson.decode(raw); "
             "if current.operation_id ~= ARGV[1] or "
-            "(current.stage ~= 'sending_fix' and current.stage ~= 'sending_hedge' and current.stage ~= 'uncertain') "
+            "(current.stage ~= 'sending_fix' and current.stage ~= 'sending_hedge' "
+            "and current.stage ~= 'uncertain' and current.stage ~= 'result_error') "
             "then return 0 end; "
             "redis.call('setex', KEYS[1], 86400, ARGV[2]); "
             "redis.call('setex', KEYS[3], 604800, ARGV[3]); "
@@ -308,7 +324,9 @@ class ContractBatchFlow:
     def prepare_fixation(self, updates, common=None):
         """Prepara apenas; qualquer alteração sempre exige confirmação posterior."""
         data = self.load()
-        if data.get("stage") in {"sending_fix", "sending_hedge", "uncertain"}:
+        if data.get("stage") in self.BLOCKED:
+            if data.get("stage") == "result_error":
+                raise ValueError(self.RESULT_ERROR_MESSAGE)
             raise ValueError("A operação enviada ainda aguarda resultado. Verifique no Protheus; não será reenviada.")
         if not data or data.get("stage") == "done":
             data = {"stage": "collect_fix", "contratosIniciais": [], "contratosFixadosAcumulado": [],
@@ -703,7 +721,7 @@ class ContractBatchFlow:
                     recovered = await self.recover(data)
                 except (ValueError, TypeError, KeyError):
                     logger.exception("Retorno persistido ainda não pôde ser interpretado")
-                    recovered = None
+                    recovered = self.RESULT_ERROR_MESSAGE
                 if recovered is not None:
                     return recovered if related else None
                 if not related:
