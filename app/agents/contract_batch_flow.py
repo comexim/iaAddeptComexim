@@ -241,8 +241,13 @@ class ContractBatchFlow:
                 raise ValueError("Lotes deve ser um número inteiro e positivo.")
             fields["lotes"] = int(value)
         if hedge:
-            if re.search(r"\b(?:mes|ano|nivel|valor|tipo|operac|account|conta|ctrex|lancaa)\b", plain):
-                raise ValueError("Após a montagem do Hedge, somente corretora e lotes podem ser alterados.")
+            if re.search(r"\b(?:mes|ano|nivel|valor|tipo|operac|account|conta|ctrex)\b", plain):
+                raise ValueError("Após a montagem do Hedge, somente corretora, lotes e AA podem ser alterados.")
+            aa = re.search(r"\b(?:lancaa|(?:lanc\.?\s*)?aa)\s*(?:[:=]|para\b|e\b)?\s*(sim|nao|s|n)\b", plain)
+            if aa:
+                fields["lancaa"] = "Sim" if aa[1] in {"sim", "s"} else "Nao"
+            elif re.search(r"\b(?:lancaa|aa)\b", plain):
+                raise ValueError("Informe AA Sim ou AA Nao.")
             return fields
         value = FixacaoTools.extract_fixation_value(text)
         if value is None:
@@ -322,8 +327,13 @@ class ContractBatchFlow:
             if isinstance(result["lotes"], bool) or not math.isfinite(number) or not number.is_integer() or number <= 0:
                 raise ValueError("Lotes deve ser um número inteiro e positivo.")
             result["lotes"] = int(number)
-        if hedge and set(result) - {"corret", "lotes"}:
-            raise ValueError("Somente corretora e lotes podem ser alterados no Hedge.")
+        if hedge and set(result) - {"corret", "lotes", "lancaa"}:
+            raise ValueError("Somente corretora, lotes e AA podem ser alterados no Hedge.")
+        if hedge and "lancaa" in result:
+            aa = normalized(result["lancaa"])
+            if aa not in {"sim", "s", "nao", "n"}:
+                raise ValueError("Informe AA Sim ou AA Nao.")
+            result["lancaa"] = "Sim" if aa in {"sim", "s"} else "Nao"
         if "corret" in result:
             result["corret"] = str(result["corret"]).strip()
             if not result["corret"]:
@@ -450,11 +460,11 @@ class ContractBatchFlow:
                     + ". Se quiser, informe também diferencial, tipo do valor e fixador do preço; são opcionais.")
         lines = ["Resumo para confirmação da fixação:"]
         for item in data["contratos"]:
-            lines.extend([f"- {identity(item)}", f"\t- Valor da Fixação: {cls.display_value(item['valorFixacao'], item)};"])
+            lines.extend([f"- {identity(item)}", f"\t- Valor da Fixação: {cls.display_value(item['valorFixacao'], item)}"])
             if "fixadorPreco" in item:
-                lines.append(f"\t- Fixador do Preço: {cls.FIXERS.get(item['fixadorPreco'], item['fixadorPreco'])};")
+                lines.append(f"\t- Fixador do Preço: {cls.FIXERS.get(item['fixadorPreco'], item['fixadorPreco'])}")
             if "diferencial" in item:
-                lines.append(f"\t- Diferencial: {cls.display_number(item['diferencial'])};")
+                lines.append(f"\t- Diferencial: {cls.display_number(item['diferencial'])}")
             lines.append(cls.SEPARATOR)
         return "\n".join(lines + ["Confirma o envio destes contratos?"])
 
@@ -558,28 +568,32 @@ class ContractBatchFlow:
         movements = []
         for key in selected:
             source = next(i for i in data["contratosDados"] if identity(i) == key)
-            movement = {"ctrex": key, "valor": eligible[key]["nivel"], "tipo": "C", "operac": "FV"}
+            movement = {"ctrex": key, "valor": eligible[key]["nivel"], "tipo": "C", "operac": "FV", "lancaa": "Nao"}
             recommendation = await asyncio.to_thread(HedgeTools.recommend_lots, key) or {}
             for field, recommended in (("mesfix", "mesfixRecomendado"), ("anofix", "anofixRecomendado"), ("lotes", "lotesRecomendados")):
                 value = source.get(field, recommendation.get(recommended))
                 if value is not None:
                     movement[field] = value
-            for field in ("corret", "lancaa"):
-                if field in source:
-                    movement[field] = source[field]
+            if "corret" in source:
+                movement["corret"] = source["corret"]
             movement.update(per_contract.get(key, common))
             if "corret" in movement:
                 movement["account"] = movement["corret"]
             movements.append(movement)
         data.update({"movimentosIniciais": deepcopy(movements), "movimentosAindaNaoRegistrados": movements,
-                     "movimentosRegistradosAcumulado": [], "movimentos": deepcopy(movements), "stage": "collect_hedge"})
+                     "movimentosRegistradosAcumulado": [], "movimentos": deepcopy(movements),
+                     "hedge_submitted": False, "stage": "collect_hedge"})
         self.save(data)
         return self.hedge_summary(data)
+
+    @staticmethod
+    def hedge_has_been_submitted(data):
+        # Compatibilidade com sessões persistidas antes desta versão.
+        return data.get("hedge_submitted", "movimentosRegistrados" in data or "movimentosNaoRegistrados" in data)
 
     def hedge_summary(self, data):
         from app.agents.hedge_tools import HedgeTools
         for item in data["movimentos"]:
-            # Conserva inclusive lancaa, obrigatório no fluxo anterior.
             for field in HedgeTools.REQUIRED:
                 if field not in item or (field == "lotes" and item[field] <= 0):
                     data["stage"] = "collect_hedge"
@@ -588,6 +602,10 @@ class ContractBatchFlow:
                     return HedgeTools.question_for(field, contract=identity(item))
         data.pop("missing", None)
         data["stage"] = "confirm_hedge"
+        # Antes do primeiro envio, a base do Hedge reflete a proposta atual.
+        # Após o envio, ela permanece imutável durante as tentativas existentes.
+        if not self.hedge_has_been_submitted(data):
+            data["movimentosIniciais"] = deepcopy(data["movimentos"])
         data["confirmation_id"] = uuid.uuid4().hex
         self.save(data)
         lines = ["Resumo do Hedge:", ""]
@@ -596,16 +614,41 @@ class ContractBatchFlow:
             for field in ("mesfix", "anofix", "lotes", "valor", "corret", "lancaa"):
                 if field in item:
                     value = self.display_number(item[field]) if field in {"lotes", "valor"} else item[field]
+                    if field == "valor":
+                        # Completa centavos sem arredondar níveis mais precisos.
+                        integer, _, decimals = value.partition(",")
+                        value = integer + "," + decimals.ljust(2, "0")
                     lines.append(f"- {self.LABELS[field]}: {value}")
             lines.append(self.SEPARATOR)
         return "\n".join(lines + ["Confirma o envio destes movimentos?"])
 
     def update_hedge(self, data, message):
         from app.agents.hedge_tools import HedgeTools
-        selecting_retry = data.get("stage") == "edit_hedge"
+        # Uma correção inválida não deve aplicar parcialmente exclusões ou dados.
+        data = deepcopy(data)
+        excluded = set()
+        clauses = re.split(r"\b(exclua|excluir|remova|remover|retire|retirar|corrija|corrigir|altere|alterar|ajuste|ajustar)\b", message, flags=re.I)
+        remaining = [clauses[0]]
+        for index in range(1, len(clauses), 2):
+            command, content = clauses[index:index + 2]
+            if normalized(command) in {"exclua", "excluir", "remova", "remover", "retire", "retirar"}:
+                if self.hedge_has_been_submitted(data):
+                    raise ValueError("A exclusão da proposta é permitida somente antes do primeiro envio do Hedge.")
+                _, refs = self.parse_contracts(content)
+                if not refs:
+                    raise ValueError("Informe quais contratos deseja excluir da proposta de Hedge.")
+                if self.fields_from_text(content, hedge=True):
+                    raise ValueError("Separe a exclusão das correções usando, por exemplo, 'exclua 374/26D e corrija 375/26 para 2 lotes'.")
+                excluded.update(refs)
+            else:
+                remaining.append(content)
+        message = " ".join(remaining)
         current_selection = {identity(i) for i in data["movimentos"]}
+        if excluded - current_selection:
+            raise ValueError("Exclua somente contratos presentes no resumo atual do Hedge.")
+        selecting_retry = data.get("stage") == "edit_hedge"
         updates, common = [], {}
-        if data.get("stage") == "collect_hedge" and data.get("missing"):
+        if data.get("stage") == "collect_hedge" and data.get("missing") and not excluded:
             ref, field = data["missing"]
             if field not in {"corret", "account", "lotes"}:
                 # Somente coleta inicial de campos obrigatórios ainda desconhecidos.
@@ -629,8 +672,10 @@ class ContractBatchFlow:
         allowed = {identity(i) for i in data["movimentosAindaNaoRegistrados"]}
         if any(ref not in allowed for ref, _ in updates):
             raise ValueError("Selecione apenas movimentos pendentes. Movimentos registrados não podem ser reenviados.")
-        if not updates and not common:
-            raise ValueError("Informe a corretora ou a quantidade de lotes, por contrato ou para o grupo.")
+        if not updates and not common and not excluded:
+            raise ValueError("Informe a corretora, a quantidade de lotes ou AA, por contrato ou para o grupo.")
+        if excluded & {ref for ref, _ in updates}:
+            raise ValueError("Não corrija e exclua o mesmo contrato na mesma mensagem.")
         targets = {ref for ref, _ in updates} or {identity(i) for i in data["movimentos"]}
         for item in data["movimentosAindaNaoRegistrados"]:
             ref = identity(item)
@@ -640,7 +685,13 @@ class ContractBatchFlow:
                 if "corret" in item:
                     item["account"] = item["corret"]
         selection = targets if selecting_retry else current_selection
+        if excluded:
+            data["movimentosAindaNaoRegistrados"] = [i for i in data["movimentosAindaNaoRegistrados"] if identity(i) not in excluded]
+            data["movimentosIniciais"] = [i for i in data["movimentosIniciais"] if identity(i) not in excluded]
+            selection -= excluded
         data["movimentos"] = [deepcopy(i) for i in data["movimentosAindaNaoRegistrados"] if identity(i) in selection]
+        if not data["movimentos"]:
+            return self.finish_hedge(data)
         return self.hedge_summary(data)
 
     async def send(self, data, hedge=False):
@@ -664,6 +715,8 @@ class ContractBatchFlow:
             self.release_lock(operation_id)
             return "O resumo foi alterado ou já foi processado. Confira a confirmação atual antes de enviar."
         data["stage"] = "sending_hedge" if hedge else "sending_fix"
+        if hedge:
+            data["hedge_submitted"] = True
         data.update(operation_id=operation_id, process_id=_process_id)
         try:
             self.save_operation(operation_id, {"status": "started", "hedge": hedge, "snapshot": data})
@@ -819,11 +872,14 @@ class ContractBatchFlow:
                 updates, common = self.parse_updates(message)
                 return self.prepare_fixation(updates, common)
             if stage == "offer":
-                if value in self.NO:
+                if value in self.NO or value == "sair":
                     data["stage"] = "done"
                     self.save(data)
                     return self.final_report(data)
-                if value in self.YES or re.match(r"^(?:sim|hedge|todos|contratos|[0-9]+\s*/)", value):
+                _, selected_refs = self.parse_contracts(message)
+                if value == "parte":
+                    return "Quais contratos deseja incluir no Hedge? Informe os números dos contratos fixados, ou digite sair."
+                if value in self.YES or selected_refs or re.match(r"^(?:sim|hedge|todos|contratos)\b", value):
                     return await self.start_hedge(data, message)
                 return "Deseja realizar o Hedge dos contratos fixados? Responda sim ou não, ou selecione os contratos."
             hedge = stage.endswith("hedge")

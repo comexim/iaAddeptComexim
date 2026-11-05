@@ -260,8 +260,7 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_hedge_selection_uses_returned_level_and_preserves_required_aa(self):
         await self.fixed()
         self.assertIn("corretora", await self.flow.handle("sim 375/26"))
-        self.assertIn("AA", await self.flow.handle("A14"))
-        summary = await self.flow.handle("nao")
+        summary = await self.flow.handle("A14")
         self.assertIn("Lanc. AA: Nao", summary)
         self.assertIn("Valor: 102,1", summary)
         self.hedge_send.return_value = hedge_result(("375/26",))
@@ -279,9 +278,10 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
             ("375/26", {"valorFixacao": 105.1, "tipoValor": "C", "fixadorPreco": "I", "diferencial": 0}),
             ("037/26", {"valorFixacao": 99.87}),
         ])
-        self.assertIn("- 374/26D\n\t- Valor da Fixação: 110,1 CTS/LB;\n\t- Fixador do Preço: Exportador;\n\t- Diferencial: -1;", summary)
-        self.assertIn("Fixador do Preço: Importador;\n\t- Diferencial: 0;", summary)
-        self.assertIn("- 037/26\n\t- Valor da Fixação: 99,87;", summary)
+        self.assertIn("- 374/26D\n\t- Valor da Fixação: 110,1 CTS/LB\n\t- Fixador do Preço: Exportador\n\t- Diferencial: -1", summary)
+        self.assertIn("Fixador do Preço: Importador\n\t- Diferencial: 0", summary)
+        self.assertNotIn(";", summary)
+        self.assertIn("- 037/26\n\t- Valor da Fixação: 99,87", summary)
         self.assertNotIn("valorFixacao", summary)
         result = fixation_result(("374/26D",), ("375/26", "037/26"), level=112.3)
         result["contratosNaoFixados"][0]["motivos"] = ["Fixador obrigatório", "Outro motivo retornado"]
@@ -317,9 +317,8 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         for invalid in ("0", "11"):
             self.assertIn("Qual é a corretora", await self.flow.handle(invalid))
             self.assertNotIn("corret", self.flow.load()["movimentos"][0])
-        self.assertIn("AA", await self.flow.handle("4"))
-        summary = await self.flow.handle("nao")
-        self.assertIn("Contrato 374/26D:\n- Mes Fix: DEZ\n- Ano Fix: 2026\n- Lotes: 1\n- Valor: 110,1\n- Corretora: A14\n- Lanc. AA: Nao", summary)
+        summary = await self.flow.handle("4")
+        self.assertIn("Contrato 374/26D:\n- Mes Fix: DEZ\n- Ano Fix: 2026\n- Lotes: 1\n- Valor: 110,10\n- Corretora: A14\n- Lanc. AA: Nao", summary)
         self.assertNotIn("account", summary)
         self.hedge_send.return_value = hedge_result(("374/26D",))
         output = await self.flow.handle("sim")
@@ -372,10 +371,143 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
     async def hedge_ready(self):
         await self.fixed()
         await self.flow.handle("sim corretora A14")
-        # AA é obrigatório e coletado individualmente para cada movimento.
-        for _ in range(3):
-            await self.flow.handle("sim")
         self.assertEqual(self.flow.load()["stage"], "confirm_hedge")
+
+    async def test_offer_part_waits_and_accepts_contracts_in_a_sentence(self):
+        await self.fixed()
+        self.assertIn("Quais contratos", await self.flow.handle("parte"))
+        self.assertEqual(self.flow.load()["stage"], "offer")
+        self.assertNotIn("movimentos", self.flow.load())
+        await self.flow.handle("Quero apenas o contrato 375/26 corretora A13")
+        self.assertEqual([identity(i) for i in self.flow.load()["movimentos"]], ["375/26"])
+        self.hedge_send.assert_not_called()
+
+    async def test_batch_correction_exclusion_preserves_selection_and_final_report(self):
+        await self.hedge_ready()
+        fixed = deepcopy(self.flow.load()["contratosFixadosAcumulado"])
+        await self.flow.handle("nao")
+        summary = await self.flow.handle("Corrija o Contrato 375/26 para 2 lotes contra a corretora A13 e AA Sim e exclua o contrato 374/26D")
+        self.assertIn("Corretora: A13\n- Lanc. AA: Sim", summary)
+        self.assertIn("Contrato 037/26:", summary)
+        self.assertNotIn("Contrato 374/26D:", summary)
+        data = self.flow.load()
+        for field in ("movimentos", "movimentosIniciais", "movimentosAindaNaoRegistrados"):
+            self.assertEqual({identity(i) for i in data[field]}, {"375/26", "037/26"})
+        self.assertEqual(data["contratosFixadosAcumulado"], fixed)
+        self.assertEqual(data["movimentos"][0]["account"], "A13")
+        summary = await self.flow.handle("037/26 3 lotes")
+        self.assertIn("Corretora: A13\n- Lanc. AA: Sim", summary)
+        self.hedge_send.assert_not_called()
+        self.hedge_send.return_value = hedge_result(("375/26", "037/26"))
+        report = await self.flow.handle("sim")
+        self.assertIn("374/26D = Nível: 102,1 — Hedge = NAO", report)
+        self.assertNotIn("VERIFICAR", report)
+        self.assertEqual({i["ctrex"] for i in self.hedge_send.await_args.args[0]["movimentos"]}, {"375/26", "037/26"})
+
+    async def test_exclude_all_discards_only_hedge_without_sending(self):
+        await self.hedge_ready()
+        report = await self.flow.handle("exclua 374/26D, 375/26 e 037/26")
+        data = self.flow.load()
+        self.assertEqual(data["stage"], "done")
+        for field in ("movimentos", "movimentosIniciais", "movimentosAindaNaoRegistrados"):
+            self.assertEqual(data[field], [])
+        self.assertEqual(len(data["contratosFixadosAcumulado"]), 3)
+        self.assertEqual(report.count("Hedge = NAO"), 3)
+        self.hedge_send.assert_not_called()
+
+    async def test_invalid_batch_is_atomic_and_aa_is_validated(self):
+        await self.hedge_ready()
+        original = self.flow.load()
+        for message in ("exclua 374/26D e corrija 375/26 0 lotes", "375/26 AA talvez", "exclua 999/26", "corrija 375/26 3 lotes e exclua 375/26"):
+            self.assertIn("Verifique", await self.flow.handle(message))
+            self.assertEqual(self.flow.load(), original)
+        self.hedge_send.assert_not_called()
+
+    async def test_exclusion_during_broker_collection_and_offer_exit(self):
+        await self.fixed()
+        await self.flow.handle("todos")
+        summary = await self.flow.handle("exclua 374/26D")
+        self.assertIn("corretora", summary)
+        self.assertEqual({identity(i) for i in self.flow.load()["movimentos"]}, {"375/26", "037/26"})
+        summary = await self.flow.handle("corretora A13")
+        self.assertEqual(self.flow.load()["stage"], "confirm_hedge")
+        self.assertEqual(summary.count("Corretora: A13"), 2)
+        self.hedge_send.assert_not_called()
+        await self.flow.handle("sair")
+        await self.fixed()
+        report = await self.flow.handle("sair")
+        self.assertIn("Relatório sintético", report)
+        self.assertEqual(self.flow.load()["stage"], "done")
+
+    async def test_aa_defaults_to_no_despite_previous_metadata_and_preserves_precision(self):
+        self.flow.prepare_fixation([("375/26", {"valorFixacao": 100, "corret": "A13", "lancaa": "Sim"})])
+        self.fix_send.return_value = fixation_result(("375/26",), level=101.111)
+        await self.flow.handle("sim")
+        summary = await self.flow.handle("todos")
+        self.assertIn("Lanc. AA: Nao", summary)
+        self.assertIn("Valor: 101,111", summary)
+        self.assertEqual(self.flow.load()["movimentos"][0]["valor"], 101.111)
+
+    async def test_excluded_contract_never_returns_as_pending_after_partial_result(self):
+        await self.hedge_ready()
+        await self.flow.handle("exclua 374/26D")
+        initial = deepcopy(self.flow.load()["movimentosIniciais"])
+        self.hedge_send.return_value = hedge_result(("375/26",), ("037/26",))
+        await self.flow.handle("sim")
+        self.assertEqual([identity(i) for i in self.flow.load()["movimentosAindaNaoRegistrados"]], ["037/26"])
+        await self.flow.handle("nao")
+        await self.flow.handle("2")
+        self.assertIn("antes do primeiro envio", await self.flow.handle("exclua 037/26"))
+        await self.flow.handle("037/26 3 lotes AA Sim")
+        self.assertEqual(self.flow.load()["movimentosIniciais"], initial)
+        self.hedge_send.return_value = hedge_result(("037/26",))
+        report = await self.flow.handle("sim")
+        self.assertEqual(self.hedge_send.await_count, 2)
+        self.assertEqual([i["ctrex"] for i in self.hedge_send.await_args.args[0]["movimentos"]], ["037/26"])
+        self.assertIn("374/26D = Nível: 102,1 — Hedge = NAO", report)
+        self.assertNotIn("VERIFICAR", report)
+
+    async def test_legacy_retry_keeps_initial_snapshot(self):
+        await self.hedge_ready()
+        self.hedge_send.return_value = hedge_result(("375/26",), ("374/26D", "037/26"))
+        await self.flow.handle("sim")
+        await self.flow.handle("nao")
+        await self.flow.handle("2")
+        data = self.flow.load()
+        data.pop("hedge_submitted")
+        initial = deepcopy(data["movimentosIniciais"])
+        self.flow.save(data)
+        await self.flow.handle("037/26 corretora A13")
+        self.assertEqual(self.flow.load()["movimentosIniciais"], initial)
+
+    async def test_unknown_selection_is_rejected_and_offer_aa_is_explicit(self):
+        await self.fixed()
+        original = self.flow.load()
+        self.assertIn("efetivamente fixados", await self.flow.handle("parte 999/26"))
+        self.assertEqual(self.flow.load(), original)
+        summary = await self.flow.handle("sim 375/26 corretora A13 AA Sim")
+        self.assertIn("Lanc. AA: Sim", summary)
+        self.hedge_send.assert_not_called()
+
+    async def test_correction_invalidates_stale_confirmation(self):
+        await self.hedge_ready()
+        stale = self.flow.load()
+        await self.flow.handle("375/26 3 lotes AA Sim")
+        self.assertIn("resumo foi alterado", await self.flow.send(stale, hedge=True))
+        self.hedge_send.assert_not_called()
+
+    async def test_all_fixed_contracts_are_shown_with_distinct_levels_and_known_metadata(self):
+        await self.fixed()
+        data = self.flow.load()
+        for index, item in enumerate(data["contratosFixadosAcumulado"]):
+            item["nivel"] = 100 + index + 0.111
+        self.flow.save(data)
+        summary = await self.flow.handle("todos corretora A13")
+        self.assertEqual(summary.count("Contrato "), 3)
+        for index, movement in enumerate(self.flow.load()["movimentos"]):
+            self.assertEqual(movement["valor"], 100 + index + 0.111)
+            self.assertEqual((movement["operac"], movement["tipo"], movement["account"], movement["lancaa"]), ("FV", "C", "A13", "Nao"))
+        self.hedge_send.assert_not_called()
 
     async def test_hedge_partial_subset_and_accumulated_final(self):
         await self.hedge_ready()
