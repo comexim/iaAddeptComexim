@@ -28,6 +28,16 @@ class AuthService:
         Returns:
             UserPermissions se autorizado, None caso contrário
         """
+        # BYPASS: Rodolfo Rodrigues - acesso TOTAL
+        if phone == "13991923188":
+            logger.info(f"[BYPASS] {phone} Rodolfo Rodrigues - ACESSO TOTAL")
+            return UserPermissions(
+                telefone="13991923188",
+                nome="Rodolfo Rodrigues",
+                email="rodolfo.rodrigues@comexim.com.br",
+                direitos=["Financeiro", "Estoque", "Vendas", "Compras", "Orçamento", "RH", "Fiscal", "Contábil", "Fixacao"]
+            )
+
         # BYPASS: Usuário de teste com acesso TOTAL
         # Telefone já vem sem o prefixo 55 (normalizado em message.py)
         if phone == "6182563956":
