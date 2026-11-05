@@ -252,7 +252,9 @@ class FixacaoTools:
             func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato",
             description=("Prepara fixação em lote. Informe numero_venda e letra_venda ou contratos_json "
                          "como lista de objetos numeroVenda, letraVenda e fixacaoContrato com exatamente um item. "
-                         "Somente número da venda 999/99 e valorFixacao são obrigatórios; diferencial, tipoValor e fixadorPreco permanecem opcionais. "
+                         "Informe número da venda 999/99 e valorFixacao. O fluxo consulta os dados uma vez por contrato "
+                         "e resolve tipoValor antes da confirmação; se ausente ou desconhecido, solicite-o ao usuário. "
+                         "Diferencial e fixadorPreco permanecem opcionais. "
                          "Nunca aceite código interno contratodeVenda. Complete zeros à esquerda e questione duplicidades. "
                          "Dados comuns devem ser reproduzidos por contrato. Mostre integralmente o resumo retornado. "
                          "Qualquer alteração exige nova confirmação posterior. Só use confirmar_envio=True após confirmação explícita sem novos dados. "

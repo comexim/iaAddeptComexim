@@ -59,6 +59,7 @@ class ContractBatchFlow:
               "mesfix": "Mes Fix", "anofix": "Ano Fix", "lotes": "Lotes",
               "valor": "Valor", "corret": "Corretora", "lancaa": "Lanc. AA"}
     UNITS = {"C": "CTS/LB", "K": "KG", "5": "50 KG", "6": "59 KG", "T": "TON"}
+    TYPE_DESCRIPTIONS = {"C": "CTS/LB", "K": "US$ KG", "5": "US$ 50KG", "6": "US$ 59KG", "T": "US$ Ton"}
     FIXERS = {"E": "Exportador", "I": "Importador", "F": "Fixador"}
     BLOCKED = {"sending_fix", "sending_hedge", "uncertain", "result_error"}
     RESULT_ERROR_MESSAGE = ("A CMX respondeu, mas houve um erro ao interpretar o retorno. "
@@ -340,6 +341,58 @@ class ContractBatchFlow:
                 raise ValueError("Informe a corretora.")
         return result
 
+    def remember_contract_data(self, data, item):
+        """Consulta uma vez no processo e persiste inclusive tentativas sem dados."""
+        from app.agents.hedge_tools import HedgeTools
+        from app.core.database import sql_client
+
+        key = identity(item)
+        cache = data.setdefault("consultasContratos", {})
+        if key not in cache:
+            record = {"status": "consultando", "retorno": [], "recomendacao": {}}
+            cache[key] = record
+            # Uma interrupção após a consulta não pode causar nova execução no reinício.
+            self.save(data)
+            try:
+                rows = sql_client.execute_procedure("usp_IA_Vendas", {"Contrato": key})
+                if rows is None:
+                    rows = []
+                if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                    raise ValueError("Retorno da consulta de contratos inválido.")
+                # Decimal e datas do SQL precisam sobreviver à persistência em JSON.
+                record["retorno"] = json.loads(json.dumps(rows, ensure_ascii=False, default=str))
+                record["status"] = "ok" if rows else "vazio"
+                descriptions = {re.sub(r"\s+", " ", str(value)).strip()
+                                for row in rows for field, value in row.items()
+                                if str(field).strip().lower() == "tipovalor" and value not in (None, "")}
+                mapping = {normalized(description): code for code, description in self.TYPE_DESCRIPTIONS.items()}
+                codes = {mapping.get(normalized(description)) for description in descriptions}
+                if len(codes) == 1 and None not in codes:
+                    record["tipoValor"] = codes.pop()
+                    record["tipoValorDescricao"] = sorted(descriptions)[0]
+                try:
+                    record["recomendacao"] = HedgeTools.recommendation_from_rows(record["retorno"])
+                except (ArithmeticError, TypeError, ValueError):
+                    # Dados incompletos de lotes não invalidam o Tipo Valor conhecido.
+                    record["recomendacao"] = {}
+            except Exception as exc:
+                record["status"] = "erro"
+                record["erro"] = type(exc).__name__
+                logger.warning("Consulta inicial do contrato %s indisponível; solicitar dados ausentes.", key)
+            self.save(data)
+        record = cache[key]
+        if not item.get("tipoValor") and record.get("tipoValor"):
+            item["tipoValor"] = record["tipoValor"]
+        if item.get("tipoValor"):
+            item["tipoValorDescricao"] = (record.get("tipoValorDescricao") if item["tipoValor"] == record.get("tipoValor")
+                                          else self.TYPE_DESCRIPTIONS.get(item["tipoValor"]))
+
+    @staticmethod
+    def fixation_ready(data):
+        return bool(data["contratos"]) and all(
+            all(item.get(field) is not None for field in ("valorFixacao", "tipoValor"))
+            for item in data["contratos"])
+
     def prepare_fixation(self, updates, common=None):
         """Prepara apenas; qualquer alteração sempre exige confirmação posterior."""
         data = self.load()
@@ -382,6 +435,8 @@ class ContractBatchFlow:
             self.save(data)
             raise ValueError("Informe ao menos um numeroVenda no formato 999/99, com a letra quando existir.")
         data["contratosAindaNaoFixados"] = pending
+        for item in pending:
+            self.remember_contract_data(data, item)
         if initial:
             data["contratosIniciais"] = deepcopy(pending)
             data.pop("unassigned_fields", None)
@@ -389,7 +444,7 @@ class ContractBatchFlow:
         if not initial and data["stage"] in {"collect_fix", "confirm_fix"}:
             chosen = {identity(i) for i in data["contratos"]}
         data["contratos"] = [deepcopy(item) for item in pending if identity(item) in chosen]
-        data["stage"] = "confirm_fix" if all("valorFixacao" in i for i in data["contratos"]) else "collect_fix"
+        data["stage"] = "confirm_fix" if self.fixation_ready(data) else "collect_fix"
         data["confirmation_id"] = uuid.uuid4().hex
         self.save(data)
         return self.fix_summary(data)
@@ -407,7 +462,7 @@ class ContractBatchFlow:
 
     @classmethod
     def display_value(cls, value, source=None):
-        unit = cls.UNITS.get(str((source or {}).get("tipoValor", "")).strip().upper())
+        unit = (source or {}).get("tipoValorDescricao") or cls.UNITS.get(str((source or {}).get("tipoValor", "")).strip().upper())
         return cls.display_number(value) + (f" {unit}" if unit else "")
 
     @staticmethod
@@ -457,7 +512,11 @@ class ContractBatchFlow:
         missing = [identity(i) for i in data["contratos"] if "valorFixacao" not in i]
         if missing:
             return ("Informe o valor da fixação para: " + ", ".join(missing)
-                    + ". Se quiser, informe também diferencial, tipo do valor e fixador do preço; são opcionais.")
+                    + ". Se quiser, informe também diferencial e fixador do preço; são opcionais.")
+        missing_type = [identity(i) for i in data["contratos"] if not i.get("tipoValor")]
+        if missing_type:
+            return ("Tipo Valor ausente ou não reconhecido. Informe o Tipo Valor para: " + ", ".join(missing_type)
+                    + ". Opções: CTS/LB, US$ KG, US$ 50KG, US$ 59KG ou US$ Ton.")
         lines = ["Resumo para confirmação da fixação:"]
         for item in data["contratos"]:
             lines.extend([f"- {identity(item)}", f"\t- Valor da Fixação: {cls.display_value(item['valorFixacao'], item)}"])
@@ -556,7 +615,6 @@ class ContractBatchFlow:
         return "\n".join(lines)
 
     async def start_hedge(self, data, message):
-        from app.agents.hedge_tools import HedgeTools
         _, refs = self.parse_contracts(message)
         eligible = {identity(item): item for item in data["contratosFixadosAcumulado"]}
         if set(refs) - eligible.keys():
@@ -569,9 +627,11 @@ class ContractBatchFlow:
         for key in selected:
             source = next(i for i in data["contratosDados"] if identity(i) == key)
             movement = {"ctrex": key, "valor": eligible[key]["nivel"], "tipo": "C", "operac": "FV", "lancaa": "Nao"}
-            recommendation = await asyncio.to_thread(HedgeTools.recommend_lots, key) or {}
+            recommendation = data.get("consultasContratos", {}).get(key, {}).get("recomendacao", {})
             for field, recommended in (("mesfix", "mesfixRecomendado"), ("anofix", "anofixRecomendado"), ("lotes", "lotesRecomendados")):
-                value = source.get(field, recommendation.get(recommended))
+                value = source.get(field)
+                if value in (None, ""):
+                    value = recommendation.get(recommended)
                 if value is not None:
                     movement[field] = value
             if "corret" in source:
@@ -699,6 +759,8 @@ class ContractBatchFlow:
         items = data["movimentos" if hedge else "contratos"]
         if not items:
             raise ValueError("Selecione ao menos um item antes do envio.")
+        if not hedge and not self.fixation_ready(data):
+            return self.fix_summary(data)
         registered = {identity(i) for i in data["movimentosRegistradosAcumulado" if hedge else "contratosFixadosAcumulado"]}
         if any(identity(i) in registered for i in items):
             raise ValueError("Itens já concluídos não podem ser reenviados.")
@@ -870,7 +932,7 @@ class ContractBatchFlow:
                 self.release_lock(operation_id)
             if not data or stage == "done":
                 updates, common = self.parse_updates(message)
-                return self.prepare_fixation(updates, common)
+                return await asyncio.to_thread(self.prepare_fixation, updates, common)
             if stage == "offer":
                 if value in self.NO or value == "sair":
                     data["stage"] = "done"
@@ -918,7 +980,14 @@ class ContractBatchFlow:
                 return "Informe quais dados deseja corrigir, ou digite sair para descartar novas tentativas."
             if hedge:
                 return self.update_hedge(data, message)
+            if stage == "collect_fix" and all("valorFixacao" in i for i in data["contratos"]):
+                from app.agents.fixacao_tools import FixacaoTools
+                _, refs = self.parse_contracts(message)
+                code = FixacaoTools.normalize_tipo_valor(message)
+                if not refs and code and not re.search(r"\b(?:valor|nivel|fixacao|diferencial)\b", value):
+                    updates = [(identity(i), {"tipoValor": code}) for i in data["contratos"] if not i.get("tipoValor")]
+                    return await asyncio.to_thread(self.prepare_fixation, updates)
             updates, common = self.parse_updates(message)
-            return self.prepare_fixation(updates, common)
+            return await asyncio.to_thread(self.prepare_fixation, updates, common)
         except (ValueError, TypeError, KeyError) as exc:
             return f"Verifique as informações: {exc}"

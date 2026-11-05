@@ -84,64 +84,7 @@ class HedgeTools:
             rows = sql_client.execute_procedure(
                 "usp_IA_Vendas", {"Contrato": str(contract).strip()}
             )
-            candidates = []
-            for row in rows or []:
-                raw = next(
-                    (value for key, value in row.items() if str(key).lower() == "sacas"),
-                    None,
-                )
-                if raw is None:
-                    continue
-                quantity = Decimal(str(raw).replace(",", "."))
-                if quantity > 0:
-                    candidates.append((quantity, row))
-            if not candidates:
-                logger.warning(
-                    "[HEDGE] Contrato %s sem quantidade de sacas para recomendacao",
-                    contract,
-                )
-                return None
-
-            # A procedure pode repetir o total do contrato em mais de uma linha;
-            # por isso usamos a maior quantidade encontrada, sem somar duplicatas.
-            sacks, reference_row = max(candidates, key=lambda item: item[0])
-            lots = int(
-                (sacks / Decimal("288.300235169045")).quantize(
-                    Decimal("1"), rounding=ROUND_HALF_UP
-                )
-            )
-            result = {"sacasContrato": float(sacks), "lotesRecomendados": lots}
-
-            raw_fixation_month = next(
-                (
-                    value for key, value in reference_row.items()
-                    if str(key).lower() in {
-                        "mesfixacao", "mesfix", "mesfixacaobolsa", "mesanofixacao"
-                    }
-                    and value not in (None, "")
-                ),
-                None,
-            )
-            fixation_digits = re.sub(r'\D', '', str(raw_fixation_month or ""))
-            if len(fixation_digits) == 6:
-                if fixation_digits[:4].startswith("20"):
-                    year, month_number = fixation_digits[:4], fixation_digits[4:]
-                else:
-                    month_number, year = fixation_digits[:2], fixation_digits[2:]
-                month_code = HedgeTools.MONTH_NUMBERS.get(month_number)
-                if month_code:
-                    result.update({
-                        "mesfixRecomendado": month_code,
-                        "anofixRecomendado": year,
-                    })
-
-            logger.info(
-                "[HEDGE] Recomendacao para contrato %s: %s sacas = %s lotes; "
-                "vencimento=%s/%s",
-                contract, sacks, lots,
-                result.get("mesfixRecomendado"), result.get("anofixRecomendado"),
-            )
-            return result
+            return HedgeTools.recommendation_from_rows(rows) or None
         except (InvalidOperation, TypeError, ValueError) as exc:
             logger.warning("[HEDGE] Quantidade invalida no contrato %s: %s", contract, exc)
         except Exception as exc:
@@ -149,6 +92,35 @@ class HedgeTools:
             # em erro; o fluxo apenas segue sem a recomendacao.
             logger.exception("[HEDGE] Falha ao calcular lotes para %s: %s", contract, exc)
         return None
+
+    @staticmethod
+    def recommendation_from_rows(rows: list) -> Dict[str, Any]:
+        """Calcula a recomendação sem consultar o banco; aceita dados persistidos."""
+        candidates = []
+        for row in rows or []:
+            raw = next((value for key, value in row.items() if str(key).strip().lower() == "sacas"), None)
+            try:
+                quantity = Decimal(str(raw).replace(",", "."))
+                if quantity.is_finite() and quantity > 0:
+                    candidates.append((quantity, row))
+            except (InvalidOperation, TypeError, ValueError):
+                continue
+        result = {}
+        reference_row = rows[0] if rows else {}
+        if candidates:
+            # Preserva a regra existente: maior quantidade, sem somar repetições.
+            sacks, reference_row = max(candidates, key=lambda item: item[0])
+            lots = int((sacks / Decimal("288.300235169045")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            result.update(sacasContrato=float(sacks), lotesRecomendados=lots)
+        raw_month = next((value for key, value in reference_row.items()
+                          if str(key).strip().lower() in {"mesfixacao", "mesfix", "mesfixacaobolsa", "mesanofixacao"}
+                          and value not in (None, "")), None)
+        digits = re.sub(r'\D', '', str(raw_month or ""))
+        if len(digits) == 6:
+            year, month = (digits[:4], digits[4:]) if digits[:4].startswith("20") else (digits[2:], digits[:2])
+            if month in HedgeTools.MONTH_NUMBERS:
+                result.update(mesfixRecomendado=HedgeTools.MONTH_NUMBERS[month], anofixRecomendado=year)
+        return result
 
     @staticmethod
     def recommendation_message(data: Dict[str, Any]) -> str:

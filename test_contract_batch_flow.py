@@ -118,11 +118,14 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.flow = ContractBatchFlow("teste", True)
         self.patches = [
             patch.object(ContractBatchFlow, "_redis", return_value=self.store),
-            patch.object(HedgeTools, "recommend_lots", return_value={"mesfixRecomendado": "DEZ", "anofixRecomendado": "2026", "lotesRecomendados": 2}),
+            patch("app.agents.hedge_tools.sql_client.execute_procedure", return_value=[
+                {"tipoValor": "CTS/LB", "sacas": 576.60047033809, "mesFixacao": "202612"}]),
             patch("socket.socket.connect", side_effect=AssertionError("Rede proibida no teste")),
         ]
         for item in self.patches:
-            item.start()
+            mock = item.start()
+            if item is self.patches[1]:
+                self.contract_query = mock
             self.addCleanup(item.stop)
         self.fix_send = AsyncMock()
         self.hedge_send = AsyncMock()
@@ -173,7 +176,7 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.fix_send.return_value = fixation_result(("374/26D", "375/26", "037/26"))
         output = await self.flow.handle("confirmo")
         body = self.fix_send.await_args.args[0]
-        self.assertEqual(body["contratos"][1], {"numeroVenda": "375/26", "letraVenda": "", "fixacaoContrato": [{"valorFixacao": 221.25}]})
+        self.assertEqual(body["contratos"][1], {"numeroVenda": "375/26", "letraVenda": "", "fixacaoContrato": [{"valorFixacao": 221.25, "tipoValor": "C"}]})
         self.assertNotIn("contratodeVenda", json.dumps(body))
         self.assertIn("Hedge", output)
 
@@ -299,11 +302,11 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
                 {"valorFixacao": 110.1, "diferencial": -1.0, "tipoValor": "C", "fixadorPreco": "E"}]},
             {"numeroVenda": "375/26", "letraVenda": "", "fixacaoContrato": [
                 {"valorFixacao": 105.1, "diferencial": 0.0, "tipoValor": "C", "fixadorPreco": "I"}]},
-            {"numeroVenda": "037/26", "letraVenda": "", "fixacaoContrato": [{"valorFixacao": 99.87}]},
+            {"numeroVenda": "037/26", "letraVenda": "", "fixacaoContrato": [{"valorFixacao": 99.87, "tipoValor": "C"}]},
         ]})
         listing = await self.flow.handle("sim")
         self.assertIn("- 375/26:\nNível: 105,1 CTS/LB\nMotivos:\n\t1. Fixador obrigatório\n\t2. Outro motivo retornado", listing)
-        self.assertIn("- 037/26:\nNível: 99,87\nMotivo: Contrato Exportação não encontrado.", listing)
+        self.assertIn("- 037/26:\nNível: 99,87 CTS/LB\nMotivo: Contrato Exportação não encontrado.", listing)
         self.assertNotIn("Dados:", listing)
 
     async def test_numbered_broker_choice_and_friendly_hedge_keep_exact_request(self):
@@ -508,6 +511,135 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(movement["valor"], 100 + index + 0.111)
             self.assertEqual((movement["operac"], movement["tipo"], movement["account"], movement["lancaa"]), ("FV", "C", "A13", "Nao"))
         self.hedge_send.assert_not_called()
+
+    async def test_contract_query_is_once_across_corrections_restart_fixation_and_hedge_retry(self):
+        await self.prepare()
+        self.assertEqual(self.contract_query.call_count, 3)
+        for ref in ("374/26D", "375/26", "037/26"):
+            self.contract_query.assert_any_call("usp_IA_Vendas", {"Contrato": ref})
+        self.flow = ContractBatchFlow("teste", True)
+        await self.flow.handle("375/26 nivel 222")
+        self.fix_send.return_value = fixation_result(("374/26D",), ("375/26", "037/26"))
+        await self.flow.handle("sim")
+        await self.flow.handle("nao")
+        await self.flow.handle("2")
+        await self.flow.handle("375/26 nivel 225")
+        self.fix_send.return_value = fixation_result(("375/26",))
+        await self.flow.handle("sim")
+        await self.flow.handle("nao")
+        await self.flow.handle("1")
+        with patch.object(HedgeTools, "recommend_lots", side_effect=AssertionError("Consulta tardia proibida")):
+            await self.flow.handle("todos corretora A13")
+        self.hedge_send.return_value = hedge_result(("374/26D",), ("375/26",))
+        await self.flow.handle("sim")
+        await self.flow.handle("nao")
+        await self.flow.handle("2")
+        await self.flow.handle("375/26 3 lotes")
+        self.hedge_send.return_value = hedge_result(("375/26",))
+        await self.flow.handle("sim")
+        self.assertEqual(self.contract_query.call_count, 3)
+
+    async def test_procedure_type_descriptions_are_displayed_and_only_codes_are_sent(self):
+        for index, (code, description) in enumerate(self.flow.TYPE_DESCRIPTIONS.items()):
+            self.flow = ContractBatchFlow(f"tipo-{index}", True)
+            self.contract_query.return_value = [{"tipoValor": description}]
+            summary = await self.flow.handle("fixe 375/26 nivel 105,75")
+            self.assertIn(f"Valor da Fixação: 105,75 {description}", summary)
+            self.fix_send.return_value = fixation_result(("375/26",))
+            await self.flow.handle("sim")
+            payload = self.fix_send.await_args.args[0]["contratos"][0]["fixacaoContrato"][0]
+            self.assertEqual(payload, {"valorFixacao": 105.75, "tipoValor": code})
+        self.assertEqual(self.contract_query.call_count, 5)
+
+    async def test_query_failure_empty_missing_and_unknown_type_require_user_input_without_retry(self):
+        cases = [(RuntimeError("SQL indisponível"), "erro"), ([], "vazio"),
+                 ([{"sacas": 865}], "ok"), ([{"tipoValor": "US$ valor desconhecido"}], "ok")]
+        for index, (response, status) in enumerate(cases):
+            self.flow = ContractBatchFlow(f"ausente-{index}", True)
+            self.contract_query.side_effect = response if isinstance(response, Exception) else None
+            self.contract_query.return_value = response
+            summary = await self.flow.handle("fixe 375/26 nivel 110,1")
+            self.assertIn("Tipo Valor ausente ou não reconhecido", summary)
+            self.assertNotIn("Confirma o envio", summary)
+            data = self.flow.load()
+            self.assertEqual(data["consultasContratos"]["375/26"]["status"], status)
+            self.assertEqual(data["stage"], "collect_fix")
+            self.fix_send.reset_mock()
+            await self.flow.handle("sim")
+            self.fix_send.assert_not_called()
+            summary = await self.flow.handle("US$ KG")
+            self.assertIn("110,1 US$ KG", summary)
+            self.fix_send.assert_not_called()
+            self.assertEqual(self.flow.load()["stage"], "confirm_fix")
+        self.assertEqual(self.contract_query.call_count, len(cases))
+
+    async def test_missing_type_answer_only_fills_contracts_that_need_it(self):
+        self.contract_query.side_effect = [[{"tipoValor": "CTS/LB"}], [{"tipoValor": "inexistente"}]]
+        summary = await self.flow.handle("fixe 374/26A e 374/26D nivel 100")
+        self.assertIn("Informe o Tipo Valor para: 374/26D", summary)
+        summary = await self.flow.handle("5")
+        self.assertIn("100 US$ 50KG", summary)
+        items = self.flow.load()["contratos"]
+        self.assertEqual([i["tipoValor"] for i in items], ["C", "5"])
+        self.assertEqual([i["valorFixacao"] for i in items], [100, 100])
+        self.assertEqual(self.contract_query.call_count, 2)
+
+    async def test_contract_letters_keep_separate_cached_returns_and_user_overrides(self):
+        from decimal import Decimal
+        from datetime import date
+        rows = [
+            [{"tipoValor": "US$ KG", "sacas": Decimal("865"), "mesFixacao": "202607", "data": date(2026, 1, 1)}],
+            [{"tipoValor": "CTS/LB", "sacas": 576.60047, "mesFixacao": "202612"}],
+        ]
+        self.contract_query.side_effect = rows
+        self.flow.prepare_fixation([
+            ("374/26A", {"valorFixacao": 100}),
+            ("374/26D", {"valorFixacao": 110, "lotes": 7, "mesfix": "SET", "anofix": "2027", "tipoValor": "T"}),
+        ])
+        data = self.flow.load()
+        self.assertEqual(data["consultasContratos"]["374/26A"]["retorno"][0]["data"], "2026-01-01")
+        self.assertEqual(data["contratos"][1]["tipoValor"], "T")
+        summary = await self.flow.handle("374/26A tipo US$ 59KG")
+        self.assertIn("100 US$ 59KG", summary)
+        self.fix_send.return_value = fixation_result(("374/26A", "374/26D"), level=101.111)
+        await self.flow.handle("sim")
+        await self.flow.handle("todos corretora A13")
+        movements = self.flow.load()["movimentos"]
+        self.assertEqual([(i["mesfix"], i["anofix"], i["lotes"]) for i in movements], [("JUL", "2026", 3), ("SET", "2027", 7)])
+        self.assertTrue(all(i["valor"] == 101.111 for i in movements))
+        self.assertEqual(self.contract_query.call_count, 2)
+
+    async def test_type_is_available_without_sacks_and_unknown_hedge_fields_are_collected(self):
+        self.contract_query.return_value = [{"tipoValor": "CTS/LB"}]
+        await self.flow.handle("fixe 375/26 nivel 100")
+        self.fix_send.return_value = fixation_result(("375/26",))
+        await self.flow.handle("sim")
+        self.assertIn("mês", await self.flow.handle("sim corretora A13"))
+        await self.flow.handle("DEZ")
+        await self.flow.handle("2026")
+        summary = await self.flow.handle("2 lotes")
+        self.assertIn("Confirma o envio", summary)
+        self.assertEqual(self.contract_query.call_count, 1)
+
+    async def test_new_process_can_query_same_contract_again(self):
+        await self.flow.handle("fixe 375/26 nivel 100")
+        await self.flow.handle("sair")
+        await self.flow.handle("fixe 375/26 nivel 110")
+        self.assertEqual(self.contract_query.call_count, 2)
+
+    async def test_interrupted_lookup_is_not_repeated(self):
+        await self.flow.handle("fixe 375/26 nivel 100")
+        data = self.flow.load()
+        data["consultasContratos"]["375/26"] = {"status": "consultando", "retorno": [], "recomendacao": {}}
+        item = data["contratos"][0]
+        item.pop("tipoValor")
+        item.pop("tipoValorDescricao")
+        data["contratosAindaNaoFixados"] = deepcopy(data["contratos"])
+        data["stage"] = "collect_fix"
+        self.flow.save(data)
+        await self.flow.handle("tipo C")
+        self.assertEqual(self.flow.load()["stage"], "confirm_fix")
+        self.assertEqual(self.contract_query.call_count, 1)
 
     async def test_hedge_partial_subset_and_accumulated_final(self):
         await self.hedge_ready()

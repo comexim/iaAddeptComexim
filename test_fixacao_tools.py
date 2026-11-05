@@ -13,13 +13,17 @@ class FixacaoToolsTest(unittest.TestCase):
         p = patch.object(ContractBatchFlow, "_redis", return_value=self.store)
         p.start()
         self.addCleanup(p.stop)
+        query = patch("app.agents.hedge_tools.sql_client.execute_procedure", return_value=[{"tipoValor": "CTS/LB"}])
+        query.start()
+        self.addCleanup(query.stop)
 
     def test_only_sale_number_and_value_are_required(self):
         result = self.tool.cadastrar_valor_contrato(numero_venda="7/27", valor_fixacao=0)
         self.assertIn("AGUARDANDO_CONFIRMACAO", result)
         self.assertTrue(self.tool.is_awaiting_confirmation())
         item = self.tool._batch_flow().load()["contratos"][0]
-        self.assertEqual(item, {"numeroVenda": "007/27", "letraVenda": "", "valorFixacao": 0.0})
+        self.assertEqual(item, {"numeroVenda": "007/27", "letraVenda": "", "valorFixacao": 0.0,
+                                "tipoValor": "C", "tipoValorDescricao": "CTS/LB"})
 
     def test_optional_values_and_descriptions(self):
         self.tool.cadastrar_valor_contrato(numero_venda="7/27D", valor_fixacao=100, diferencial=-1, tipo_valor="cts/lb", fixador_preco="Importador")
