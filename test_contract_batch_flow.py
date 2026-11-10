@@ -1114,6 +1114,97 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.fix_send.assert_not_called()
 
 
+    def test_natural_field_corrections_and_values_before_or_after_labels(self):
+        cases = [
+            ("Lotes 5", True, {"lotes": 5}),
+            ("5 lotes", True, {"lotes": 5}),
+            ("lotes: 5", True, {"lotes": 5}),
+            ("Altere a quantidade de lotes deste contrato para 5", True, {"lotes": 5}),
+            ("mude a corretora para Adm13", True, {"corret": "A13"}),
+            ("altere a corretora deste contrato para Marex Fut", True, {"corret": "MAR"}),
+            ("altere o lançamento AA deste contrato para não", True, {"lancaa": "Nao"}),
+            ("altere o valor da fixação deste contrato para 211,9", False, {"valorFixacao": 211.9}),
+            ("mude o diferencial para -5", False, {"diferencial": -5.0}),
+            ("altere o tipo de valor para K", False, {"tipoValor": "K"}),
+            ("altere o tipo de valor para 5", False, {"tipoValor": "5"}),
+            ("tipo de valor por 5", False, {"tipoValor": "5"}),
+            ("mude o fixador do preço para Importador", False, {"fixadorPreco": "I"}),
+            ("tipo de valor para K e valor da fixação para 210", False,
+             {"tipoValor": "K", "valorFixacao": 210}),
+        ]
+        for message, hedge, expected in cases:
+            with self.subTest(message=message):
+                self.assertEqual(self.flow.fields_from_text(message, hedge), expected)
+        for message in ("Contrato 339/26 lotes 5", "Altere os lotes do contrato 339/26 para 5"):
+            self.assertEqual(self.flow.parse_updates(message, hedge=True), ([("339/26", {"lotes": 5})], {}))
+        self.assertEqual(self.flow.parse_updates("altere os lotes do contrato 339/26 para 5 e AA sim", hedge=True),
+                         ([("339/26", {"lotes": 5, "lancaa": "Sim"})], {}))
+
+    async def test_aa_then_lots_then_broker_edits_preserve_other_fields_and_require_confirmation(self):
+        await self.fixed()
+        await self.flow.handle("apenas 375/26 corretora A14")
+        await self.flow.handle("altere o lançamento AA deste contrato para sim")
+        previous = deepcopy(self.flow.load()["movimentos"][0])
+        for message in ("Lotes 5", "Contrato 375/26 lotes 4",
+                        "Altere a quantidade de lotes deste contrato para 3"):
+            old_confirmation = self.flow.load()["confirmation_id"]
+            summary = await self.flow.handle(message)
+            item = self.flow.load()["movimentos"][0]
+            self.assertIn(f"- Lotes: {item['lotes']}", summary)
+            self.assertEqual({k: v for k, v in item.items() if k != "lotes"},
+                             {k: v for k, v in previous.items() if k != "lotes"})
+            self.assertNotEqual(self.flow.load()["confirmation_id"], old_confirmation)
+            self.assertIn("Confirma o envio", summary)
+        self.assertEqual(self.flow.load()["movimentos"][0]["lotes"], 3)
+        summary = await self.flow.handle("mude a corretora para Adm13")
+        item = self.flow.load()["movimentos"][0]
+        self.assertEqual((item["corret"], item["account"], item["lancaa"], item["lotes"]), ("A13", "A13", "Sim", 3))
+        self.hedge_send.assert_not_called()
+        self.hedge_send.return_value = hedge_result(("375/26",))
+        await self.flow.handle("sim")
+        sent = self.hedge_send.await_args.args[0]["movimentos"][0]
+        self.assertEqual((sent["lotes"], sent["lancaa"], sent["corret"], sent["account"]), (3, "Sim", "A13", "A13"))
+
+    async def test_fixation_natural_edits_preserve_other_contracts_and_fields(self):
+        await self.prepare()
+        other = deepcopy(self.flow.load()["contratos"][1:])
+        for message in ("altere o valor da fixação do contrato 374/26D para 212,9",
+                        "mude o diferencial do contrato 374/26D para -5",
+                        "altere o tipo de valor do contrato 374/26D para K",
+                        "mude o fixador do preço do contrato 374/26D para Importador"):
+            summary = await self.flow.handle(message)
+            self.assertIn("Confirma o envio", summary)
+            self.assertEqual(self.flow.load()["contratos"][1:], other)
+        item = self.flow.load()["contratos"][0]
+        self.assertEqual((item["valorFixacao"], item["diferencial"], item["tipoValor"], item["fixadorPreco"]),
+                         (212.9, -5, "K", "I"))
+        self.fix_send.assert_not_called()
+
+    async def test_ambiguous_edits_ask_contract_and_explicit_group_edits_apply_to_all(self):
+        await self.hedge_ready()
+        for message in ("lotes 5", "altere AA deste contrato para sim", "mude a corretora para Adm13"):
+            before = deepcopy(self.flow.load())
+            summary = await self.flow.handle(message)
+            self.assertIn("A qual contrato", summary)
+            self.assertEqual(self.flow.load(), before)
+        summary = await self.flow.handle("altere os lotes para 5 para todos")
+        self.assertIn("Confirma o envio", summary)
+        self.assertEqual([i["lotes"] for i in self.flow.load()["movimentos"]], [5, 5, 5])
+        self.hedge_send.assert_not_called()
+
+    async def test_unrecognized_or_invalid_edits_do_not_reconfirm_or_mutate(self):
+        await self.hedge_ready()
+        for message in ("Contrato 375/26", "Contrato 375/26 lotes cinco", "Contrato 375/26 lotes 0",
+                        "Contrato 375/26 lotes -2", "Contrato 375/26 lotes 1,5",
+                        "Contrato 375/26 AA talvez", "Contrato 375/26 mês para março",
+                        "Contrato 375/26 ano para 2027", "Contrato 375/26 nível para 211"):
+            before = deepcopy(self.flow.load())
+            summary = await self.flow.handle(message)
+            self.assertNotIn("Confirma o envio", summary)
+            self.assertEqual(self.flow.load(), before)
+        self.hedge_send.assert_not_called()
+
+
 class BatchTransportTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         deny_network = patch("socket.socket.connect", side_effect=AssertionError("Rede proibida no teste"))

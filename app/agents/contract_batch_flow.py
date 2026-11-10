@@ -251,9 +251,21 @@ class ContractBatchFlow:
 
     def prepare_from_text(self, text):
         updates, common = self.parse_updates(text)
+        data = self.load()
+        if data.get("stage") in {"confirm_fix", "edit_fix"}:
+            self.validate_edit_request(text, updates, common, data.get("contratos", []))
         matches, refs = self.parse_contracts(text)
         interval_refs = [ref for match, ref in zip(matches, refs) if match["fim"] is not None]
         return self.prepare_fixation(updates, common, interval_refs=interval_refs)
+
+    @staticmethod
+    def validate_edit_request(text, updates, common, items):
+        if not common and (not updates or any(not fields for _, fields in updates)):
+            raise ValueError("Não identifiquei a alteração. Informe o campo permitido nesta etapa e o novo valor.")
+        if not updates and common and len(items) > 1:
+            plain = normalized(text)
+            if not re.search(r"\b(?:todos|todas|grupo)\b|\b(?:os|estes|esses)\s+contratos\b", plain):
+                raise ValueError("A qual contrato deseja aplicar a alteração? Repita o campo e o novo valor com o número do contrato ou com 'para todos'.")
 
     @staticmethod
     def fields_from_text(text, hedge=False):
@@ -262,50 +274,69 @@ class ContractBatchFlow:
 
         plain = normalized(text)
         fields = {}
-        broker = re.search(r"\b(?:corretora|corret)\s*(?:[:=]|e\b)?\s*([\w]+(?:\s+(?:fut|otc))?)", plain)
+        bridge = (r"\s*(?:(?:para|por|de|do|da|dos|das|o|a|os|as|e|eh|como|"
+                  r"deste|desse|desta|dessa|destes|desses|destas|dessas|este|esse|"
+                  r"contrato|contratos|grupo|todos|todas)\b\s*|[:=]\s*)*")
+        number = r"([+-]?[0-9]+(?:[.,][0-9]+)?)(?![\w.,/])"
+        broker = re.search(r"\b(?:corretora|corret)" + bridge + r"([\w]+(?:\s+(?:fut|otc))?)", plain)
         if broker:
             known = HedgeTools("parser").parse_known_broker(broker[1])
             fields["corret"] = known[0] if known else broker[1].upper()
         lots = re.search(r"(?<![\w.,])([+-]?[0-9]+(?:[.,][0-9]+)?)\s*lotes?\b", plain)
+        if not lots:
+            lots = re.search(r"\blotes?\b" + bridge + number, plain)
         if lots:
             value = float(lots[1].replace(",", "."))
             if not value.is_integer() or value <= 0:
                 raise ValueError("Lotes deve ser um número inteiro e positivo.")
             fields["lotes"] = int(value)
+        elif re.search(r"\blotes?\b", plain):
+            raise ValueError("Informe a quantidade de lotes como número inteiro e positivo, por exemplo: lotes 5.")
         if hedge:
             if re.search(r"\b(?:mes|ano|nivel|valor|tipo|operac|account|conta|ctrex)\b", plain):
                 raise ValueError("Após a montagem do Hedge, somente corretora, lotes e AA podem ser alterados.")
-            aa = re.search(r"\b(?:lancaa|(?:lanc\.?\s*)?aa)\s*(?:[:=]|para\b|e\b)?\s*(sim|nao|s|n)\b", plain)
+            aa = re.search(r"\b(?:lancaa|(?:(?:lanc\.?|lancamento)\s*)?aa)" + bridge + r"(sim|nao|s|n)\b", plain)
             if aa:
                 fields["lancaa"] = "Sim" if aa[1] in {"sim", "s"} else "Nao"
             elif re.search(r"\b(?:lancaa|aa)\b", plain):
                 raise ValueError("Informe AA Sim ou AA Nao.")
             return fields
-        value = FixacaoTools.extract_fixation_value(text)
+        kind = re.search(r"\btipo(?:\s+(?:(?:do|de)\s+)?valor)?\b" + bridge + r"(.+)", plain)
+        value_text = plain
+        if kind:
+            kind_end = re.search(r"[,;]|\b(?:fixador|diferencial|corretora|nivel|valor|lotes?|altere|mude)\b", kind[1])
+            end = kind.start(1) + kind_end.start() if kind_end else len(plain)
+            value_text = plain[:kind.start()] + " " + plain[end:]
+        explicit_value = re.search(r"\b(?:valor(?:\s+(?:da|de)\s+fixacao)?|fixacao|nivel)\b" + bridge + number, value_text)
+        value = float(explicit_value[1].replace(",", ".")) if explicit_value else FixacaoTools.extract_fixation_value(value_text)
         if value is None:
-            abbreviated = re.search(r"\b(?:a|por)\s+([+-]?[0-9]+(?:[.,][0-9]+)?)(?![0-9.,])", plain)
+            abbreviated = re.search(r"\b(?:a|por)\s+([+-]?[0-9]+(?:[.,][0-9]+)?)(?![0-9.,])", value_text)
             if abbreviated:
                 value = float(abbreviated[1].replace(",", "."))
         if value is not None:
             fields["valorFixacao"] = value
-        diff = re.search(r"\bdiferencial\s*(?:[:=]|de\b|e\b)?\s*([+-]?[0-9]+(?:[.,][0-9]+)?)", plain)
+        diff = re.search(r"\bdiferencial\b" + bridge + number, plain)
         if diff:
             fields["diferencial"] = float(diff[1].replace(",", "."))
+        elif re.search(r"\bdiferencial\b", plain):
+            raise ValueError("Informe o novo diferencial, por exemplo: diferencial para -5.")
         short = re.fullmatch(r"([+-]?[0-9]+(?:[.,][0-9]+)?)(?:\s+com\s+([+-]?[0-9]+(?:[.,][0-9]+)?))?", plain)
         if short:
             fields["valorFixacao"] = float(short[1].replace(",", "."))
             if short[2]:
                 fields["diferencial"] = float(short[2].replace(",", "."))
-        kind = re.search(r"\btipo(?:\s+(?:(?:do|de)\s+)?valor)?\s*[:=]?\s*(.+)", plain)
         if kind:
-            description = re.split(r"[,;]|\b(?:fixador|diferencial|corretora)\b", kind[1], maxsplit=1)[0].strip()
+            description = re.split(r"[,;]|\b(?:fixador|diferencial|corretora|nivel|valor|lotes?|altere|mude)\b", kind[1], maxsplit=1)[0].strip()
+            description = re.sub(r"\s+e$", "", description)
             code = FixacaoTools.normalize_tipo_valor(description)
             if not code:
                 raise ValueError("Informe um tipo de valor válido: C, K, 5, 6 ou T.")
             fields["tipoValor"] = code
-        fixer = re.search(r"\bfixador(?:\s+(?:do\s+)?preco)?\s*(?:[:=]|como\b|e\b)?\s*(fixador|importador|exportador|[fie])\b", plain)
+        fixer = re.search(r"\bfixador(?:\s+(?:do\s+)?preco)?" + bridge + r"(fixador|importador|exportador|[fie])\b", plain)
         if fixer:
             fields["fixadorPreco"] = fixer[1][0].upper()
+        elif re.search(r"\bfixador\b", plain):
+            raise ValueError("Informe o fixador: Exportador, Importador ou Fixador.")
         # Estes metadados seguem o contrato; não fazem parte do payload Z24.
         metadata = {}
         HedgeTools("parser").remember_from_text(metadata, text)
@@ -327,10 +358,12 @@ class ContractBatchFlow:
             group.append(ref)
             end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
             segment = text[match.end():end]
+            if match.start() == matches[0].start() and end >= match.end():
+                segment = prefix + " " + segment
             fields = self.fields_from_text(segment, hedge)
             if fields or index == len(matches) - 1:
                 if not fields and prefix.strip():
-                    fields = self.fields_from_text(prefix, hedge)
+                    fields = self.fields_from_text(prefix + " " + segment, hedge)
                 updates.extend((key, deepcopy(fields)) for key in group)
                 group = []
         return updates, {}
@@ -805,6 +838,8 @@ class ContractBatchFlow:
                 values = {}
                 HedgeTools("parser").remember_from_text(values, message, expected=field)
                 common = {k: values[k] for k in ("corret", "lotes") if k in values}
+                if not common:
+                    return f"Contrato {ref}: " + HedgeTools.question_for(field)
                 common = self.validate_fields(common, hedge=True)
                 updates = [(ref, common)]
                 common = {}
@@ -813,8 +848,9 @@ class ContractBatchFlow:
         allowed = {identity(i) for i in data["movimentosAindaNaoRegistrados"]}
         if any(ref not in allowed for ref, _ in updates):
             raise ValueError("Selecione apenas movimentos pendentes. Movimentos registrados não podem ser reenviados.")
-        if not updates and not common and not excluded:
-            raise ValueError("Informe a corretora, a quantidade de lotes ou AA, por contrato ou para o grupo.")
+        if not excluded:
+            self.validate_edit_request(message, updates, common,
+                                       [] if data.get("stage") == "collect_hedge" else data["movimentos"])
         if excluded & {ref for ref, _ in updates}:
             raise ValueError("Não corrija e exclua o mesmo contrato na mesma mensagem.")
         targets = {ref for ref, _ in updates} or {identity(i) for i in data["movimentos"]}
