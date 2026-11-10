@@ -43,6 +43,7 @@ class HedgeTools:
         "ice": ("ICE", "BTGPactual"), "btgpactual": ("ICE", "BTGPactual"),
     }
     REQUIRED = ("mesfix", "anofix", "lotes", "corret", "account", "lancaa")
+    BROKER_CHOICES = tuple(dict.fromkeys(ACCOUNTS.values()))
 
     def __init__(self, session_id: str):
         self.key = f"hedge_pendente:{session_id}"
@@ -83,64 +84,7 @@ class HedgeTools:
             rows = sql_client.execute_procedure(
                 "usp_IA_Vendas", {"Contrato": str(contract).strip()}
             )
-            candidates = []
-            for row in rows or []:
-                raw = next(
-                    (value for key, value in row.items() if str(key).lower() == "sacas"),
-                    None,
-                )
-                if raw is None:
-                    continue
-                quantity = Decimal(str(raw).replace(",", "."))
-                if quantity > 0:
-                    candidates.append((quantity, row))
-            if not candidates:
-                logger.warning(
-                    "[HEDGE] Contrato %s sem quantidade de sacas para recomendacao",
-                    contract,
-                )
-                return None
-
-            # A procedure pode repetir o total do contrato em mais de uma linha;
-            # por isso usamos a maior quantidade encontrada, sem somar duplicatas.
-            sacks, reference_row = max(candidates, key=lambda item: item[0])
-            lots = int(
-                (sacks / Decimal("288.300235169045")).quantize(
-                    Decimal("1"), rounding=ROUND_HALF_UP
-                )
-            )
-            result = {"sacasContrato": float(sacks), "lotesRecomendados": lots}
-
-            raw_fixation_month = next(
-                (
-                    value for key, value in reference_row.items()
-                    if str(key).lower() in {
-                        "mesfixacao", "mesfix", "mesfixacaobolsa", "mesanofixacao"
-                    }
-                    and value not in (None, "")
-                ),
-                None,
-            )
-            fixation_digits = re.sub(r'\D', '', str(raw_fixation_month or ""))
-            if len(fixation_digits) == 6:
-                if fixation_digits[:4].startswith("20"):
-                    year, month_number = fixation_digits[:4], fixation_digits[4:]
-                else:
-                    month_number, year = fixation_digits[:2], fixation_digits[2:]
-                month_code = HedgeTools.MONTH_NUMBERS.get(month_number)
-                if month_code:
-                    result.update({
-                        "mesfixRecomendado": month_code,
-                        "anofixRecomendado": year,
-                    })
-
-            logger.info(
-                "[HEDGE] Recomendacao para contrato %s: %s sacas = %s lotes; "
-                "vencimento=%s/%s",
-                contract, sacks, lots,
-                result.get("mesfixRecomendado"), result.get("anofixRecomendado"),
-            )
-            return result
+            return HedgeTools.recommendation_from_rows(rows) or None
         except (InvalidOperation, TypeError, ValueError) as exc:
             logger.warning("[HEDGE] Quantidade invalida no contrato %s: %s", contract, exc)
         except Exception as exc:
@@ -148,6 +92,35 @@ class HedgeTools:
             # em erro; o fluxo apenas segue sem a recomendacao.
             logger.exception("[HEDGE] Falha ao calcular lotes para %s: %s", contract, exc)
         return None
+
+    @staticmethod
+    def recommendation_from_rows(rows: list) -> Dict[str, Any]:
+        """Calcula a recomendação sem consultar o banco; aceita dados persistidos."""
+        candidates = []
+        for row in rows or []:
+            raw = next((value for key, value in row.items() if str(key).strip().lower() == "sacas"), None)
+            try:
+                quantity = Decimal(str(raw).replace(",", "."))
+                if quantity.is_finite() and quantity > 0:
+                    candidates.append((quantity, row))
+            except (InvalidOperation, TypeError, ValueError):
+                continue
+        result = {}
+        reference_row = rows[0] if rows else {}
+        if candidates:
+            # Preserva a regra existente: maior quantidade, sem somar repetições.
+            sacks, reference_row = max(candidates, key=lambda item: item[0])
+            lots = int((sacks / Decimal("288.300235169045")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+            result.update(sacasContrato=float(sacks), lotesRecomendados=lots)
+        raw_month = next((value for key, value in reference_row.items()
+                          if str(key).strip().lower() in {"mesfixacao", "mesfix", "mesfixacaobolsa", "mesanofixacao"}
+                          and value not in (None, "")), None)
+        digits = re.sub(r'\D', '', str(raw_month or ""))
+        if len(digits) == 6:
+            year, month = (digits[:4], digits[4:]) if digits[:4].startswith("20") else (digits[2:], digits[:2])
+            if month in HedgeTools.MONTH_NUMBERS:
+                result.update(mesfixRecomendado=HedgeTools.MONTH_NUMBERS[month], anofixRecomendado=year)
+        return result
 
     @staticmethod
     def recommendation_message(data: Dict[str, Any]) -> str:
@@ -217,6 +190,12 @@ class HedgeTools:
         """Guarda campos de Hedge já mencionados, sem consultar API externa."""
         normalized = self.normalize(text)
         mentions_lots = bool(re.search(r'\b\d+\s*lotes?\b', normalized))
+        if expected in {"corret", "account"} and re.fullmatch(r"(?:opcao\s*)?[0-9]+", normalized):
+            choice = int(re.search(r"[0-9]+", normalized)[0])
+            if 1 <= choice <= len(self.BROKER_CHOICES):
+                code, description = self.BROKER_CHOICES[choice - 1]
+                data.update(corret=code, account=code, corretDescricao=description, accountDescricao=description)
+            return data
         mentions_fixation_month = bool(
             re.search(
                 r'\bmes\s+(?:de\s+)?(?:marco|maio|julho|setembro|dezembro)\b',
@@ -273,7 +252,7 @@ class HedgeTools:
             r'marex\s+otc|fcstone|btgpactual|a13|rjo|a14|scd|hed|mar|mao|fcs|ice)\b',
             normalized,
         )
-        if expected == "corret" or broker_context or known_broker_hint:
+        if expected in {"corret", "account"} or broker_context or known_broker_hint:
             context_match = broker_context or known_broker_hint
             broker_text = context_match.string[context_match.start():] if context_match else text
             broker_text = re.split(r'\b(?:conta|account)\b', broker_text, maxsplit=1)[0]
@@ -362,20 +341,16 @@ class HedgeTools:
             f"Lançamento com AA: {current['lancaa']}\n\nConfirma o envio do Hedge para a API?"
         )
 
-    @staticmethod
-    def question_for(field: str) -> str:
-        broker_options = (
-            "Adm13, RJObrien, NDF, Adm14, Sucden, HedgePoint, "
-            "Marex Fut, Marex OTC, FCStone ou BTGPactual"
-        )
+    @classmethod
+    def question_for(cls, field: str, contract: Optional[str] = None) -> str:
+        broker_options = "\n".join(f"{index} - {description}" for index, (_, description) in enumerate(cls.BROKER_CHOICES, 1))
+        if field in {"corret", "account"}:
+            header = "Qual é a corretora da bolsa?\n" + (f"Contrato {contract}:\n" if contract else "")
+            return header + "Opções:\n" + broker_options
         questions = {
             "mesfix": "Qual é o mês da fixação do Hedge? Opções: março, maio, julho, setembro ou dezembro.",
             "anofix": "Qual é o ano da fixação do Hedge?",
             "lotes": "Quantos lotes deseja lançar no Hedge?",
-            "corret": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
-            # Compatibilidade com estados antigos que possam ter corretora sem
-            # account: pergunta novamente pela corretora e sincroniza ambos.
-            "account": f"Qual é a corretora da bolsa? Opções: {broker_options}.",
             "lancaa": "O lançamento será com AA? Responda sim ou não.",
         }
-        return questions[field]
+        return (f"Contrato {contract}: " if contract else "") + questions[field]

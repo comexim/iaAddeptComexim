@@ -11,6 +11,14 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+class OperationNotSent(RuntimeError):
+    """Falha comprovadamente anterior ao envio da operação financeira."""
+
+
+class OperationRejected(RuntimeError):
+    """Requisição recusada por autenticação/autorização, sem processamento."""
+
+
 _SECRET_KEYS = {
     "access_token", "authorization", "client_secret", "password",
     "refresh_token", "senha", "token", "username", "usuario",
@@ -45,6 +53,13 @@ class FixacaoApiClient:
     def __init__(self):
         self._token = None
         self._token_expiry = None
+
+    async def _operation_token(self):
+        # Falhas no endpoint de autenticação não tornam a fixação incerta.
+        try:
+            return await self.get_token()
+        except Exception as exc:
+            raise OperationNotSent("Não foi possível autenticar na CMX; a operação não foi enviada.") from exc
 
     async def get_token(self) -> str:
         if self._token and self._token_expiry and datetime.now() < self._token_expiry:
@@ -90,7 +105,7 @@ class FixacaoApiClient:
         return token
 
     async def cadastrar_fixacao(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        token = await self.get_token()
+        token = await self._operation_token()
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_fixacao_path}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "tenantid": settings.cmx_tenant_id}
         contract_identifier = {
@@ -110,7 +125,7 @@ class FixacaoApiClient:
             _json_for_log(body),
         )
         try:
-            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+            async with httpx.AsyncClient(timeout=None if "contratos" in body else 60, verify=settings.cmx_verify_ssl) as client:
                 response = await client.post(url, json=body, headers=headers)
         except Exception as exc:
             logger.exception(
@@ -119,13 +134,15 @@ class FixacaoApiClient:
                 type(exc).__name__,
                 str(exc),
             )
+            if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
+                raise OperationNotSent("Não foi possível conectar à CMX; a operação não foi enviada.") from exc
             raise
         logger.info(
             "[CMX Z24] RESPONSE status=%s body=%s",
             response.status_code,
             _response_for_log(response),
         )
-        if response.status_code == 401:
+        if response.status_code == 401 and "contratos" not in body:
             # O token pode ser invalidado pela CMX antes do prazo informado.
             # Renova uma unica vez e repete exatamente a mesma operacao.
             logger.warning("[CMX Z24] Token recusado; renovando e tentando novamente")
@@ -156,6 +173,13 @@ class FixacaoApiClient:
                 _response_for_log(response),
             )
         if not 200 <= response.status_code < 300:
+            if "contratos" in body and response.status_code in (401, 403):
+                self._token = self._token_expiry = None
+                raise OperationRejected(f"CMX recusou a operação (HTTP {response.status_code}); nenhum reenvio automático foi feito.")
+            if "contratos" in body and response.status_code == 400:
+                result = response.json()
+                if isinstance(result, dict) and "contratosFixados" in result and "contratosNaoFixados" in result:
+                    return result
             logger.error("[CMX Z24] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
         try:
@@ -171,7 +195,7 @@ class FixacaoApiClient:
             except (TypeError, ValueError):
                 has_error = bool(error_code)
 
-            if has_error:
+            if has_error and not ("contratosFixados" in result and "contratosNaoFixados" in result):
                 error_message = str(
                     result.get("errorMessage")
                     or result.get("message")
@@ -281,7 +305,7 @@ class FixacaoApiClient:
 
     async def cadastrar_hedge(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Envia o Hedge confirmado ao endpoint Z03."""
-        token = await self.get_token()
+        token = await self._operation_token()
         url = f"{settings.cmx_api_url.rstrip('/')}{settings.cmx_hedge_path}"
         headers = {
             "Authorization": f"Bearer {token}",
@@ -294,7 +318,7 @@ class FixacaoApiClient:
             _json_for_log(body),
         )
         try:
-            async with httpx.AsyncClient(timeout=60, verify=settings.cmx_verify_ssl) as client:
+            async with httpx.AsyncClient(timeout=None if "movimentos" in body else 60, verify=settings.cmx_verify_ssl) as client:
                 response = await client.post(url, json=body, headers=headers)
         except Exception as exc:
             logger.exception(
@@ -302,6 +326,8 @@ class FixacaoApiClient:
                 type(exc).__name__,
                 str(exc),
             )
+            if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout)):
+                raise OperationNotSent("Não foi possível conectar à CMX; a operação não foi enviada.") from exc
             raise
         logger.info(
             "[CMX Z03] RESPONSE status=%s body=%s",
@@ -309,6 +335,13 @@ class FixacaoApiClient:
             _response_for_log(response),
         )
         if not 200 <= response.status_code < 300:
+            if response.status_code in (401, 403):
+                self._token = self._token_expiry = None
+                raise OperationRejected(f"CMX recusou a operação (HTTP {response.status_code}); nenhum reenvio automático foi feito.")
+            if "movimentos" in body and response.status_code == 400:
+                result = response.json()
+                if isinstance(result, dict) and "movimentosRegistrados" in result and "movimentosNaoRegistrados" in result:
+                    return result
             logger.error("[CMX Z03] Falha HTTP %s: %s", response.status_code, response.text[:500])
             raise RuntimeError(f"API CMX retornou HTTP {response.status_code}")
         try:
@@ -321,7 +354,7 @@ class FixacaoApiClient:
                 has_error = error_code not in (None, "") and int(error_code) >= 400
             except (TypeError, ValueError):
                 has_error = bool(error_code)
-            if has_error:
+            if has_error and not ("movimentosRegistrados" in result and "movimentosNaoRegistrados" in result):
                 message = str(
                     result.get("errorMessage")
                     or result.get("message")

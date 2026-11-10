@@ -1,7 +1,6 @@
 """Tool conversacional para cadastrar valor/fixacao em contrato existente."""
 import asyncio
 import json
-import math
 import re
 import unicodedata
 import logging
@@ -18,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 class FixacaoTools:
-    REQUIRED = ("contratodeVenda", "valorFixacao")
-    LABELS = {"contratodeVenda": "contrato de venda", "valorFixacao": "valor da fixacao", "diferencial": "diferencial", "tipoValor": "tipo do valor", "fixadorPreco": "fixador do preco"}
+    REQUIRED = ("numeroVenda", "valorFixacao")
+    LABELS = {"numeroVenda": "número da venda", "valorFixacao": "valor da fixacao", "diferencial": "diferencial", "tipoValor": "tipo do valor", "fixadorPreco": "fixador do preco"}
 
     def __init__(self, session_id: str, has_permission: bool = False):
         self.key = f"fixacao_pendente:{session_id}"
@@ -35,30 +34,26 @@ class FixacaoTools:
     def _save(self, data: Dict[str, Any]):
         self._redis().setex(self.key, 3600, json.dumps(data, ensure_ascii=False))
 
+    def _batch_flow(self):
+        from app.agents.contract_batch_flow import ContractBatchFlow
+        return ContractBatchFlow(self.key.split(":", 1)[1], self.has_permission)
+
     def is_awaiting_confirmation(self) -> bool:
-        """Indica se os dados ja foram exibidos e aguardam confirmacao."""
-        if not self.has_permission:
-            return False
-        data = self._load()
-        return bool(data.get("aguardando_confirmacao")) and all(key in data for key in self.REQUIRED)
+        return self.has_permission and self._batch_flow().load().get("stage") == "confirm_fix"
 
     def is_waiting_for_value(self) -> bool:
-        """Indica contrato coletado que ainda aguarda o valor da fixacao."""
-        if not self.has_permission:
-            return False
-        data = self._load()
-        return "contratodeVenda" in data and "valorFixacao" not in data
+        return self.has_permission and self._batch_flow().load().get("stage") == "collect_fix"
 
     def clear_pending(self) -> None:
-        """Descarta os dados da operacao pendente desta conversa."""
-        self._redis().delete(self.key)
+        flow = self._batch_flow()
+        if flow.load().get("stage") in flow.BLOCKED:
+            return
+        flow._redis().delete(flow.key)
 
     def get_pending_contract(self) -> Optional[str]:
-        """Retorna o contrato da fixação pendente sem expor os demais dados."""
-        if not self.has_permission:
-            return None
-        value = self._load().get("contratodeVenda")
-        return str(value).strip() if value not in (None, "") else None
+        from app.agents.contract_batch_flow import identity
+        items = self._batch_flow().load().get("contratos", [])
+        return identity(items[0]) if self.has_permission and len(items) == 1 else None
 
     @staticmethod
     def normalize_contract_reference(value: Any) -> str:
@@ -155,54 +150,13 @@ class FixacaoTools:
     @staticmethod
     def build_contract_identifier(value: Any) -> Dict[str, str]:
         """Monta o identificador exigido pela API conforme o formato informado."""
-        contract = str(value).strip()
-        sale_match = re.fullmatch(r'(\d+\s*/\s*\d+)\s*([A-Za-z])?', contract)
-        if not sale_match:
-            return {"contratodeVenda": contract}
-
-        sale_number = re.sub(r'\s+', '', sale_match.group(1))
-        identifier = {"numeroVenda": sale_number}
-        if sale_match.group(2):
-            identifier["letraVenda"] = sale_match.group(2).upper()
-        return identifier
+        from app.agents.contract_batch_flow import identifier
+        number, letter = identifier(value)
+        return {"numeroVenda": number, "letraVenda": letter}
 
     def format_pending_summary(self) -> str:
-        """Formata o cadastro pendente para resposta direta ao usuario."""
-        data = self._load()
-        valor = f"{float(data['valorFixacao']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        unidade = str(data.get("tipoValorContrato") or "").strip()
-        valor_exibido = f"{valor} {unidade}".strip()
-        lines = [
-            "Aqui está o resumo atualizado dos dados:",
-            "",
-            f"Contrato de venda: {data['contratodeVenda']}",
-            f"Valor da fixação: {valor_exibido}",
-        ]
-        if "diferencial" in data:
-            lines.append(f"Diferencial: {data['diferencial']:g}")
-        if "tipoValor" in data:
-            lines.append(f"Tipo do valor: {data['tipoValor']}")
-        if "fixadorPreco" in data:
-            descriptions = {"F": "Fixador", "I": "Importador", "E": "Exportador"}
-            code = data["fixadorPreco"]
-            lines.append(f"Fixador do preço: {descriptions.get(code, code)} ({code})")
-        lines.extend(["", "Você confirma o envio desses dados para registro?"])
-        return "\n".join(lines)
-
-    def _summary(self, data: Dict[str, Any]) -> str:
-        unidade = str(data.get("tipoValorContrato") or "").strip()
-        valor = f"{float(data['valorFixacao']):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        valor_exibido = f"{valor} {unidade}".strip()
-        lines = [
-            "RESUMO PARA CONFIRMACAO:",
-            f"Contrato de venda: {data['contratodeVenda']}",
-            f"Valor da fixacao: {valor_exibido}",
-        ]
-        for key in ("diferencial", "tipoValor", "fixadorPreco"):
-            if key in data:
-                lines.append(f"{self.LABELS[key].capitalize()}: {data[key]}")
-        lines.extend(["", "Pergunte se o usuario confirma explicitamente o envio destes dados para a API."])
-        return "\n".join(lines)
+        flow = self._batch_flow()
+        return flow.fix_summary(flow.load())
 
     @staticmethod
     def _load_contract_value_type(contract: str) -> Optional[str]:
@@ -249,116 +203,62 @@ class FixacaoTools:
             )
         return None
 
-    def cadastrar_valor_contrato(self, contratode_venda: Optional[str] = None, valor_fixacao: Optional[float] = None, diferencial: Optional[float] = None, tipo_valor: Optional[str] = None, fixador_preco: Optional[str] = None, confirmar_envio: bool = False) -> str:
-        """Coleta, confirma e envia uma fixacao de contrato para a API CMX."""
+    def cadastrar_valor_contrato(self, numero_venda: Optional[str] = None, valor_fixacao: Optional[float] = None, diferencial: Optional[float] = None, tipo_valor: Optional[str] = None, fixador_preco: Optional[str] = None, confirmar_envio: bool = False, contratos_json: Optional[str] = None, letra_venda: Optional[str] = None) -> str:
+        """Coleta um ou vários contratos; nunca aceita o código interno de venda."""
+        from app.agents.contract_batch_flow import ContractBatchFlow, identifier
+        flow = ContractBatchFlow(self.key.split(":", 1)[1], self.has_permission)
         if not self.has_permission:
-            logger.warning("Permissão Fixacao negada para a sessão %s", self.key)
             return "Você não tem permissão para fixar contratos."
-
-        data = self._load()
-        previous_contract = data.get("contratodeVenda")
-        novos = {"contratodeVenda": contratode_venda, "valorFixacao": valor_fixacao, "diferencial": diferencial, "tipoValor": tipo_valor, "fixadorPreco": fixador_preco}
-        changed = False
-        for key, value in novos.items():
-            if value is not None:
-                if isinstance(value, str):
-                    value = value.strip()
-                    if not value:
-                        return f"VALOR_INVALIDO: {self.LABELS[key]} nao pode ser vazio."
-                if key == "contratodeVenda":
-                    value = self.normalize_contract_reference(value)
-                if key in ("valorFixacao", "diferencial") and not math.isfinite(float(value)):
-                    return f"VALOR_INVALIDO: {self.LABELS[key]} deve ser numerico e finito."
-                if key in ("valorFixacao", "diferencial"):
-                    value = float(value)
-                if key == "tipoValor":
-                    normalized_tipo = self.normalize_tipo_valor(value)
-                    if normalized_tipo is None:
-                        if "tipoValor" in data:
-                            data.pop("tipoValor")
-                            changed = True
-                        continue
-                    value = normalized_tipo
-                if key == "fixadorPreco":
-                    fixador_normalizado = str(value).strip().lower()
-                    fixadores = {
-                        "f": "F", "fixador": "F",
-                        "i": "I", "importador": "I",
-                        "e": "E", "exportador": "E",
-                    }
-                    if fixador_normalizado not in fixadores:
-                        return "VALOR_INVALIDO: fixador do preco deve ser F (Fixador), I (Importador) ou E (Exportador)."
-                    value = fixadores[fixador_normalizado]
-                previous = data.get(key)
-                data[key] = value
-                # O LLM pode repetir contrato e valor junto com a confirmacao.
-                # Repetir exatamente o mesmo dado nao e uma alteracao.
-                if previous != value:
-                    changed = True
-        if contratode_venda is not None and data.get("contratodeVenda") != previous_contract:
-            data.pop("tipoValorContrato", None)
-        if "contratodeVenda" in data and (
-            contratode_venda is not None or "tipoValorContrato" not in data
-        ):
-            contract_value_type = self._load_contract_value_type(data["contratodeVenda"])
-            if contract_value_type:
-                data["tipoValorContrato"] = contract_value_type
-        if changed:
-            data["aguardando_confirmacao"] = False
-        missing = [self.LABELS[key] for key in self.REQUIRED if key not in data]
-        if missing:
-            self._save(data)
-            optional_hint = ""
-            if "valor da fixacao" in missing and "contratodeVenda" in data:
-                optional_hint = (
-                    " Ao pedir o valor da fixacao, avise brevemente que, se quiser, o usuario pode informar "
-                    "tambem diferencial, tipo do valor e fixador do preco na mesma resposta. "
-                    "Deixe claro que sao opcionais e nao os apresente como pendencias."
-                )
-            return "PRECISA_PERGUNTAR: " + "; ".join(missing) + ". Pergunte um campo por vez e nao invente valores." + optional_hint
-        if confirmar_envio:
-            if changed or not data.get("aguardando_confirmacao"):
-                # O modelo pode marcar confirmar_envio no mesmo turno em que
-                # recebeu dados novos. Nunca envie nesse caso: exiba o resumo
-                # e prepare o estado para uma confirmacao posterior do usuario.
-                data["aguardando_confirmacao"] = True
-                self._save(data)
-                return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
-            fixacao = {"valorFixacao": float(data["valorFixacao"])}
-            if "diferencial" in data:
-                fixacao["diferencial"] = float(data["diferencial"])
-            if "tipoValor" in data:
-                fixacao["tipoValor"] = str(data["tipoValor"])
-            if "fixadorPreco" in data:
-                fixacao["fixadorPreco"] = str(data["fixadorPreco"])
-            body = {
-                **self.build_contract_identifier(data["contratodeVenda"]),
-                "fixacaoContrato": [fixacao],
-            }
-            try:
-                result = asyncio.run(fixacao_api_client.cadastrar_fixacao(body))
-            except Exception as exc:
-                # Hedge só pode ser oferecido depois de a Z24 confirmar a
-                # fixação. Em caso de falha, remove qualquer oferta antiga e
-                # mantém os dados da fixação para permitir uma nova tentativa.
-                from app.agents.hedge_tools import HedgeTools
-                HedgeTools(self.key.split(":", 1)[1]).clear()
-                data["aguardando_confirmacao"] = True
-                self._save(data)
-                return f"ERRO_API: {exc}"
-            from app.agents.hedge_tools import HedgeTools
-            HedgeTools(self.key.split(":", 1)[1]).prepare_offer(
-                contract=str(data["contratodeVenda"]),
-                value=float(data["valorFixacao"]),
-            )
-            self._redis().delete(self.key)
-            return "FIXACAO_CADASTRADA_SUCESSO: " + json.dumps(result, ensure_ascii=False)
-        data["aguardando_confirmacao"] = True
-        self._save(data)
-        return "AGUARDANDO_CONFIRMACAO: " + self._summary(data)
+        try:
+            common = {key: value for key, value in {
+                "valorFixacao": valor_fixacao, "diferencial": diferencial,
+                "tipoValor": tipo_valor, "fixadorPreco": fixador_preco,
+            }.items() if value is not None}
+            updates = []
+            if contratos_json is not None:
+                contracts = json.loads(contratos_json)
+                if not isinstance(contracts, list) or not contracts:
+                    raise ValueError("contratos_json deve conter uma lista não vazia.")
+                for item in contracts:
+                    if "contratodeVenda" in item:
+                        raise ValueError("Não informe contratodeVenda.")
+                    number, letter = identifier(item["numeroVenda"], item.get("letraVenda"))
+                    fixation = item.get("fixacaoContrato", [{}])
+                    if not isinstance(fixation, list) or len(fixation) != 1:
+                        raise ValueError("Cada contrato deve conter exatamente uma fixacaoContrato.")
+                    fields = {**common, **fixation[0]}
+                    fields.update({k: item[k] for k in ("corret", "mesfix", "anofix", "lotes", "lancaa") if k in item})
+                    updates.append((number + letter, fields))
+            elif numero_venda is not None:
+                number, letter = identifier(numero_venda, letra_venda)
+                updates = [(number + letter, common)]
+            elif letra_venda is not None:
+                raise ValueError("Informe numeroVenda junto da letra.")
+            if updates or common:
+                # Mesmo uma chamada com confirmar_envio junto de dados novos
+                # somente apresenta o resumo e prepara confirmação posterior.
+                return "AGUARDANDO_CONFIRMACAO: " + flow.prepare_fixation(updates, common)
+            data = flow.load()
+            if confirmar_envio and data.get("stage") == "confirm_fix":
+                return "RESULTADO_LOTE: " + asyncio.run(flow.send(data))
+            if data.get("contratos") and data.get("stage") in {"confirm_fix", "collect_fix"}:
+                return "AGUARDANDO_CONFIRMACAO: " + flow.fix_summary(data)
+            return "PRECISA_PERGUNTAR: informe numeroVenda no formato 999/99 e o valor da fixação."
+        except (ValueError, TypeError, KeyError) as exc:
+            return f"VALOR_INVALIDO: {exc}"
 
     def get_tool(self) -> StructuredTool:
-        return StructuredTool.from_function(func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato", description="Cadastra valor/fixacao em contrato existente. Somente contratode_venda e valor_fixacao sao obrigatorios. No contexto de fixação, 'nível' ou 'nivel' significa o valor_fixacao. Preserve exatamente o identificador informado: formatos sem barra, como 012276, serao enviados como contratodeVenda; formatos com barra, como 352/26, serao enviados como numeroVenda; se houver letra final, como 352/26A, a tool separa numeroVenda=352/26 e letraVenda=A. diferencial, tipo_valor e fixador_preco sao opcionais. Se o usuario pedir para adicionar, alterar ou incluir um campo, passe obrigatoriamente esse campo na chamada; nunca chame sem parametros nesses casos. Fixador aceita F/Fixador, I/Importador e E/Exportador. Nunca invente dados. Mostre o resumo retornado. O envio so pode ocorrer com confirmar_envio=True, exclusivamente depois de uma mensagem de confirmacao pura do usuario. Correcao de qualquer campo exige novo resumo e nova confirmacao.")
+        return StructuredTool.from_function(
+            func=self.cadastrar_valor_contrato, name="cadastrar_valor_contrato",
+            description=("Prepara fixação em lote. Informe numero_venda e letra_venda ou contratos_json "
+                         "como lista de objetos numeroVenda, letraVenda e fixacaoContrato com exatamente um item. "
+                         "Informe número da venda 999/99 e valorFixacao. O fluxo consulta os dados uma vez por contrato "
+                         "e resolve tipoValor antes da confirmação; se ausente ou desconhecido, solicite-o ao usuário. "
+                         "Diferencial e fixadorPreco permanecem opcionais. "
+                         "Nunca aceite código interno contratodeVenda. Complete zeros à esquerda e questione duplicidades. "
+                         "Dados comuns devem ser reproduzidos por contrato. Mostre integralmente o resumo retornado. "
+                         "Qualquer alteração exige nova confirmação posterior. Só use confirmar_envio=True após confirmação explícita sem novos dados. "
+                         "O fluxo mantém sucessos acumulados e somente pendências podem ser reenviadas."))
 
 
 def create_fixacao_tool(session_id: str, has_permission: bool = False) -> StructuredTool:

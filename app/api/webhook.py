@@ -85,11 +85,21 @@ async def process_message_flow(phone: str, message_text: str, session_id: str, m
             return
 
         # 8. Cria orquestrador e processa
-        orchestrator = AgentOrchestrator(user=user, session_id=phone)
+        async def notify_progress(text):
+            await whatsapp_service.send_text_message(session_id, text)
+
+        orchestrator = AgentOrchestrator(user=user, session_id=phone, notify=notify_progress)
         response = await orchestrator.process_message(full_message)
+        if not response:
+            # A espera pode ter sido encerrada por outra mensagem ("sair").
+            return
 
         # 9. Formata resposta
-        formatted_messages = await response_formatter.format_response(response)
+        if getattr(orchestrator, "last_response_is_contract_batch", False):
+            # Preserva cada item e a confirmação; o formatador com IA pode omitir dados.
+            formatted_messages = response_formatter._split_preservando_linhas(response)
+        else:
+            formatted_messages = await response_formatter.format_response(response)
 
         # 10. Envia mensagens
         await whatsapp_service.send_multiple_messages(

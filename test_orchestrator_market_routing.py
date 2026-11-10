@@ -20,36 +20,24 @@ def test_sales_market_route_requires_period():
     assert "_extract_sales_period_from_message" in source
 
 
-def test_successful_fixacao_tool_always_offers_hedge():
+def test_batch_route_precedes_legacy_hedge_and_records_history():
     source = ORCHESTRATOR.read_text(encoding="utf-8")
+    route = source.index("batch_output = await ContractBatchFlow(")
+    legacy = source.index("hedge_output = await self._process_hedge_flow(message)")
+    assert route < legacy
+    assert 'has_permission=self.user.has_permission("Fixacao")' in source
+    assert "self.message_history.add_ai_message(batch_output)" in source
 
-    assert "def _fixacao_tool_succeeded" in source
-    assert "if _fixacao_tool_succeeded(current_turn_messages):" in source
-    assert "Gostaria que eu fizesse o Hedge da bolsa?" in source
-    assert "oferta de Hedge aplicada deterministicamente" in source
 
-
-def test_retry_after_ota_preserves_pending_contract_and_value():
+def test_batch_result_is_not_rewritten_by_llm():
     source = ORCHESTRATOR.read_text(encoding="utf-8")
-
-    assert "retry_after_external_adjustment" in source
-    assert "repetindo fixação pendente" in source
-    assert "pending_fixacao.is_awaiting_confirmation()" in source
-    assert "pending_fixacao.cadastrar_valor_contrato" in source
-
-
-def test_hedge_imperative_starts_collection_before_no_to_aa():
-    source = ORCHESTRATOR.read_text(encoding="utf-8")
-
-    assert "pode\\s+fazer|quero" in source
-    assert "if no and not offered_yes:" in source
-    assert "valor legítimo de Lançamento" in source
+    assert "RESULTADO_LOTE:" in source
+    assert "last_response_is_contract_batch = True" in source
 
 
 if __name__ == "__main__":
     test_sales_market_query_forces_vendas_tool_route()
     test_sales_market_route_requires_period()
-    test_successful_fixacao_tool_always_offers_hedge()
-    test_retry_after_ota_preserves_pending_contract_and_value()
-    test_hedge_imperative_starts_collection_before_no_to_aa()
+    test_batch_route_precedes_legacy_hedge_and_records_history()
+    test_batch_result_is_not_rewritten_by_llm()
     print("orchestrator_market_routing: OK")
