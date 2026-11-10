@@ -213,16 +213,47 @@ class ContractBatchFlow:
     @staticmethod
     def parse_contracts(text):
         # Captura o token completo antes de validar, sem truncar 1234/26 ou 1/2026.
-        pattern = r"(?<![\w/])([0-9]+\s*/\s*[0-9]+(?:[A-Za-z]+|\s+[A-Z](?![A-Za-z]))?)(?![\w/])"
-        found = list(re.finditer(pattern, text))
-        values = []
-        for match in found:
+        # Uma conjunção isolada ("036/26 e 037/26") não é letra de parcela.
+        token = (r"[0-9]+\s*/\s*[0-9]+(?:[A-Za-z]+|\s+(?:[A-Z](?![A-Za-z])"
+                 r"|[a-z](?=\s+(?i:até|ate)\b)))?")
+        end_token = r"[0-9]+\s*/\s*[0-9]+(?:[A-Za-z]+|\s+[A-Za-z](?![A-Za-z]))?"
+        pattern = (rf"(?<![\w/])({token})(?![\w/])"
+                   rf"(?:\s+(?i:até|ate)\s+(?:(?i:a\s+letra|letra)\s+)?"
+                   rf"(?P<fim>{end_token}|[A-Za-z]+)(?![\w/]))?")
+        found, values = [], []
+        for match in re.finditer(pattern, text):
             number, letter = identifier(match[1])
-            ref = number + letter
-            if ref in values:
-                raise ValueError(f"O contrato {ref} foi informado mais de uma vez. Quais dados deseja manter?")
-            values.append(ref)
+            letters = [letter]
+            if match["fim"] is None and re.match(r"\s+(?:até|ate)\b", text[match.end():], re.I):
+                raise ValueError("Informe a letra final do intervalo, por exemplo: 036/26A até F.")
+            if match["fim"] is not None:
+                end = match["fim"]
+                if "/" in end:
+                    end_number, end_letter = identifier(end)
+                    if end_number != number:
+                        raise ValueError("O intervalo de letras deve usar o mesmo número e ano de contrato.")
+                else:
+                    end_letter = end.upper()
+                if not letter or not re.fullmatch(r"[A-Z]", end_letter):
+                    raise ValueError("Informe a letra inicial e a final, por exemplo: 036/26A até F.")
+                if end_letter < letter:
+                    raise ValueError("A letra final deve ser igual ou posterior à letra inicial do intervalo.")
+                letters = [chr(code) for code in range(ord(letter), ord(end_letter) + 1)]
+            for suffix in letters:
+                ref = number + suffix
+                if ref in values:
+                    raise ValueError(f"O contrato {ref} foi informado mais de uma vez. Quais dados deseja manter?")
+                # Cada referência conserva o trecho inteiro do intervalo. Assim os
+                # campos seguintes são distribuídos ao grupo por parse_updates.
+                found.append(match)
+                values.append(ref)
         return found, values
+
+    def prepare_from_text(self, text):
+        updates, common = self.parse_updates(text)
+        matches, refs = self.parse_contracts(text)
+        interval_refs = [ref for match, ref in zip(matches, refs) if match["fim"] is not None]
+        return self.prepare_fixation(updates, common, interval_refs=interval_refs)
 
     @staticmethod
     def fields_from_text(text, hedge=False):
@@ -359,6 +390,12 @@ class ContractBatchFlow:
                     rows = []
                 if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
                     raise ValueError("Retorno da consulta de contratos inválido.")
+                if key in data.get("contratosIntervalo", []):
+                    # O filtro da procedure pode retornar outras parcelas. Exija
+                    # a identidade exata antes de propor uma letra do intervalo.
+                    if rows and any(self.row_contract_identity(row) is None for row in rows):
+                        raise ValueError("Retorno sem identificação válida do contrato.")
+                    rows = [row for row in rows if self.row_contract_identity(row) == key]
                 # Decimal e datas do SQL precisam sobreviver à persistência em JSON.
                 record["retorno"] = json.loads(json.dumps(rows, ensure_ascii=False, default=str))
                 record["status"] = "ok" if rows else "vazio"
@@ -381,6 +418,12 @@ class ContractBatchFlow:
                 logger.warning("Consulta inicial do contrato %s indisponível; solicitar dados ausentes.", key)
             self.save(data)
         record = cache[key]
+        if (key in data.get("contratosIntervalo", []) and record.get("status") == "ok"
+                and any(self.row_contract_identity(row) != key for row in record.get("retorno", []))):
+            # Ao converter uma seleção individual em intervalo, o cache anterior
+            # também precisa identificar exatamente a parcela, sem nova consulta.
+            record.update(status="erro", erro="IdentidadeContratoNaoVerificada")
+            self.save(data)
         if not item.get("tipoValor") and record.get("tipoValor"):
             item["tipoValor"] = record["tipoValor"]
         if item.get("tipoValor"):
@@ -388,12 +431,26 @@ class ContractBatchFlow:
                                           else self.TYPE_DESCRIPTIONS.get(item["tipoValor"]))
 
     @staticmethod
+    def row_contract_identity(row):
+        fields = {str(field).strip().lower(): value for field, value in row.items()}
+        try:
+            if "numerovenda" in fields:
+                number, letter = identifier(fields["numerovenda"], fields.get("letravenda"))
+            else:
+                number, letter = identifier(fields.get("contrato", ""))
+            return number + letter
+        except ValueError:
+            return None
+
+    @staticmethod
     def fixation_ready(data):
         return bool(data["contratos"]) and all(
             all(item.get(field) is not None for field in ("valorFixacao", "tipoValor"))
+            and (identity(item) not in data.get("contratosIntervalo", [])
+                 or data.get("consultasContratos", {}).get(identity(item), {}).get("status") == "ok")
             for item in data["contratos"])
 
-    def prepare_fixation(self, updates, common=None):
+    def prepare_fixation(self, updates, common=None, interval_refs=None):
         """Prepara apenas; qualquer alteração sempre exige confirmação posterior."""
         data = self.load()
         if data.get("stage") in self.BLOCKED:
@@ -405,6 +462,8 @@ class ContractBatchFlow:
                     "contratosAindaNaoFixados": [], "contratos": [], "contratosFixados": [], "contratosNaoFixados": []}
         if data.get("stage", "").endswith("hedge") or data.get("stage") == "offer":
             raise ValueError("Conclua o fluxo atual antes de iniciar outra fixação.")
+        if interval_refs:
+            data["contratosIntervalo"] = list(dict.fromkeys(data.get("contratosIntervalo", []) + interval_refs))
         pending = deepcopy(data["contratosAindaNaoFixados"])
         initial = not data["contratosIniciais"]
         seen = set()
@@ -437,6 +496,14 @@ class ContractBatchFlow:
         data["contratosAindaNaoFixados"] = pending
         for item in pending:
             self.remember_contract_data(data, item)
+        # Letras não encontradas são relatadas separadamente e nunca enviadas.
+        absent = [identity(item) for item in pending
+                  if identity(item) in data.get("contratosIntervalo", [])
+                  and data["consultasContratos"][identity(item)]["status"] == "vazio"]
+        if absent:
+            data["contratosNaoEncontrados"] = list(dict.fromkeys(data.get("contratosNaoEncontrados", []) + absent))
+            pending = [item for item in pending if identity(item) not in absent]
+            data["contratosAindaNaoFixados"] = pending
         if initial:
             data["contratosIniciais"] = deepcopy(pending)
             data.pop("unassigned_fields", None)
@@ -509,15 +576,29 @@ class ContractBatchFlow:
 
     @classmethod
     def fix_summary(cls, data):
+        notices = []
+        for ref in data.get("contratosNaoEncontrados", []):
+            notices.extend([f"- {ref}", "\t- Contrato não encontrado; excluído da proposta.", cls.SEPARATOR])
+        unavailable = [identity(item) for item in data["contratos"]
+                       if identity(item) in data.get("contratosIntervalo", [])
+                       and data.get("consultasContratos", {}).get(identity(item), {}).get("status") != "ok"]
+        if unavailable:
+            lines = ["Não foi possível verificar os contratos abaixo. A confirmação está bloqueada:"]
+            for ref in unavailable:
+                lines.extend([f"- {ref}", "\t- Consulta indisponível ou incompleta.", cls.SEPARATOR])
+            return "\n".join(notices + lines + ["Digite sair e inicie uma nova solicitação para consultar novamente."])
+        if not data["contratos"]:
+            return "\n".join(notices + ["Nenhum contrato encontrado para fixação. Informe os contratos novamente."])
         missing = [identity(i) for i in data["contratos"] if "valorFixacao" not in i]
         if missing:
-            return ("Informe o valor da fixação para: " + ", ".join(missing)
-                    + ". Se quiser, informe também diferencial e fixador do preço; são opcionais.")
+            return "\n".join(notices + ["Informe o valor da fixação para:"] + [f"- {ref}" for ref in missing]
+                             + ["Se quiser, informe também diferencial e fixador do preço; são opcionais."])
         missing_type = [identity(i) for i in data["contratos"] if not i.get("tipoValor")]
         if missing_type:
-            return ("Tipo Valor ausente ou não reconhecido. Informe o Tipo Valor para: " + ", ".join(missing_type)
-                    + ". Opções: CTS/LB, US$ KG, US$ 50KG, US$ 59KG ou US$ Ton.")
-        lines = ["Resumo para confirmação da fixação:"]
+            return "\n".join(notices + ["Tipo Valor ausente ou não reconhecido. Informe o Tipo Valor para:"]
+                             + [f"- {ref}" for ref in missing_type]
+                             + ["Opções: CTS/LB, US$ KG, US$ 50KG, US$ 59KG ou US$ Ton."])
+        lines = notices + ["Resumo para confirmação da fixação:"]
         for item in data["contratos"]:
             lines.extend([f"- {identity(item)}", f"\t- Valor da Fixação: {cls.display_value(item['valorFixacao'], item)}"])
             if "fixadorPreco" in item:
@@ -931,8 +1012,7 @@ class ContractBatchFlow:
                 # Reinício entre a gravação do estado final e a liberação da trava.
                 self.release_lock(operation_id)
             if not data or stage == "done":
-                updates, common = self.parse_updates(message)
-                return await asyncio.to_thread(self.prepare_fixation, updates, common)
+                return await asyncio.to_thread(self.prepare_from_text, message)
             if stage == "offer":
                 if value in self.NO or value == "sair":
                     data["stage"] = "done"
@@ -987,7 +1067,6 @@ class ContractBatchFlow:
                 if not refs and code and not re.search(r"\b(?:valor|nivel|fixacao|diferencial)\b", value):
                     updates = [(identity(i), {"tipoValor": code}) for i in data["contratos"] if not i.get("tipoValor")]
                     return await asyncio.to_thread(self.prepare_fixation, updates)
-            updates, common = self.parse_updates(message)
-            return await asyncio.to_thread(self.prepare_fixation, updates, common)
+            return await asyncio.to_thread(self.prepare_from_text, message)
         except (ValueError, TypeError, KeyError) as exc:
             return f"Verifique as informações: {exc}"

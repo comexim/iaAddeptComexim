@@ -180,6 +180,109 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("contratodeVenda", json.dumps(body))
         self.assertIn("Hedge", output)
 
+    def test_letter_intervals_variants_and_group_fields(self):
+        for text in ("036/26A até F", "36/26a ate f", "036/26 A até a letra F",
+                     "036/26A até 036/26F", "036/26 a até 036/26 f"):
+            with self.subTest(text=text):
+                _, refs = self.flow.parse_contracts(text)
+                self.assertEqual(refs, ["036/26" + letter for letter in "ABCDEF"])
+        updates, common = self.flow.parse_updates(
+            "fixe 036/26A até C e 037/26 nivel 210,9 corretora adm14; 038/26D até E nivel 220")
+        self.assertEqual([ref for ref, _ in updates],
+                         ["036/26A", "036/26B", "036/26C", "037/26", "038/26D", "038/26E"])
+        self.assertEqual([fields["valorFixacao"] for _, fields in updates], [210.9] * 4 + [220] * 2)
+        self.assertTrue(all(fields["corret"] == "A14" for _, fields in updates[:4]))
+        self.assertEqual(common, {})
+
+    def test_invalid_and_overlapping_letter_intervals(self):
+        for text in ("036/26F até A", "036/26 até F", "036/26A até FF",
+                     "036/26A até 037/26F", "036/26A até 036/27F", "036/26A até",
+                     "036/26A até 036/26", "036/26A até F e 36/26c",
+                     "036/26A até D e 036/26C até F"):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                self.flow.parse_contracts(text)
+
+    def interval_query(self, procedure, params):
+        return [{"contrato": params["Contrato"], "tipoValor": "CTS/LB"}]
+
+    async def test_letter_interval_summary_queries_and_confirmed_payload(self):
+        self.contract_query.side_effect = self.interval_query
+        summary = await self.flow.handle("Fixar os contratos 036/26A até F, nivel 210 corretora adm14")
+        refs = ["036/26" + letter for letter in "ABCDEF"]
+        expected = "Resumo para confirmação da fixação:\n" + "".join(
+            f"- {ref}\n\t- Valor da Fixação: 210 CTS/LB\n{self.flow.SEPARATOR}\n" for ref in refs
+        ) + "Confirma o envio destes contratos?"
+        self.assertEqual(summary, expected)
+        self.assertEqual(self.contract_query.call_count, 6)
+        for ref in refs:
+            self.contract_query.assert_any_call("usp_IA_Vendas", {"Contrato": ref})
+        self.assertTrue(all(item["corret"] == "A14" for item in self.flow.load()["contratos"]))
+        self.fix_send.assert_not_called()
+        await self.flow.handle("036/26A até F nivel 211")
+        self.assertEqual(self.contract_query.call_count, 6)
+        self.fix_send.return_value = fixation_result(refs, level=211)
+        await self.flow.handle("sim")
+        self.fix_send.assert_awaited_once()
+        self.assertEqual(self.fix_send.await_args.args[0], {"contratos": [
+            {"numeroVenda": "036/26", "letraVenda": letter,
+             "fixacaoContrato": [{"valorFixacao": 211.0, "tipoValor": "C"}]} for letter in "ABCDEF"]})
+        self.assertEqual(self.contract_query.call_count, 6)
+
+    async def test_missing_interval_letters_are_reported_in_blocks_and_not_sent(self):
+        def query(procedure, params):
+            # Simula uma procedure com filtro amplo: só há parcelas A e C.
+            return [{"contrato": "036/26A", "tipoValor": "CTS/LB"},
+                    {"contrato": "036/26C", "tipoValor": "US$ KG"}]
+        self.contract_query.side_effect = query
+        summary = await self.flow.handle("fixe 036/26A até C nivel 210")
+        self.assertIn("- 036/26B\n\t- Contrato não encontrado; excluído da proposta.\n", summary)
+        self.assertIn("- 036/26A\n\t- Valor da Fixação: 210 CTS/LB", summary)
+        self.assertIn("- 036/26C\n\t- Valor da Fixação: 210 US$ KG", summary)
+        self.assertIn("Confirma o envio", summary)
+        self.fix_send.assert_not_called()
+        self.fix_send.return_value = fixation_result(("036/26A", "036/26C"))
+        await self.flow.handle("sim")
+        body = self.fix_send.await_args.args[0]
+        self.assertEqual([identity(item) for item in body["contratos"]], ["036/26A", "036/26C"])
+
+    async def test_interval_query_failure_blocks_confirmation_even_with_explicit_type(self):
+        for index, response in enumerate((RuntimeError("SQL indisponível"), [{"tipoValor": "CTS/LB"}])):
+            with self.subTest(response=response):
+                self.flow = ContractBatchFlow(f"intervalo-erro-{index}", True)
+                def query(procedure, params):
+                    if params["Contrato"] == "036/26B":
+                        if isinstance(response, Exception):
+                            raise response
+                        return response
+                    return self.interval_query(procedure, params)
+                self.contract_query.side_effect = query
+                summary = await self.flow.handle("fixe 036/26A até C nivel 210 tipo C")
+                self.assertIn("confirmação está bloqueada", summary)
+                self.assertIn("- 036/26B\n\t- Consulta indisponível ou incompleta.", summary)
+                self.assertNotIn("Confirma o envio", summary)
+                self.assertNotIn("não encontrado", summary)
+                self.assertEqual(self.flow.load()["stage"], "collect_fix")
+                await self.flow.handle("sim")
+                self.fix_send.assert_not_called()
+
+    async def test_empty_letter_interval_never_offers_confirmation(self):
+        self.contract_query.return_value = []
+        summary = await self.flow.handle("fixe 036/26A até C nivel 210 tipo C")
+        self.assertIn("Nenhum contrato encontrado", summary)
+        self.assertNotIn("Confirma o envio", summary)
+        self.assertEqual(self.flow.load()["contratos"], [])
+        await self.flow.handle("sim")
+        self.fix_send.assert_not_called()
+
+    async def test_existing_cache_must_identify_contract_when_selection_becomes_interval(self):
+        await self.flow.handle("fixe 036/26A e 036/26B nivel 210")
+        self.assertEqual(self.contract_query.call_count, 2)
+        summary = await self.flow.handle("036/26A até B nivel 211")
+        self.assertIn("confirmação está bloqueada", summary)
+        self.assertEqual(self.contract_query.call_count, 2)
+        await self.flow.handle("sim")
+        self.fix_send.assert_not_called()
+
     async def test_partial_retry_preserves_snapshot_corrections_reasons_and_successes(self):
         await self.prepare()
         initial = deepcopy(self.flow.load()["contratosIniciais"])
@@ -576,7 +679,7 @@ class BatchFlowTest(unittest.IsolatedAsyncioTestCase):
     async def test_missing_type_answer_only_fills_contracts_that_need_it(self):
         self.contract_query.side_effect = [[{"tipoValor": "CTS/LB"}], [{"tipoValor": "inexistente"}]]
         summary = await self.flow.handle("fixe 374/26A e 374/26D nivel 100")
-        self.assertIn("Informe o Tipo Valor para: 374/26D", summary)
+        self.assertIn("Informe o Tipo Valor para:\n- 374/26D", summary)
         summary = await self.flow.handle("5")
         self.assertIn("100 US$ 50KG", summary)
         items = self.flow.load()["contratos"]
