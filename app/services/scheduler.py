@@ -151,7 +151,7 @@ async def _executar_relatorio(relatorio: dict) -> None:
             )
 
         # Invoca o agente
-        orchestrator = AgentOrchestrator(user=user, session_id=telefone)
+        orchestrator = AgentOrchestrator(user=user, session_id=telefone, read_only=True)
         resposta = await orchestrator.process_message(mensagem)
 
         # Envia pelo canal configurado

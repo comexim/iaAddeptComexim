@@ -6536,8 +6536,8 @@ IMPORTANTE:
             logger.error(f"[INTERNET] Erro na pesquisa: {e}")
             return f"Erro ao pesquisar na internet: {e}"
 
-    def get_all_tools(self) -> list:
-        """Retorna lista de todas as tools"""
+    def get_all_tools(self, read_only: bool = False) -> list:
+        """Retorna tools do usuário; relatórios recebem somente consultas."""
         tools_list = [
             StructuredTool.from_function(
                 func=self._pesquisa_vendas,
@@ -7347,6 +7347,9 @@ EXEMPLOS DE USO:
 
         ]
         
+        if read_only:
+            return [tool for tool in tools_list if tool.name.startswith("pesquisa_")]
+
         # Adiciona tool de criação de contratos ADA
         tools_list.append(self.get_ada_tool())
         if self.user.has_permission("Fixacao"):

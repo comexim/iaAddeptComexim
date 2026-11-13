@@ -579,17 +579,19 @@ comissao_contrato_json='[
 class AgentOrchestrator:
     """Orquestrador principal do agente de IA"""
 
-    def __init__(self, user: UserPermissions, session_id: str, notify=None):
+    def __init__(self, user: UserPermissions, session_id: str, notify=None, *, read_only: bool = False):
         """
         Inicializa orquestrador para usuário específico
 
         Args:
             user: Dados e permissões do usuário
             session_id: ID da sessão (telefone)
+            read_only: Restringe relatórios agendados às consultas permitidas.
         """
         self.user = user
         self.session_id = session_id
         self.notify = notify
+        self.read_only = read_only
         self.user_preferences = None  # Carregado sob demanda
         self.system_prompt = ""  # Carregado quando agente é criado
         # Cópia estruturada do último retorno de relatório. O scheduler usa
@@ -616,12 +618,12 @@ class AgentOrchestrator:
 
         # Cria tools SQL específicas para este usuário
         sql_tools = SQLTools(user, session_id)
-        self.tools = sql_tools.get_all_tools()
+        self.tools = sql_tools.get_all_tools(read_only=True) if read_only else sql_tools.get_all_tools()
         
         # NOTA: ADA tool já é incluída em get_all_tools()
         
         # Guarda ADA tool separada para fluxo leve de contrato
-        self._ada_tool = sql_tools.get_ada_tool()
+        self._ada_tool = None if read_only else sql_tools.get_ada_tool()
         self._contrato_agent = None  # Agente leve criado sob demanda
 
         # Configura memória com Redis
@@ -799,7 +801,7 @@ class AgentOrchestrator:
     def _setup_memory(self) -> RedisChatMessageHistory:
         """Configura memória de conversação com Redis"""
         message_history = RedisChatMessageHistory(
-            session_id=f"{self.session_id}_memory_comexim",
+            session_id=f"{self.session_id}{'_report' if self.read_only else ''}_memory_comexim",
             url=settings.redis_url,
             ttl=settings.redis_memory_ttl
         )
@@ -846,6 +848,14 @@ class AgentOrchestrator:
 IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar suas respostas."""
         else:
             system_prompt = base_prompt
+
+        if self.read_only:
+            system_prompt += (
+                "\n\nMODO DE RELATÓRIO SOMENTE CONSULTA: execute as consultas solicitadas usando "
+                "as permissões de acesso aos dados do usuário. Expressões como 'vendas a fixar' "
+                "são indicadores do relatório. Não execute fixações, Hedge, criação de contratos, "
+                "criação ou cancelamento de agendamentos. Retorne somente o relatório solicitado."
+            )
 
         # Cria agente LangGraph com ReAct pattern
         self.agent = create_react_agent(
@@ -903,30 +913,32 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         try:
             self.last_response_is_contract_batch = False
             normalized_user_message = _normalize_query_text(message)
+            read_only = getattr(self, "read_only", False)
 
             # O lote tem estado próprio e é processado antes dos atalhos legados.
             # Assim, confirmação, seleção e retry não dependem de interpretação do LLM.
-            from app.agents.contract_batch_flow import ContractBatchFlow
-            batch_output = await ContractBatchFlow(
-                self.session_id or "default",
-                has_permission=self.user.has_permission("Fixacao"),
-                notify=getattr(self, "notify", None),
-            ).handle(message)
-            if batch_output is not None:
-                self.last_response_is_contract_batch = True
-                if batch_output:
-                    self.message_history.add_user_message(message)
-                    self.message_history.add_ai_message(batch_output)
-                return batch_output
+            if not read_only:
+                from app.agents.contract_batch_flow import ContractBatchFlow
+                batch_output = await ContractBatchFlow(
+                    self.session_id or "default",
+                    has_permission=self.user.has_permission("Fixacao"),
+                    notify=getattr(self, "notify", None),
+                ).handle(message)
+                if batch_output is not None:
+                    self.last_response_is_contract_batch = True
+                    if batch_output:
+                        self.message_history.add_user_message(message)
+                        self.message_history.add_ai_message(batch_output)
+                    return batch_output
 
-            hedge_output = await self._process_hedge_flow(message)
-            if hedge_output is not None:
-                self.message_history.add_user_message(message)
-                self.message_history.add_ai_message(hedge_output)
-                return hedge_output
+                hedge_output = await self._process_hedge_flow(message)
+                if hedge_output is not None:
+                    self.message_history.add_user_message(message)
+                    self.message_history.add_ai_message(hedge_output)
+                    return hedge_output
 
             # ═══ FLUXO LEVE: Criação de contrato (só ADA tool) ═══
-            if self._is_contrato_flow(message):
+            if not read_only and self._is_contrato_flow(message):
                 logger.info(f"[CONTRATO FLOW] Usando agente leve para: {message[:80]}")
                 return await self._process_contrato_message(message)
 
@@ -947,7 +959,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 for expression in ("desse contrato", "deste contrato", "nesse contrato", "neste contrato")
             )
             explicit_contract = re.search(r'\b\d+\s*/\s*\d+\s*[A-Za-z]?\b|\b\d{5,}\b', message)
-            if references_previous_contract and not explicit_contract:
+            if not read_only and references_previous_contract and not explicit_contract:
                 history_messages = self.message_history.messages
                 for previous_message in reversed(history_messages):
                     previous_content = str(getattr(previous_message, "content", ""))
@@ -964,7 +976,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                         )
                         break
 
-            if len(message) < 40:  # Aumentado para 40 para pegar respostas curtas
+            if not read_only and len(message) < 40:  # Aumentado para 40 para pegar respostas curtas
                 # Recupera histórico
                 history_messages = self.message_history.messages
                 # Procura última pergunta do usuário (HumanMessage) que não seja essa
@@ -979,14 +991,14 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
             sql_tools.user_query = contextualized_query
             sql_tools.user_query_original = message  # Query SEM contexto para filtros
-            self.tools = sql_tools.get_all_tools()
+            self.tools = sql_tools.get_all_tools(read_only=True) if read_only else sql_tools.get_all_tools()
 
             logger.info(f"Processando mensagem do usuário {self.user.nome}: {message[:100]}...")
 
             # Quando descrição, frequência, horário e canal já foram
             # informados, cria imediatamente. Pedir "sim" novamente não
             # acrescenta nenhum dado e causa ciclos de reconfirmação.
-            complete_schedule = _extract_complete_daily_schedule(message)
+            complete_schedule = None if read_only else _extract_complete_daily_schedule(message)
             if complete_schedule:
                 logger.info(
                     "[AGENDAMENTO] Pedido diário completo detectado; criando sem confirmação adicional"
@@ -1019,7 +1031,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # Um pedido de agendamento também contém "Long/Short", mas deve
             # chegar ao agente para chamar criar_relatorio_agendado. O atalho
             # abaixo serve apenas para consultas imediatas.
-            scheduling_intent = bool(
+            scheduling_intent = not read_only and bool(
                 re.search(
                     r'\b(?:agend(?:e|a|ar|ado)|program(?:e|a|ar)|todos?\s+os\s+dias|'
                     r'todo\s+dia|diariamente|dias?\s+uteis|segunda\s+a\s+sexta|'
@@ -1075,7 +1087,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 )
             )
             status_fixacao_herdado = False
-            if contrato_fixacao is not None and not status_fixacao_explicito:
+            if not read_only and contrato_fixacao is not None and not status_fixacao_explicito:
                 # Herda somente a intenção da pergunta imediatamente anterior.
                 # Ex.: "O contrato 034/26B está fixado?" → "E o contrato 033/26B?"
                 for previous_message in reversed(self.message_history.messages):
@@ -1151,7 +1163,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             feedbacks_detected = []
             preferences_changed = False
 
-            if settings.enable_preference_learning:
+            if not read_only and settings.enable_preference_learning:
                 feedbacks_detected, preferences_changed = await preference_learning.process_user_message(
                     user_message=message,
                     telefone=self.session_id
@@ -1167,7 +1179,7 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                 self.agent = await self._create_agent()
 
             # 3. Recupera histórico de mensagens do Redis
-            history_messages = self.message_history.messages
+            history_messages = [] if read_only else self.message_history.messages
 
             # Limita histórico para últimos N mensagens (janela deslizante)
             max_history = settings.redis_memory_window * 2  # user + assistant = 2 messages
@@ -1197,7 +1209,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # agendou sem uma ToolMessage de sucesso, descarta a resposta e
             # repete a solicitação exigindo a execução real da ferramenta.
             if (
-                _claims_successful_schedule(current_turn_messages)
+                not read_only
+                and _claims_successful_schedule(current_turn_messages)
                 and not _schedule_tool_succeeded(current_turn_messages)
             ):
                 import uuid
@@ -1383,7 +1396,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             # Última barreira: uma confirmação nunca sai para o usuário sem
             # uma inserção realmente confirmada pela ferramenta.
             if (
-                _claims_successful_schedule(current_turn_messages)
+                not read_only
+                and _claims_successful_schedule(current_turn_messages)
                 and not _schedule_tool_succeeded(current_turn_messages)
             ):
                 logger.error(
@@ -1394,7 +1408,8 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
                     "pelo sistema. Por favor, tente novamente em alguns instantes."
                 )
 
-            output = _ensure_fixacao_optional_hint(output)
+            if not read_only:
+                output = _ensure_fixacao_optional_hint(output)
 
             # 7. Salva mensagens no histórico do Redis
             self.message_history.add_user_message(message)
