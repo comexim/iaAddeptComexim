@@ -5306,6 +5306,56 @@ IMPORTANTE:
 
         return self._validate_and_execute(function_name, filters)
 
+    def _pesquisa_aplicacoes_emprestimos(self, tipo: str, detalhar: bool = False,
+                                      moeda: Optional[str] = None, reutilizar: bool = False) -> str:
+        """Consulta APL/EMP ou detalha o mesmo snapshot, sempre com permissão Financeiro."""
+        from app.services.applications_loans import DETAIL_QUESTION, currency_name, format_position, load_snapshot, save_snapshot
+        from app.services.database_detail import TRUSTED_DATABASE_DETAIL_PREFIX
+
+        allowed, denial = sql_validator.validate_permission(self.user, "usp_IA_AplEmp")
+        if not allowed:
+            return denial
+        kind = str(tipo).strip().upper()
+        if kind not in {"APL", "EMP", "AMBOS"}:
+            return "Informe o tipo: APL para aplicações, EMP para empréstimos ou AMBOS."
+        try:
+            if reutilizar:
+                snapshot = load_snapshot(self.session_id)
+                if not snapshot:
+                    return "A consulta anterior expirou. Peça novamente o resumo de aplicações ou empréstimos."
+                snapshot = {key: rows for key, rows in snapshot.items() if kind == "AMBOS" or key == kind}
+                if not snapshot:
+                    return "A consulta anterior não contém esse tipo. Peça um novo resumo de aplicações ou empréstimos."
+            else:
+                snapshot = {key: sql_client.execute_procedure("dbo.usp_IA_AplEmp", {"Tipo": key}) or []
+                            for key in (("APL", "EMP") if kind == "AMBOS" else (kind,))}
+            if any(not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows)
+                   for rows in snapshot.values()):
+                raise ValueError("Retorno inválido da SP de aplicações e empréstimos.")
+            if moeda:
+                snapshot = {key: [row for row in rows if currency_name(
+                    next((value for field, value in row.items() if str(field).lower() == "moeda"), None)
+                ) == currency_name(moeda)] for key, rows in snapshot.items()}
+            result = format_position(snapshot, detail=detalhar, currency=moeda)
+            rows = [row for group in snapshot.values() for row in group]
+            self.last_apl_emp_rows = rows
+            self._salvar_resultado_scheduler(rows)
+            if not reutilizar and not getattr(self, "_report_read_only", False):
+                try:
+                    save_snapshot(self.session_id, snapshot)
+                except Exception:
+                    logger.warning("Não foi possível guardar o detalhamento de aplicações/empréstimos.")
+                    result = result.replace(DETAIL_QUESTION, "O detalhamento desta consulta está indisponível no momento. Solicite uma nova consulta para tentar novamente.")
+            elif getattr(self, "_report_read_only", False):
+                # Relatórios automáticos não substituem a consulta interativa.
+                result = result.replace(DETAIL_QUESTION,
+                    "Deseja detalhar os totais em lançamentos? Envie 'Detalhe as aplicações' ou "
+                    "'Detalhe os empréstimos', indicando a moeda se desejar.")
+            return TRUSTED_DATABASE_DETAIL_PREFIX + result
+        except Exception:
+            logger.exception("Erro na consulta de aplicações/empréstimos")
+            return "Não foi possível consultar os dados de aplicações e empréstimos. Tente novamente em instantes."
+
     def _pesquisa_longshort(self) -> str:
         """
         Consulta posição do Long/Short por filial.
@@ -6538,7 +6588,17 @@ IMPORTANTE:
 
     def get_all_tools(self, read_only: bool = False) -> list:
         """Retorna tools do usuário; relatórios recebem somente consultas."""
+        self._report_read_only = read_only
         tools_list = [
+            StructuredTool.from_function(
+                func=self._pesquisa_aplicacoes_emprestimos,
+                name="pesquisa_aplicacoes_emprestimos",
+                description=("Consulta aplicações financeiras (tipo=APL), empréstimos (tipo=EMP) ou AMBOS "
+                             "pela SP usp_IA_AplEmp. Mostra soma do campo Total por moeda, sem conversões. "
+                             "Para listar lançamentos use detalhar=True; para detalhar o resumo anterior use "
+                             "reutilizar=True. moeda é opcional (BRL, USD, EUR, GBP ou a moeda retornada). "
+                             "Reproduza integralmente a resposta formatada, sem recalcular. Requer Financeiro."),
+            ),
             StructuredTool.from_function(
                 func=self._pesquisa_vendas,
                 name="pesquisa_vendas",

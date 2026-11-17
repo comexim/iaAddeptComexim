@@ -900,6 +900,57 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
 
         return None
 
+    async def _process_apl_emp_query(self, message: str, read_only: bool = False) -> Optional[str]:
+        """Consulta financeira explícita ou resposta ao convite de detalhamento."""
+        import asyncio
+        from app.services.applications_loans import (
+            DETAIL_QUESTION, currency_filter, detail_requested, normalize, requested_types,
+        )
+        kinds = requested_types(message)
+        detail = detail_requested(message)
+        reuse = False
+        text = normalize(message).rstrip(".!?")
+        # Pedidos para agendar continuam no fluxo próprio; somente a execução
+        # automática (read_only) consulta imediatamente.
+        if not read_only and re.search(r"\b(?:agend\w*|program\w*|diariamente|semanalmente|mensalmente)\b|\btodos?\s+os\s+dias\b|\bdias\s+uteis\b", text):
+            return None
+        followup = bool(re.fullmatch(r"(?:sim|s|ok|nao|n|usd|brl|eur|gbp|dolares?|reais|euros?|libras?)", text)) or detail
+        previous = ""
+        if not read_only and followup:
+            previous = next((str(item.content) for item in reversed(self.message_history.messages)
+                             if isinstance(item, AIMessage)), "")
+        has_summary = (previous.startswith(("*Aplicações — resumo", "*Empréstimos — resumo"))
+                       and DETAIL_QUESTION in previous)
+        if kinds and detail and has_summary:
+            reuse = all(f"*{'Aplicações' if kind == 'APL' else 'Empréstimos'} — resumo" in previous for kind in kinds)
+        if not kinds:
+            if read_only or not followup:
+                return None
+            if not has_summary:
+                return None
+            if text in {"nao", "n"}:
+                output = "Certo. Se precisar, peça uma nova consulta de aplicações ou empréstimos."
+                self.message_history.add_user_message(message)
+                self.message_history.add_ai_message(output)
+                return output
+            kinds = [kind for kind, title in (("APL", "Aplicações"), ("EMP", "Empréstimos"))
+                     if f"*{title} — resumo" in previous]
+            detail, reuse = True, True
+        sql_tools = SQLTools(self.user, self.session_id)
+        sql_tools._report_read_only = read_only
+        sql_tools.user_query = sql_tools.user_query_original = message
+        output = await asyncio.to_thread(
+            sql_tools._pesquisa_aplicacoes_emprestimos,
+            tipo="AMBOS" if len(kinds) == 2 else kinds[0], detalhar=detail,
+            moeda=currency_filter(message), reutilizar=reuse,
+        )
+        if output.startswith(TRUSTED_DATABASE_DETAIL_PREFIX):
+            output = output[len(TRUSTED_DATABASE_DETAIL_PREFIX):]
+        self.last_report_rows = getattr(sql_tools, "last_apl_emp_rows", [])
+        self.message_history.add_user_message(message)
+        self.message_history.add_ai_message(output)
+        return output
+
     async def process_message(self, message: str) -> str:
         """
         Processa mensagem do usuário
@@ -914,6 +965,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             self.last_response_is_contract_batch = False
             normalized_user_message = _normalize_query_text(message)
             read_only = getattr(self, "read_only", False)
+
+            apl_emp_output = await self._process_apl_emp_query(message, read_only=read_only)
+            if apl_emp_output is not None:
+                return apl_emp_output
 
             # O lote tem estado próprio e é processado antes dos atalhos legados.
             # Assim, confirmação, seleção e retry não dependem de interpretação do LLM.
