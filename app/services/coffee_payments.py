@@ -24,6 +24,20 @@ FIELDS = {
     "SACAS": "Sacas",
     "VALOR_TOTAL": "Valor a Pagar",
 }
+EXTRA_LABELS = {
+    "ESTAGIO": "Estágio", "CONTRATO_CAFE": "Contrato de café",
+    "COD_FORNECEDOR": "Código do fornecedor", "LOJA": "Loja", "KILOS": "Quilos",
+    "PRECO_MEDIO": "Preço médio", "CONSUMO_SACAS": "Sacas para consumo",
+    "EXPORTAVEL_SACAS": "Sacas exportáveis", "DOLAR": "Cotação do dólar",
+    "PERC_QUEBRA": "% de quebra", "PERC_PVA": "% de PVA",
+    "PERC_FUNDO": "% de fundo", "PERC_IMPUREZA": "% de impureza", "RENDA": "Renda",
+    "CONSIGNADO": "Consignado", "STATUS": "Status", "DT_CANCELAMENTO": "Data de cancelamento",
+    "PAGADORA": "Pagadora",
+}
+DECIMAL_FIELDS = {
+    "SACAS", "KILOS", "CONSUMO_SACAS", "EXPORTAVEL_SACAS", "DOLAR",
+    "PERC_QUEBRA", "PERC_PVA", "PERC_FUNDO", "PERC_IMPUREZA", "RENDA",
+}
 DAY_COUNTS = dict(zip(
     ("um", "dois", "tres", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez"),
     range(1, 11),
@@ -31,9 +45,21 @@ DAY_COUNTS = dict(zip(
 DATE_TOKEN = r"\b(?:\d{1,2}/\d{1,2}/\d{4}|\d{4}-\d{2}-\d{2}|\d{8})\b"
 RELATIVE_DAY = r"hoje|amanha|ontem"
 RANGE_END = rf"(?:{DATE_TOKEN}|\b(?:{RELATIVE_DAY})\b)"
+IDENTIFIER = r"[a-z]*[0-9][a-z0-9/-]*\b"
 TITLE_REFERENCE = re.compile(
-    r"\b(titulo|pedido|solicitacao)\s+(?:(?:n(?:umero)?\.?|#)\s*)?([a-z]*[0-9][a-z0-9/-]*)\b"
+    rf"\b(titulos?|pedidos?|solicitac(?:ao|oes))\s+(?:(?:n(?:umero)?\.?|#)\s*)?"
+    rf"({IDENTIFIER}(?:(?:\s*,\s*|\s+e\s+){IDENTIFIER})*)"
 )
+REFERENCE_FIELDS = {"titulos": "titulo", "pedidos": "pedido", "solicitacoes": "solicitacao"}
+CHOICE_HEADING = "Há mais de um registro para"
+
+
+def title_references(text):
+    references = []
+    for field, identifiers in TITLE_REFERENCE.findall(text):
+        field = REFERENCE_FIELDS.get(field, field)
+        references.extend((field, identifier) for identifier in re.findall(IDENTIFIER, identifiers))
+    return list(dict.fromkeys(references))
 PERIOD_REPLY = re.compile(
     r"^(?:para |de |do dia |entre |no dia |dia |ness[ae] |dest[ae] )?"
     r"(?:\d|hoje\b|amanha\b|ontem\b|est[ae]\b|ess[ae]\b|proxim\w*\b|"
@@ -120,10 +146,21 @@ def summary(rows, start, end):
 def display_field(field, value):
     if value is None or str(value).strip() == "":
         return "Não informado"
-    if field in {"EMISSAO", "VENCIMENTO"}:
+    if field in {"EMISSAO", "VENCIMENTO", "DT_CANCELAMENTO"}:
         return display_date(value)
     if field == "VALOR_TOTAL":
         return f"R$ {amount(value)}"
+    if field in DECIMAL_FIELDS or field == "PRECO_MEDIO":
+        try:
+            number = decimal_value(value)
+        except ValueError:
+            return str(value).strip()
+        if field == "PRECO_MEDIO":
+            return amount(number)
+        integer, _, fraction = format(number, ",f").partition(".")
+        whole = integer.replace(",", ".")
+        fraction = fraction.rstrip("0")
+        return f"{whole},{fraction}" if fraction else whole
     return str(value).strip()
 
 
@@ -132,29 +169,46 @@ def title_block(index, row, *, extra=False):
     for field, label in FIELDS.items():
         lines.append(f"• {label}: {display_field(field, row.get(field))}")
     if extra:
-        additional = [f"• {field}: {display_field(field, value)}" for field, value in row.items() if field not in FIELDS]
+        additional = [f"• {EXTRA_LABELS.get(field, field)}: {display_field(field, value)}"
+                      for field, value in row.items() if field not in FIELDS]
         lines.extend(additional or ["A consulta não retornou outros campos para este título."])
     return "\n".join(lines)
 
 
-def title_details(rows, reference):
-    field, identifier = reference.groups()
+def matching_titles(rows, field, identifier):
     if field == "titulo":
         index = int(identifier) if identifier.isascii() and identifier.isdigit() else 0
-        matches = [(index, rows[index - 1])] if 1 <= index <= len(rows) else []
-    else:
-        column = {"pedido": "PEDIDO", "solicitacao": "SOLICITACAO"}[field]
-        key = identifier.lstrip("0")
-        matches = [(index, row) for index, row in enumerate(rows, 1)
-                   if row.get(column) not in (None, "") and normalize(row[column]).lstrip("0") == key]
-    if len(matches) == 1:
-        index, row = matches[0]
-        return f"{HEADING} — detalhes*\n\n{title_block(index, row, extra=True)}"
-    if matches:
-        choices = "\n".join(f"• Título {index} — filial {display_field('FILIAL', row.get('FILIAL'))}"
-                            for index, row in matches)
-        return f"{HEADING} — detalhes*\nHá mais de um registro. Informe o número do título da lista.\n{choices}"
-    return f"{HEADING} — detalhes*\nTítulo não encontrado na última consulta de pagamentos de café."
+        return [(index, rows[index - 1])] if 1 <= index <= len(rows) else []
+    column = {"pedido": "PEDIDO", "solicitacao": "SOLICITACAO"}[field]
+    key = identifier.lstrip("0")
+    return [(index, row) for index, row in enumerate(rows, 1)
+            if row.get(column) not in (None, "") and normalize(row[column]).lstrip("0") == key]
+
+
+def title_details(rows, references):
+    blocks = [f"{HEADING} — detalhes*"]
+    shown = set()
+    for field, identifier in references:
+        matches = matching_titles(rows, field, identifier)
+        label = {"titulo": "título", "pedido": "pedido", "solicitacao": "solicitação"}[field]
+        if len(matches) == 1:
+            index, row = matches[0]
+            if index not in shown:
+                blocks.append(title_block(index, row, extra=True))
+                shown.add(index)
+        elif matches:
+            choices = []
+            for index, row in matches:
+                filial = display_field("FILIAL", row.get("FILIAL"))
+                solicitacao = display_field("SOLICITACAO", row.get("SOLICITACAO"))
+                fornecedor = display_field("NOME_FORNECEDOR", row.get("NOME_FORNECEDOR"))
+                amount_due = display_field("VALOR_TOTAL", row.get("VALOR_TOTAL"))
+                choices.append(f"• Título {index} — filial {filial} | solicitação {solicitacao} | {fornecedor} | {amount_due}")
+            blocks.append(f"{CHOICE_HEADING} o {label} {identifier}. Informe o número do título da lista.\n"
+                          + "\n".join(choices))
+        else:
+            blocks.append(f"{label.capitalize()} {identifier} não encontrado na última consulta de pagamentos de café.")
+    return "\n\n".join(blocks)
 
 
 async def handle_query(orchestrator, message, *, read_only=False):
@@ -172,7 +226,8 @@ async def handle_query(orchestrator, message, *, read_only=False):
         return None
 
     explicit = is_coffee_payment_query(text)
-    reference = TITLE_REFERENCE.search(text)
+    references = title_references(text)
+    bare_number = re.fullmatch(r"[0-9]{1,8}", text)
     list_requested = bool(re.fullmatch(
         r"(?:sim(?:[, ]+(?:pode (?:exibir|mostrar|listar)|por favor))?|"
         r"(?:exiba|mostre|liste) (?:a lista(?: de titulos)?|os titulos)|pode (?:exibir|mostrar|listar))", text
@@ -180,7 +235,7 @@ async def handle_query(orchestrator, message, *, read_only=False):
     declined = text in {"nao", "n"}
     previous = ""
     period_reply = PERIOD_REPLY.match(text)
-    if not read_only and (reference or (not explicit and (period_reply or list_requested or declined))):
+    if not read_only and (references or (not explicit and (period_reply or list_requested or declined))):
         previous = next((str(item.content) for item in reversed(orchestrator.message_history.messages)
                          if getattr(item, "type", None) == "ai"), "")
     contextual = previous.startswith(HEADING)
@@ -188,8 +243,13 @@ async def handle_query(orchestrator, message, *, read_only=False):
     has_titles = contextual and (LIST_QUESTION in previous or previous.startswith(
         (f"{HEADING} — lista*", f"{HEADING} — detalhes*")
     ))
+    pending_choices = [block for block in previous.split("\n\n") if block.startswith(CHOICE_HEADING)]
+    choices = {int(index) for index in re.findall(r"(?m)^• Título ([0-9]+) — filial ", "\n".join(pending_choices))}
+    selecting_title = has_titles and bare_number is not None and bool(choices)
+    if selecting_title:
+        references = [("titulo", text)]
 
-    if not explicit and not awaiting_period and not (has_titles and (reference or list_requested or declined)):
+    if not explicit and not awaiting_period and not (has_titles and (references or list_requested or declined)):
         return None
     if not explicit and awaiting_period and not period_reply:
         return None
@@ -202,17 +262,28 @@ async def handle_query(orchestrator, message, *, read_only=False):
     allowed, denial = sql_validator.validate_permission(orchestrator.user, "usp_IA_PagamentoCafe")
     if not allowed:
         return denial
+    if selecting_title and int(text) not in choices:
+        return "\n\n".join([f"{HEADING} — detalhes*", "Escolha um dos títulos apresentados.", *pending_choices])
     key = f"pagamentos_cafe:{settings.app_env}:{orchestrator.session_id or orchestrator.user.telefone}"
     try:
-        if not read_only and has_titles and (reference or (not explicit and (list_requested or declined))):
+        if not read_only and has_titles and (references or (not explicit and (list_requested or declined))):
             if declined:
                 return "Certo. Quando precisar, peça uma nova consulta de pagamentos de café."
             snapshot = await redis_client.get(key)
             if not snapshot:
                 return "A consulta anterior expirou. Informe novamente o período de vencimento dos pagamentos de café."
             rows = snapshot["rows"]
-            if reference:
-                return title_details(rows, reference)
+            if references:
+                output = title_details(rows, references)
+                if selecting_title:
+                    # Ainda permite escolher para os demais pedidos ambíguos.
+                    chosen = f"• Título {int(text)} — filial "
+                    remaining = [block for block in pending_choices if not any(
+                        line.startswith(chosen) for line in block.splitlines()
+                    )]
+                    if remaining:
+                        output += "\n\n" + "\n\n".join(remaining)
+                return output
             blocks = [title_block(index, row) for index, row in enumerate(rows, 1)]
             return f"{HEADING} — lista*\n\n" + "\n-----------------------------------------\n\n".join(blocks)
 

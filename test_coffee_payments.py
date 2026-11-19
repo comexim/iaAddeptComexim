@@ -108,6 +108,41 @@ class CoffeePaymentsTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Nenhum título encontrado", result)
         self.assertNotIn(coffee.LIST_QUESTION, result)
 
+    async def test_multiple_orders_return_unique_titles_and_accept_bare_choice_for_duplicate(self):
+        self.previous(f"{coffee.HEADING} — lista*")
+        self.cache.get.return_value = {"rows": [
+            {"PEDIDO": "976002", "FILIAL": "05", "SOLICITACAO": "027854", "ESTAGIO": "SC7"},
+            {"PEDIDO": "976002", "FILIAL": "05", "SOLICITACAO": "027855"},
+            {"PEDIDO": "975990", "FILIAL": "05", "CONTRATO_CAFE": "1662/26"},
+        ]}
+        result = await coffee.handle_query(self.orchestrator, "Quais são os detalhes do pedido 976002 e 975990")
+        self.assertIn("Há mais de um registro para o pedido 976002.", result)
+        self.assertIn("solicitação 027854", result)
+        self.assertIn("solicitação 027855", result)
+        self.assertIn("Pedido: 975990", result)
+        self.assertIn("Contrato de café: 1662/26", result)
+        self.previous(result)
+        invalid = await coffee.handle_query(self.orchestrator, "3")
+        self.assertIn("Escolha um dos títulos apresentados", invalid)
+        self.assertNotIn("Contrato de café: 1662/26", invalid)
+        self.previous(invalid)
+        selected = await coffee.handle_query(self.orchestrator, "1")
+        self.assertIn("Estágio: SC7", selected)
+        self.assertIn("Pedido: 976002", selected)
+        self.assertNotIn("027855", selected)
+        self.database.execute_procedure.assert_not_called()
+
+    def test_details_format_decimal_fields_without_changing_identifiers(self):
+        output = coffee.title_block(30, {
+            "SACAS": "1342.37", "KILOS": "79200.0", "PRECO_MEDIO": "1607.753450985943",
+            "CONSUMO_SACAS": "127.52515", "PEDIDO": "009731", "LOJA": "0001",
+            "DT_CANCELAMENTO": "20261119",
+        }, extra=True)
+        for fragment in ("Sacas: 1.342,37", "Quilos: 79.200", "Preço médio: 1.607,75",
+                         "Sacas para consumo: 127,52515", "Pedido: 009731", "Loja: 0001",
+                         "Data de cancelamento: 19/11/2026"):
+            self.assertIn(fragment, output)
+
     async def test_scheduled_report_uses_requested_period_not_wrapper_dates(self):
         result = await coffee.handle_query(self.orchestrator, (
             "Hoje é 19/11/2026. Gere e mostre agora o seguinte relatório completo: "
