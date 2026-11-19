@@ -44,6 +44,7 @@ class ScheduledReportReadOnlyTest(unittest.IsolatedAsyncioTestCase):
             user=self.user, session_id=self.user.telefone, read_only=True,
             message_history=MagicMock(), _process_hedge_flow=AsyncMock(),
             _process_apl_emp_query=AsyncMock(return_value=None),
+            _process_coffee_payments=AsyncMock(return_value=None),
             _is_contrato_flow=MagicMock(side_effect=AssertionError("Não deve acessar contratos pendentes")),
         )
 

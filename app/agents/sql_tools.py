@@ -5306,6 +5306,11 @@ IMPORTANTE:
 
         return self._validate_and_execute(function_name, filters)
 
+    def _consultar_pagamentos_cafe(self, inicio: str, fim: str) -> list:
+        return sql_client.execute_procedure(
+            "usp_IA_PagamentoCafe", {"VencIni": inicio, "VencFim": fim}
+        )
+
     def _pesquisa_aplicacoes_emprestimos(self, tipo: str, detalhar: bool = False,
                                       moeda: Optional[str] = None, reutilizar: bool = False) -> str:
         """Consulta APL/EMP ou detalha o mesmo snapshot, sempre com permissão Financeiro."""

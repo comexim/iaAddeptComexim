@@ -9,6 +9,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.core.config import settings
 from app.prompts.system_prompt import FORMATTER_SYSTEM_PROMPT
 from app.services.number_formatting import normalize_numbers_pt_br
+from app.services.coffee_payments import HEADING as COFFEE_PAYMENTS_HEADING
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,9 @@ class ResponseFormatter:
         Returns:
             Lista de mensagens formatadas
         """
+        if text.startswith(COFFEE_PAYMENTS_HEADING):
+            return self._split_preservando_linhas(text)
+
         # Limpa links markdown/URLs antes de qualquer processamento
         text = self._limpar_markdown(text)
 

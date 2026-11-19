@@ -951,6 +951,15 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
         self.message_history.add_ai_message(output)
         return output
 
+    async def _process_coffee_payments(self, message: str, *, read_only: bool) -> Optional[str]:
+        from app.services.coffee_payments import handle_query
+
+        output = await handle_query(self, message, read_only=read_only)
+        if output is not None:
+            self.message_history.add_user_message(message)
+            self.message_history.add_ai_message(output)
+        return output
+
     async def process_message(self, message: str) -> str:
         """
         Processa mensagem do usuário
@@ -969,6 +978,10 @@ IMPORTANTE: Siga RIGOROSAMENTE as instruções personalizadas acima ao formatar 
             apl_emp_output = await self._process_apl_emp_query(message, read_only=read_only)
             if apl_emp_output is not None:
                 return apl_emp_output
+
+            coffee_output = await self._process_coffee_payments(message, read_only=read_only)
+            if coffee_output is not None:
+                return coffee_output
 
             # O lote tem estado próprio e é processado antes dos atalhos legados.
             # Assim, confirmação, seleção e retry não dependem de interpretação do LLM.
